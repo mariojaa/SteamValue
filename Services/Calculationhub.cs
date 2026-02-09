@@ -53,7 +53,8 @@ namespace SteamValue.Services
                             name = g.Name,
                             value = g.Price,
                             imageUrl = string.IsNullOrWhiteSpace(g.ImageUrl) ? $"https://cdn.akamai.steamstatic.com/steam/apps/{g.AppId}/header.jpg" : g.ImageUrl,
-                            appId = g.AppId
+                            appId = g.AppId,
+                            playtimeMinutes = g.PlaytimeMinutes
                         }).ToList();
 
                     await Clients.Caller.SendAsync("ReceiveGamesData", gamesData, gamesTotal);
@@ -119,6 +120,43 @@ namespace SteamValue.Services
             }
         }
 
+        // Compute totals for a given steamId (used for friends comparison)
+        public async Task ComputeTotalsForSteamId(string steamId, bool calculateGames, bool calculateInventory)
+        {
+            Func<int, string, Task> progressCallback = async (p, m) =>
+            {
+                try
+                {
+                    await Clients.Caller.SendAsync("UpdateProgress", p, m);
+                }
+                catch { }
+            };
+
+            try
+            {
+                double totalValue = 0;
+
+                if (calculateGames)
+                {
+                    var (gamesTotal, _) = await _steamService.CalculateGamesValueAsync(steamId, progressCallback);
+                    totalValue += gamesTotal;
+                }
+
+                if (calculateInventory)
+                {
+                    var (invTotal, _) = await _steamService.CalculateInventoryValueAsync(steamId, 730, "CS2", progressCallback);
+                    totalValue += invTotal;
+                    // Note: inventory for other apps omitted for quick friend compare
+                }
+
+                await Clients.Caller.SendAsync("ReceiveFriendTotal", steamId, totalValue);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
         // Métodos auxiliares para extrair nome e valor
         private string ExtractGameName(string gameString)
         {
@@ -150,6 +188,76 @@ namespace SteamValue.Services
                 return double.Parse(parts[1].Trim());
             }
             return 0;
+        }
+
+        // Novos métodos para recursos adicionais
+        public async Task GetProfileSummary(string profileUrl)
+        {
+            try
+            {
+                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
+                var summary = await _steamService.GetPlayerSummariesAsync(steamId);
+                await Clients.Caller.SendAsync("ReceiveProfileSummary", summary);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        public async Task GetFriends(string profileUrl)
+        {
+            try
+            {
+                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
+                var friends = await _steamService.GetFriendListAsync(steamId);
+                await Clients.Caller.SendAsync("ReceiveFriends", friends);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        public async Task GetSnapshots(string profileUrl)
+        {
+            try
+            {
+                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
+                var snaps = _steamService.GetAccountSnapshots(steamId);
+                await Clients.Caller.SendAsync("ReceiveSnapshots", snaps);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        public async Task GetAchievements(string profileUrl, int appId)
+        {
+            try
+            {
+                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
+                var percent = await _steamService.GetPlayerAchievementPercentageAsync(steamId, appId);
+                await Clients.Caller.SendAsync("ReceiveAchievements", appId, percent);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        public async Task GetMarketOverview(int appId, string marketHashName)
+        {
+            try
+            {
+                var price = await _steamService.GetMarketPriceOverviewAsync(marketHashName, appId);
+                await Clients.Caller.SendAsync("ReceiveMarketOverview", appId, marketHashName, price);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
         }
     }
 }

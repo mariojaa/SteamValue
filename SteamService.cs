@@ -2,11 +2,16 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 
 public class SteamService
 {
     private readonly HttpClient _httpClient;
+    private readonly MemoryCache _cache = new(new MemoryCacheOptions());
     private const string SteamApiKey = "F4CAED645F0A7B3087195DDD23F74BA0";
+
+    // Simple in-memory snapshots of account total over time (steamId => list of snapshots)
+    private readonly Dictionary<string, List<(DateTime time, double total)>> _accountSnapshots = new();
 
     public SteamService(HttpClient httpClient)
     {
@@ -17,6 +22,23 @@ public class SteamService
         _httpClient.DefaultRequestHeaders.AcceptLanguage.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("pt-BR", 0.9));
         _httpClient.DefaultRequestHeaders.AcceptLanguage.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("en-US", 0.8));
         _httpClient.DefaultRequestHeaders.AcceptLanguage.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("en", 0.7));
+    }
+
+    private async Task<HttpResponseMessage> SendGetWithRetriesAsync(string url, int retries = 2)
+    {
+        for (int i = 0; i <= retries; i++)
+        {
+            try
+            {
+                var resp = await _httpClient.GetAsync(url);
+                return resp;
+            }
+            catch when (i < retries)
+            {
+                await Task.Delay(500 * (i + 1));
+            }
+        }
+        throw new HttpRequestException("Failed to GET " + url);
     }
 
     public async Task<string> ResolveSteamIdAsync(string profileUrl, Func<int, string, Task>? progressCallback = null)
@@ -34,7 +56,7 @@ public class SteamService
             throw new ArgumentException("URL de perfil inválida");
         }
         var vanity = match.Groups[1].Value;
-        var response = await _httpClient.GetAsync($"https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key={SteamApiKey}&vanityurl={vanity}");
+        var response = await SendGetWithRetriesAsync($"https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key={SteamApiKey}&vanityurl={vanity}");
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync();
         JsonElement data;
@@ -55,9 +77,30 @@ public class SteamService
         return steamid.GetString()!;
     }
 
+    public async Task<JsonElement?> GetPlayerSummariesAsync(string steamId)
+    {
+        var cacheKey = $"playersummaries:{steamId}";
+        if (_cache.TryGetValue(cacheKey, out JsonElement cached)) return cached;
+        var url = $"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={SteamApiKey}&steamids={steamId}";
+        var resp = await SendGetWithRetriesAsync(url);
+        if (!resp.IsSuccessStatusCode) return null;
+        var json = await resp.Content.ReadAsStringAsync();
+        JsonElement data;
+        try
+        {
+            data = JsonSerializer.Deserialize<JsonElement>(json);
+        }
+        catch
+        {
+            return null;
+        }
+        _cache.Set(cacheKey, data, TimeSpan.FromMinutes(10));
+        return data;
+    }
+
     public async Task<List<Game>> GetOwnedGamesAsync(string steamId)
     {
-        var response = await _httpClient.GetAsync($"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={SteamApiKey}&steamid={steamId}&include_appinfo=true");
+        var response = await SendGetWithRetriesAsync($"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={SteamApiKey}&steamid={steamId}&include_appinfo=true&include_played_free_games=true");
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync();
         JsonElement data;
@@ -76,20 +119,28 @@ public class SteamService
         {
             if (game.TryGetProperty("appid", out var appid) && game.TryGetProperty("name", out var name))
             {
+                int playtime = 0;
+                if (game.TryGetProperty("playtime_forever", out var pt))
+                {
+                    playtime = pt.ValueKind == JsonValueKind.Number ? pt.GetInt32() : 0;
+                }
                 list.Add(new Game
                 {
                     AppId = appid.GetInt32(),
-                    Name = name.GetString()!
+                    Name = name.GetString()!,
+                    PlaytimeMinutes = playtime
                 });
             }
         }
         return list;
     }
 
-    // Novo método: obtém preço e imagem do app
+    // Get app details (cached)
     public async Task<(double price, string imageUrl)> GetAppDetailsAsync(int appId)
     {
-        var response = await _httpClient.GetAsync($"https://store.steampowered.com/api/appdetails?appids={appId}&cc=br&l=pt");
+        var cacheKey = $"appdetails:{appId}";
+        if (_cache.TryGetValue(cacheKey, out (double, string) cached)) return cached;
+        var response = await SendGetWithRetriesAsync($"https://store.steampowered.com/api/appdetails?appids={appId}&cc=br&l=pt");
         if (!response.IsSuccessStatusCode) return (0.0, string.Empty);
         var json = await response.Content.ReadAsStringAsync();
         JsonElement data;
@@ -120,12 +171,15 @@ public class SteamService
             imageUrl = headerImg.GetString() ?? string.Empty;
         }
 
+        _cache.Set(cacheKey, (price, imageUrl), TimeSpan.FromHours(6));
         return (price, imageUrl);
     }
 
-    public async Task<double> GetGamePriceAsync(int appId)
+    public async Task<double> GetMarketPriceAsync(string name, int appId)
     {
-        var response = await _httpClient.GetAsync($"https://store.steampowered.com/api/appdetails?appids={appId}&cc=br&l=pt");
+        var cacheKey = $"marketprice:{appId}:{name}";
+        if (_cache.TryGetValue(cacheKey, out double cachedPrice)) return cachedPrice;
+        var response = await SendGetWithRetriesAsync($"https://steamcommunity.com/market/priceoverview/?appid={appId}&currency=7&market_hash_name={Uri.EscapeDataString(name)}");
         if (!response.IsSuccessStatusCode) return 0.0;
         var json = await response.Content.ReadAsStringAsync();
         JsonElement data;
@@ -137,14 +191,23 @@ public class SteamService
         {
             return 0.0;
         }
-        if (!data.TryGetProperty(appId.ToString(), out var app)) return 0.0;
-        if (!app.TryGetProperty("success", out var success)) return 0.0;
-        bool successBool = success.ValueKind == JsonValueKind.True || (success.ValueKind == JsonValueKind.Number && success.GetInt32() == 1);
-        if (!successBool) return 0.0;
-        if (!app.TryGetProperty("data", out var appData)) return 0.0;
-        if (!appData.TryGetProperty("price_overview", out var priceOverview)) return 0.0;
-        if (!priceOverview.TryGetProperty("final", out var final)) return 0.0;
-        return final.GetDouble() / 100;
+        string? priceStr = null;
+        if (data.TryGetProperty("lowest_price", out var lowest))
+        {
+            priceStr = lowest.GetString();
+        }
+        if (string.IsNullOrEmpty(priceStr) && data.TryGetProperty("median_price", out var median))
+        {
+            priceStr = median.GetString();
+        }
+        if (string.IsNullOrEmpty(priceStr)) return 0.0;
+        priceStr = priceStr.Replace("R$", "").Replace(".", "").Replace(",", ".").Trim();
+        if (double.TryParse(priceStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result))
+        {
+            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
+            return result;
+        }
+        return 0.0;
     }
 
     public async Task<(double total, List<Game> games)> CalculateGamesValueAsync(string steamId, Func<int, string, Task>? progressCallback = null)
@@ -165,6 +228,12 @@ public class SteamService
             if (progressCallback != null) await progressCallback(20 + (i * 30 / Math.Max(games.Count, 1)), $"Calculando preço de {game.Name}...");
             await Task.Delay(600);
         }
+        // snapshot total for history
+        lock (_accountSnapshots)
+        {
+            if (!_accountSnapshots.ContainsKey(steamId)) _accountSnapshots[steamId] = new List<(DateTime, double)>();
+            _accountSnapshots[steamId].Add((DateTime.UtcNow, total));
+        }
         if (progressCallback != null) await progressCallback(50, "Jogos calculados");
         return (total, resultGames);
     }
@@ -172,7 +241,7 @@ public class SteamService
     public async Task<JsonElement?> GetInventoryAsync(string steamId, int appId, int contextId = 2)
     {
         var url = $"https://steamcommunity.com/inventory/{steamId}/{appId}/{contextId}";
-        var response = await _httpClient.GetAsync(url);
+        var response = await SendGetWithRetriesAsync(url);
         if (response.StatusCode != System.Net.HttpStatusCode.OK)
         {
             return null;
@@ -200,39 +269,35 @@ public class SteamService
         return data;
     }
 
-    public async Task<double> GetMarketPriceAsync(string name, int appId)
+    public async Task<double> GetPlayerAchievementPercentageAsync(string steamId, int appId)
     {
-        var response = await _httpClient.GetAsync($"https://steamcommunity.com/market/priceoverview/?appid={appId}&currency=7&market_hash_name={Uri.EscapeDataString(name)}");
-        if (!response.IsSuccessStatusCode) return 0.0;
-        var json = await response.Content.ReadAsStringAsync();
-        JsonElement data;
+        var resp = await SendGetWithRetriesAsync($"https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key={SteamApiKey}&steamid={steamId}&appid={appId}");
+        if (!resp.IsSuccessStatusCode) return 0.0;
+        var json = await resp.Content.ReadAsStringAsync();
         try
         {
-            data = JsonSerializer.Deserialize<JsonElement>(json);
+            var doc = JsonSerializer.Deserialize<JsonElement>(json);
+            if (doc.TryGetProperty("playerstats", out var ps) && ps.TryGetProperty("achievements", out var ach))
+            {
+                int total = 0; int unlocked = 0;
+                foreach (var a in ach.EnumerateArray())
+                {
+                    total++;
+                    if (a.TryGetProperty("achieved", out var ac) && ac.ValueKind == JsonValueKind.Number && ac.GetInt32() == 1) unlocked++;
+                }
+                if (total == 0) return 0.0;
+                return (double)unlocked / total * 100.0;
+            }
         }
-        catch
-        {
-            return 0.0;
-        }
-        string? priceStr = null;
-        if (data.TryGetProperty("lowest_price", out var lowest))
-        {
-            priceStr = lowest.GetString();
-        }
-        if (string.IsNullOrEmpty(priceStr) && data.TryGetProperty("median_price", out var median))
-        {
-            priceStr = median.GetString();
-        }
-        if (string.IsNullOrEmpty(priceStr)) return 0.0;
-        priceStr = priceStr.Replace("R$", "").Replace(".", "").Replace(",", ".").Trim();
-        if (double.TryParse(priceStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result))
-        {
-            return result;
-        }
+        catch { }
         return 0.0;
     }
 
-    // Updated: return structured inventory items instead of text lines
+    public async Task<double> GetMarketPriceOverviewAsync(string marketHashName, int appId)
+    {
+        return await GetMarketPriceAsync(marketHashName, appId);
+    }
+
     public async Task<(double total, List<InventoryItem> items)> CalculateInventoryValueAsync(string steamId, int appId, string name, Func<int, string, Task>? progressCallback = null)
     {
         var itemsList = new List<InventoryItem>();
@@ -315,11 +380,44 @@ public class SteamService
 
     private string BuildInventoryImageUrl(string icon)
     {
+        if (string.IsNullOrWhiteSpace(icon)) return string.Empty;
         // Some icon_url values are already full URLs, others are relative paths used with Steam CDN.
         if (icon.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return icon;
-        // Remove leading slashes
         icon = icon.TrimStart('/');
         return $"https://steamcommunity-a.akamaihd.net/economy/image/{icon}";
+    }
+
+    public async Task<List<string>> GetFriendListAsync(string steamId)
+    {
+        var cacheKey = $"friends:{steamId}";
+        if (_cache.TryGetValue(cacheKey, out List<string> cached)) return cached;
+        var resp = await SendGetWithRetriesAsync($"https://api.steampowered.com/ISteamUser/GetFriendList/v1/?key={SteamApiKey}&steamid={steamId}&relationship=all");
+        if (!resp.IsSuccessStatusCode) return new List<string>();
+        var json = await resp.Content.ReadAsStringAsync();
+        try
+        {
+            var doc = JsonSerializer.Deserialize<JsonElement>(json);
+            var list = new List<string>();
+            if (doc.TryGetProperty("friendslist", out var fl) && fl.TryGetProperty("friends", out var friends))
+            {
+                foreach (var f in friends.EnumerateArray())
+                {
+                    if (f.TryGetProperty("steamid", out var sid)) list.Add(sid.GetString()!);
+                }
+            }
+            _cache.Set(cacheKey, list, TimeSpan.FromMinutes(10));
+            return list;
+        }
+        catch { return new List<string>(); }
+    }
+
+    public List<(DateTime time, double total)> GetAccountSnapshots(string steamId)
+    {
+        lock (_accountSnapshots)
+        {
+            if (!_accountSnapshots.ContainsKey(steamId)) return new List<(DateTime, double)>();
+            return _accountSnapshots[steamId].ToList();
+        }
     }
 }
 
@@ -329,6 +427,8 @@ public class Game
     public string Name { get; set; } = "";
     public double Price { get; set; }
     public string ImageUrl { get; set; } = "";
+    // playtime in minutes
+    public int PlaytimeMinutes { get; set; }
 }
 
 public class InventoryItem
