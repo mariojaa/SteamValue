@@ -86,6 +86,43 @@ public class SteamService
         return list;
     }
 
+    // Novo método: obtém preço e imagem do app
+    public async Task<(double price, string imageUrl)> GetAppDetailsAsync(int appId)
+    {
+        var response = await _httpClient.GetAsync($"https://store.steampowered.com/api/appdetails?appids={appId}&cc=br&l=pt");
+        if (!response.IsSuccessStatusCode) return (0.0, string.Empty);
+        var json = await response.Content.ReadAsStringAsync();
+        JsonElement data;
+        try
+        {
+            data = JsonSerializer.Deserialize<JsonElement>(json);
+        }
+        catch
+        {
+            return (0.0, string.Empty);
+        }
+        if (!data.TryGetProperty(appId.ToString(), out var app)) return (0.0, string.Empty);
+        if (!app.TryGetProperty("success", out var success)) return (0.0, string.Empty);
+        bool successBool = success.ValueKind == JsonValueKind.True || (success.ValueKind == JsonValueKind.Number && success.GetInt32() == 1);
+        if (!successBool) return (0.0, string.Empty);
+        if (!app.TryGetProperty("data", out var appData)) return (0.0, string.Empty);
+
+        double price = 0.0;
+        string imageUrl = string.Empty;
+
+        if (appData.TryGetProperty("price_overview", out var priceOverview) && priceOverview.TryGetProperty("final", out var final))
+        {
+            price = final.GetDouble() / 100;
+        }
+
+        if (appData.TryGetProperty("header_image", out var headerImg))
+        {
+            imageUrl = headerImg.GetString() ?? string.Empty;
+        }
+
+        return (price, imageUrl);
+    }
+
     public async Task<double> GetGamePriceAsync(int appId)
     {
         var response = await _httpClient.GetAsync($"https://store.steampowered.com/api/appdetails?appids={appId}&cc=br&l=pt");
@@ -110,25 +147,26 @@ public class SteamService
         return final.GetDouble() / 100;
     }
 
-    public async Task<(double total, List<string> lines)> CalculateGamesValueAsync(string steamId, Func<int, string, Task>? progressCallback = null)
+    public async Task<(double total, List<Game> games)> CalculateGamesValueAsync(string steamId, Func<int, string, Task>? progressCallback = null)
     {
         if (progressCallback != null) await progressCallback(15, "Buscando jogos da biblioteca...");
         var games = await GetOwnedGamesAsync(steamId);
         double total = 0.0;
-        var lines = new List<string> { "🎮 Jogos" };
+        var resultGames = new List<Game>();
         int i = 0;
         foreach (var game in games)
         {
-            var price = await GetGamePriceAsync(game.AppId);
+            var (price, imageUrl) = await GetAppDetailsAsync(game.AppId);
+            game.Price = price;
+            game.ImageUrl = imageUrl ?? string.Empty;
             total += price;
-            lines.Add($"{game.Name}: R$ {price:F2}");
+            resultGames.Add(game);
             i++;
             if (progressCallback != null) await progressCallback(20 + (i * 30 / Math.Max(games.Count, 1)), $"Calculando preço de {game.Name}...");
             await Task.Delay(600);
         }
-        lines.Add($"💰 Total jogos: R$ {total:F2}");
         if (progressCallback != null) await progressCallback(50, "Jogos calculados");
-        return (total, lines);
+        return (total, resultGames);
     }
 
     public async Task<JsonElement?> GetInventoryAsync(string steamId, int appId, int contextId = 2)
@@ -261,4 +299,6 @@ public class Game
 {
     public int AppId { get; set; }
     public string Name { get; set; } = "";
+    public double Price { get; set; }
+    public string ImageUrl { get; set; } = "";
 }

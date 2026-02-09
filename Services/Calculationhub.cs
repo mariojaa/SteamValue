@@ -46,13 +46,13 @@ namespace SteamValue.Services
                     var (gamesTotal, gamesList) = await _steamService.CalculateGamesValueAsync(steamId, progressCallback);
                     totalValue += gamesTotal;
 
-                    // Enviar dados dos jogos
+                    // Enviar dados dos jogos (com imagem)
                     var gamesData = gamesList
-                        .Where(g => g.Contains(": R$ ") && !g.StartsWith("🎮") && !g.StartsWith("💰"))
                         .Select(g => new
                         {
-                            name = ExtractGameName(g),
-                            value = ExtractGameValue(g)
+                            name = g.Name,
+                            value = g.Price,
+                            imageUrl = string.IsNullOrWhiteSpace(g.ImageUrl) ? $"https://cdn.akamai.steamstatic.com/steam/apps/{g.AppId}/header.jpg" : g.ImageUrl
                         }).ToList();
 
                     await Clients.Caller.SendAsync("ReceiveGamesData", gamesData, gamesTotal);

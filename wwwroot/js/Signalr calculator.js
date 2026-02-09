@@ -155,8 +155,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'item';
                 itemEl.innerHTML = `
-                    <span class="item-name">${escapeHtml(item.name)}</span>
-                    <span class="item-value">R$ ${item.value.toFixed(2)}</span>
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <img src="${escapeHtml(item.imageUrl || ('https://cdn.akamai.steamstatic.com/steam/apps/' + item.appId + '/header.jpg'))}" alt="${escapeHtml(item.name)}" style="width:64px;height:36px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.04)"/>
+                        <div>
+                            <div class="item-name">${escapeHtml(item.name)}</div>
+                            <div class="item-value">R$ ${Number(item.value).toFixed(2)}</div>
+                        </div>
+                    </div>
                 `;
                 gamesList.appendChild(itemEl);
             }, index * 50);
@@ -193,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 itemEl.className = 'item';
                 itemEl.innerHTML = `
                     <span class="item-name">${escapeHtml(item.name)}</span>
-                    <span class="item-value">R$ ${item.value.toFixed(2)}</span>
+                    <span class="item-value">R$ ${Number(item.value).toFixed(2)}</span>
                 `;
                 inventoryList.appendChild(itemEl);
             }, index * 50);
@@ -207,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function () {
         totalSection.className = 'total-value';
         totalSection.innerHTML = `
             <div class="total-label">💰 Valor Total da Conta</div>
-            <div class="total-amount">R$ ${total.toFixed(2)}</div>
+            <div class="total-amount">R$ ${Number(total).toFixed(2)}</div>
         `;
         resultsContent.appendChild(totalSection);
     }
