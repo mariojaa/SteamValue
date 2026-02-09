@@ -196,9 +196,18 @@ document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'item';
+
+                // Render image if available
+                const imgHtml = item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.name)}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.04)"/>` : '';
+
                 itemEl.innerHTML = `
-                    <span class="item-name">${escapeHtml(item.name)}</span>
-                    <span class="item-value">R$ ${Number(item.value).toFixed(2)}</span>
+                    <div style="display:flex;align-items:center;gap:12px">
+                        ${imgHtml}
+                        <div>
+                            <div class="item-name">${escapeHtml(item.name)}</div>
+                            <div class="item-value">R$ ${Number(item.value).toFixed(2)}</div>
+                        </div>
+                    </div>
                 `;
                 inventoryList.appendChild(itemEl);
             }, index * 50);

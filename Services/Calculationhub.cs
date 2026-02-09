@@ -52,7 +52,8 @@ namespace SteamValue.Services
                         {
                             name = g.Name,
                             value = g.Price,
-                            imageUrl = string.IsNullOrWhiteSpace(g.ImageUrl) ? $"https://cdn.akamai.steamstatic.com/steam/apps/{g.AppId}/header.jpg" : g.ImageUrl
+                            imageUrl = string.IsNullOrWhiteSpace(g.ImageUrl) ? $"https://cdn.akamai.steamstatic.com/steam/apps/{g.AppId}/header.jpg" : g.ImageUrl,
+                            appId = g.AppId
                         }).ToList();
 
                     await Clients.Caller.SendAsync("ReceiveGamesData", gamesData, gamesTotal);
@@ -67,11 +68,11 @@ namespace SteamValue.Services
                     totalValue += cs2Total;
 
                     var cs2Data = cs2List
-                        .Where(item => item.Contains(": R$ ") && !item.StartsWith("📦") && !item.StartsWith("💰"))
                         .Select(item => new
                         {
-                            name = ExtractItemName(item),
-                            value = ExtractItemValue(item)
+                            name = item.Name,
+                            value = item.Price,
+                            imageUrl = item.ImageUrl
                         }).ToList();
 
                     await Clients.Caller.SendAsync("ReceiveInventoryData", "CS2", cs2Data, cs2Total);
@@ -82,11 +83,11 @@ namespace SteamValue.Services
                     totalValue += dota2Total;
 
                     var dota2Data = dota2List
-                        .Where(item => item.Contains(": R$ ") && !item.StartsWith("📦") && !item.StartsWith("💰"))
                         .Select(item => new
                         {
-                            name = ExtractItemName(item),
-                            value = ExtractItemValue(item)
+                            name = item.Name,
+                            value = item.Price,
+                            imageUrl = item.ImageUrl
                         }).ToList();
 
                     await Clients.Caller.SendAsync("ReceiveInventoryData", "Dota 2", dota2Data, dota2Total);
@@ -97,11 +98,11 @@ namespace SteamValue.Services
                     totalValue += tf2Total;
 
                     var tf2Data = tf2List
-                        .Where(item => item.Contains(": R$ ") && !item.StartsWith("📦") && !item.StartsWith("💰"))
                         .Select(item => new
                         {
-                            name = ExtractItemName(item),
-                            value = ExtractItemValue(item)
+                            name = item.Name,
+                            value = item.Price,
+                            imageUrl = item.ImageUrl
                         }).ToList();
 
                     await Clients.Caller.SendAsync("ReceiveInventoryData", "TF2", tf2Data, tf2Total);

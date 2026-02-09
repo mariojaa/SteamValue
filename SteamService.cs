@@ -232,16 +232,16 @@ public class SteamService
         return 0.0;
     }
 
-    public async Task<(double total, List<string> lines)> CalculateInventoryValueAsync(string steamId, int appId, string name, Func<int, string, Task>? progressCallback = null)
+    // Updated: return structured inventory items instead of text lines
+    public async Task<(double total, List<InventoryItem> items)> CalculateInventoryValueAsync(string steamId, int appId, string name, Func<int, string, Task>? progressCallback = null)
     {
-        var lines = new List<string> { $"📦 {name}" };
+        var itemsList = new List<InventoryItem>();
         var inv = await GetInventoryAsync(steamId, appId);
         if (inv == null)
         {
-            lines.Add("Inventário privado ou indisponível");
-            return (0.0, lines);
+            return (0.0, itemsList);
         }
-        if (!inv.Value.TryGetProperty("descriptions", out var descriptionsElement)) return (0.0, lines);
+        if (!inv.Value.TryGetProperty("descriptions", out var descriptionsElement)) return (0.0, itemsList);
         var descriptions = new Dictionary<long, JsonElement>();
         foreach (var desc in descriptionsElement.EnumerateArray())
         {
@@ -260,7 +260,7 @@ public class SteamService
                 descriptions[cid] = desc;
             }
         }
-        if (!inv.Value.TryGetProperty("assets", out var assetsElement)) return (0.0, lines);
+        if (!inv.Value.TryGetProperty("assets", out var assetsElement)) return (0.0, itemsList);
         double total = 0.0;
         var assets = assetsElement.EnumerateArray().ToList();
         int j = 0;
@@ -283,21 +283,56 @@ public class SteamService
             if (!isMarketable) continue;
             if (!desc.TryGetProperty("market_hash_name", out var itemName)) continue;
             var itemNameStr = itemName.GetString()!;
+
+            // try to get icon url from description
+            string imageUrl = string.Empty;
+            if (desc.TryGetProperty("icon_url_large", out var iconLarge) && iconLarge.ValueKind == JsonValueKind.String)
+            {
+                var icon = iconLarge.GetString() ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(icon))
+                {
+                    imageUrl = BuildInventoryImageUrl(icon);
+                }
+            }
+            else if (desc.TryGetProperty("icon_url", out var icon) && icon.ValueKind == JsonValueKind.String)
+            {
+                var iconStr = icon.GetString() ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(iconStr))
+                {
+                    imageUrl = BuildInventoryImageUrl(iconStr);
+                }
+            }
+
             var price = await GetMarketPriceAsync(itemNameStr, appId);
             total += price;
-            lines.Add($"{itemNameStr}: R$ {price:F2}");
+            itemsList.Add(new InventoryItem { Name = itemNameStr, Price = price, ImageUrl = imageUrl });
             j++;
             if (progressCallback != null) await progressCallback(50 + (j * 40 / Math.Max(assets.Count, 1)), $"Calculando preço de {itemNameStr}...");
             await Task.Delay(1000);
         }
-        lines.Add($"💰 Total {name}: R$ {total:F2}");
-        return (total, lines);
+        return (total, itemsList);
+    }
+
+    private string BuildInventoryImageUrl(string icon)
+    {
+        // Some icon_url values are already full URLs, others are relative paths used with Steam CDN.
+        if (icon.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return icon;
+        // Remove leading slashes
+        icon = icon.TrimStart('/');
+        return $"https://steamcommunity-a.akamaihd.net/economy/image/{icon}";
     }
 }
 
 public class Game
 {
     public int AppId { get; set; }
+    public string Name { get; set; } = "";
+    public double Price { get; set; }
+    public string ImageUrl { get; set; } = "";
+}
+
+public class InventoryItem
+{
     public string Name { get; set; } = "";
     public double Price { get; set; }
     public string ImageUrl { get; set; } = "";
