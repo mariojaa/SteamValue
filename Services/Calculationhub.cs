@@ -46,12 +46,12 @@ namespace SteamValue.Services
                     var (gamesTotal, gamesList) = await _steamService.CalculateGamesValueAsync(steamId, progressCallback);
                     totalValue += gamesTotal;
 
-                    // Enviar dados dos jogos (com imagem)
+                    // Enviar dados dos jogos (com imagem) — usar propriedade `price` para consistência
                     var gamesData = gamesList
                         .Select(g => new
                         {
                             name = g.Name,
-                            value = g.Price,
+                            price = g.Price,
                             imageUrl = string.IsNullOrWhiteSpace(g.ImageUrl) ? $"https://cdn.akamai.steamstatic.com/steam/apps/{g.AppId}/header.jpg" : g.ImageUrl,
                             appId = g.AppId,
                             playtimeMinutes = g.PlaytimeMinutes
@@ -72,8 +72,9 @@ namespace SteamValue.Services
                         .Select(item => new
                         {
                             name = item.Name,
-                            value = item.Price,
-                            imageUrl = item.ImageUrl
+                            price = item.Price,
+                            imageUrl = string.IsNullOrWhiteSpace(item.ImageUrl) ? string.Empty : item.ImageUrl,
+                            appId = 730
                         }).ToList();
 
                     await Clients.Caller.SendAsync("ReceiveInventoryData", "CS2", cs2Data, cs2Total);
@@ -87,8 +88,9 @@ namespace SteamValue.Services
                         .Select(item => new
                         {
                             name = item.Name,
-                            value = item.Price,
-                            imageUrl = item.ImageUrl
+                            price = item.Price,
+                            imageUrl = string.IsNullOrWhiteSpace(item.ImageUrl) ? string.Empty : item.ImageUrl,
+                            appId = 570
                         }).ToList();
 
                     await Clients.Caller.SendAsync("ReceiveInventoryData", "Dota 2", dota2Data, dota2Total);
@@ -102,8 +104,9 @@ namespace SteamValue.Services
                         .Select(item => new
                         {
                             name = item.Name,
-                            value = item.Price,
-                            imageUrl = item.ImageUrl
+                            price = item.Price,
+                            imageUrl = string.IsNullOrWhiteSpace(item.ImageUrl) ? string.Empty : item.ImageUrl,
+                            appId = 440
                         }).ToList();
 
                     await Clients.Caller.SendAsync("ReceiveInventoryData", "TF2", tf2Data, tf2Total);

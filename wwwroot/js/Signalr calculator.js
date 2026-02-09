@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Helper mapping for game name -> appId (for market overview)
     const gameAppIdMap = { 'CS2': 730, 'Dota 2': 570, 'TF2': 440 };
 
+    // small placeholder image for items without image
+    const placeholderImage = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="100%" height="100%" fill="%23222" rx="6"/><text x="50%" y="50%" fill="%23fff" font-size="9" font-family="Arial" text-anchor="middle" alignment-baseline="central">Item</text></svg>';
+
     // Configurar conexão SignalR
     function setupSignalR() {
         connection = new signalR.HubConnectionBuilder()
@@ -54,13 +57,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         connection.on("ReceiveGamesData", (games, total) => {
-            // games is array of {name,value,imageUrl,appId,playtimeMinutes}
+            console.debug('ReceiveGamesData', games, total);
+            // games is array of {name,value/price,imageUrl,appId,playtimeMinutes}
             latestGames = games || [];
             renderGames();
             totalValue += total || 0;
         });
 
         connection.on("ReceiveInventoryData", (game, items, total) => {
+            console.debug('ReceiveInventoryData for', game, items, total);
             latestInventories[game] = items || [];
             renderInventorySection(game, items || []);
             totalValue += total || 0;
@@ -98,7 +103,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // append or update friend total UI
             const el = document.querySelector(`[data-friend='${steamId}']`);
             if (el) {
-                el.querySelector('.friend-total').textContent = `R$ ${Number(total).toFixed(2)}`;
+                const ft = el.querySelector('.friend-total');
+                if (ft) ft.textContent = `R$ ${Number(total).toFixed(2)}`;
             }
         });
 
@@ -205,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
     btnExportCsv.addEventListener('click', () => {
         if (!latestGames || latestGames.length === 0) return showError('Nenhum jogo para exportar');
         const rows = [['AppId', 'Name', 'PlaytimeMinutes', 'Price']];
-        latestGames.forEach(g => rows.push([g.appId, g.name, g.playtimeMinutes || 0, Number(g.value).toFixed(2)]));
+        latestGames.forEach(g => rows.push([g.appId || g.AppId, g.name || g.Name, g.playtimeMinutes || g.playtimeMinutes || 0, Number((g.price !== undefined ? g.price : g.value) || 0).toFixed(2)]));
         const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -255,34 +261,39 @@ document.addEventListener('DOMContentLoaded', function () {
         let items = Array.from(latestGames);
         const maxVal = parseFloat(filterMaxValue.value || '0');
         if (!isNaN(maxVal) && maxVal > 0) {
-            items = items.filter(i => Number(i.value) <= maxVal);
+            items = items.filter(i => Number((i.value !== undefined ? i.value : i.price) || 0) <= maxVal);
         }
 
         const sort = sortSelect.value;
         items.sort((a, b) => {
-            if (sort === 'value_desc') return Number(b.value) - Number(a.value);
-            if (sort === 'value_asc') return Number(a.value) - Number(b.value);
-            if (sort === 'playtime_desc') return (b.playtimeMinutes || 0) - (a.playtimeMinutes || 0);
-            if (sort === 'name_asc') return String(a.name).localeCompare(String(b.name));
+            const aval = Number((a.value !== undefined ? a.value : a.price) || 0);
+            const bval = Number((b.value !== undefined ? b.value : b.price) || 0);
+            if (sort === 'value_desc') return bval - aval;
+            if (sort === 'value_asc') return aval - bval;
+            if (sort === 'playtime_desc') return (b.playtimeMinutes || b.PlaytimeMinutes || 0) - (a.playtimeMinutes || a.PlaytimeMinutes || 0);
+            if (sort === 'name_asc') return String(a.name || a.Name).localeCompare(String(b.name || b.Name));
             return 0;
         });
 
         items.forEach((item, index) => {
+            const imgUrl = item.imageUrl || item.ImageUrl || ('https://cdn.akamai.steamstatic.com/steam/apps/' + (item.appId || item.AppId) + '/header.jpg') || placeholderImage;
+            const priceVal = Number((item.value !== undefined ? item.value : item.price) || 0);
+
             const itemEl = document.createElement('div');
             itemEl.className = 'item';
             itemEl.innerHTML = `
                 <div style="display:flex;align-items:center;gap:12px">
-                    <img src="${escapeHtml(item.imageUrl || ('https://cdn.akamai.steamstatic.com/steam/apps/' + item.appId + '/header.jpg'))}" alt="${escapeHtml(item.name)}" style="width:64px;height:36px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.04)"/>
+                    <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.name || item.Name)}" style="width:64px;height:36px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.04)"/>
                     <div style="flex:1">
-                        <div class="item-name">${escapeHtml(item.name)}</div>
+                        <div class="item-name">${escapeHtml(item.name || item.Name)}</div>
                         <div style="display:flex;gap:12px;align-items:center;">
-                            <div class="item-value">R$ ${Number(item.value).toFixed(2)}</div>
-                            <div style="color:var(--text-secondary);font-size:0.9rem">Playtime: ${Math.round((item.playtimeMinutes||0)/60)}h</div>
+                            <div class="item-value">R$ ${priceVal.toFixed(2)}</div>
+                            <div style="color:var(--text-secondary);font-size:0.9rem">Playtime: ${Math.round(((item.playtimeMinutes || item.PlaytimeMinutes) || 0)/60)}h</div>
                         </div>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-                        <button class="btn-calculate btn-small" data-appid="${item.appId}" data-name="${escapeHtml(item.name)}">Ver Conquistas</button>
-                        <button class="btn-calculate btn-small" data-appid="${item.appId}" data-name="${escapeHtml(item.name)}">Market</button>
+                        <button class="btn-calculate btn-small" data-appid="${item.appId || item.AppId}" data-name="${escapeHtml(item.name || item.Name)}">Ver Conquistas</button>
+                        <button class="btn-calculate btn-small" data-appid="${item.appId || item.AppId}" data-name="${escapeHtml(item.name || item.Name)}">Market</button>
                     </div>
                 </div>
             `;
@@ -309,49 +320,62 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderInventorySection(game, items) {
+        // ensure results container is visible when only inventory is returned
+        resultsContainer.classList.add('active');
+
         // remove existing inventory section for this game
-        const existing = document.querySelector(`.results-section[data-game='${game}']`);
+        const key = String(game);
+        const existing = document.querySelector(`.results-section[data-game='${key}']`);
         if (existing) existing.remove();
 
         const section = document.createElement('div');
         section.className = 'results-section';
-        section.setAttribute('data-game', game);
+        section.setAttribute('data-game', key);
         section.innerHTML = `
             <div class="results-header">
                 <span class="results-icon">${game === 'CS2' ? '🔫' : game === 'Dota 2' ? '⚔️' : '📦'}</span>
                 <h2 class="results-title">${escapeHtml(game)}</h2>
             </div>
-            <div class="item-list" id="inventoryList${game.replace(/\s/g, '')}"></div>
+            <div class="item-list" id="inventoryList${key.replace(/\s/g, '')}"></div>
         `;
         resultsContent.appendChild(section);
-        const inventoryList = section.querySelector(`#inventoryList${game.replace(/\s/g, '')}`);
+        const inventoryList = section.querySelector(`#inventoryList${key.replace(/\s/g, '')}`);
+
+        // if inventoryList was not found for some reason, abort
+        if (!inventoryList) return;
 
         items.forEach((item, index) => {
             const itemEl = document.createElement('div');
             itemEl.className = 'item';
 
-            const imgHtml = item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.name)}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.04)"/>` : '';
+            const imageUrl = item.imageUrl || item.ImageUrl || '';
+            const name = item.name || item.Name || '';
+            const priceVal = Number((item.price !== undefined ? item.price : item.value) || 0);
+
+            const imgHtml = `<img src="${escapeHtml(imageUrl || placeholderImage)}" alt="${escapeHtml(name)}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.04)"/>`;
 
             itemEl.innerHTML = `
                 <div style="display:flex;align-items:center;gap:12px">
                     ${imgHtml}
                     <div style="flex:1">
-                        <div class="item-name">${escapeHtml(item.name)}</div>
-                        <div class="item-value">R$ ${Number(item.value).toFixed(2)}</div>
+                        <div class="item-name">${escapeHtml(name)}</div>
+                        <div class="item-value">R$ ${priceVal.toFixed(2)}</div>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-                        <button class="btn-calculate btn-small" data-game="${escapeHtml(game)}" data-name="${escapeHtml(item.name)}">Market</button>
+                        <button class="btn-calculate btn-small" data-game="${escapeHtml(game)}" data-name="${escapeHtml(name)}">Market</button>
                     </div>
                 </div>
             `;
 
             const marketBtn = itemEl.querySelector('.btn-calculate');
-            marketBtn.addEventListener('click', () => {
-                const g = marketBtn.getAttribute('data-game');
-                const name = marketBtn.getAttribute('data-name');
-                const appId = gameAppIdMap[g] || 0;
-                connection.invoke('GetMarketOverview', appId, name);
-            });
+            if (marketBtn) {
+                marketBtn.addEventListener('click', () => {
+                    const g = marketBtn.getAttribute('data-game');
+                    const name = marketBtn.getAttribute('data-name');
+                    const appId = gameAppIdMap[g] || 0;
+                    connection.invoke('GetMarketOverview', appId, name);
+                });
+            }
 
             inventoryList.appendChild(itemEl);
         });
