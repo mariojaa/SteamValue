@@ -77,26 +77,29 @@ public class SteamService
         return steamid.GetString()!;
     }
 
-    public async Task<JsonElement?> GetPlayerSummariesAsync(string steamId)
+    public async Task<JsonElement?> GetPlayerSummariesAsync(string steamIds)
     {
-        var cacheKey = $"playersummaries:{steamId}";
+        var cacheKey = $"playersummaries:{steamIds}";
         if (_cache.TryGetValue(cacheKey, out JsonElement cached)) return cached;
-        var url = $"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={SteamApiKey}&steamids={steamId}";
+
+        var url = $"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={SteamApiKey}&steamids={steamIds}";
         var resp = await SendGetWithRetriesAsync(url);
+
         if (!resp.IsSuccessStatusCode) return null;
+
         var json = await resp.Content.ReadAsStringAsync();
-        JsonElement data;
         try
         {
-            data = JsonSerializer.Deserialize<JsonElement>(json);
+            var data = JsonSerializer.Deserialize<JsonElement>(json);
+            _cache.Set(cacheKey, data, TimeSpan.FromMinutes(10));
+            return data;
         }
         catch
         {
             return null;
         }
-        _cache.Set(cacheKey, data, TimeSpan.FromMinutes(10));
-        return data;
     }
+
 
     public async Task<List<Game>> GetOwnedGamesAsync(string steamId)
     {
@@ -178,37 +181,60 @@ public class SteamService
     public async Task<double> GetMarketPriceAsync(string name, int appId)
     {
         var cacheKey = $"marketprice:{appId}:{name}";
-        if (_cache.TryGetValue(cacheKey, out double cachedPrice)) return cachedPrice;
-        var response = await SendGetWithRetriesAsync($"https://steamcommunity.com/market/priceoverview/?appid={appId}&currency=7&market_hash_name={Uri.EscapeDataString(name)}");
-        if (!response.IsSuccessStatusCode) return 0.0;
+        if (_cache.TryGetValue(cacheKey, out double cachedPrice))
+            return cachedPrice;
+
+        var url =
+            $"https://steamcommunity.com/market/priceoverview/?appid={appId}&currency=7&market_hash_name={Uri.EscapeDataString(name)}";
+
+        var response = await SendGetWithRetriesAsync(url);
+        if (!response.IsSuccessStatusCode)
+            return 0.0;
+
         var json = await response.Content.ReadAsStringAsync();
-        JsonElement data;
+
         try
         {
-            data = JsonSerializer.Deserialize<JsonElement>(json);
+            var data = JsonSerializer.Deserialize<JsonElement>(json);
+
+            if (!data.TryGetProperty("success", out var success) ||
+                success.ValueKind != JsonValueKind.True)
+                return 0.0;
+
+            string? priceStr = null;
+
+            if (data.TryGetProperty("lowest_price", out var lowest))
+                priceStr = lowest.GetString();
+
+            if (string.IsNullOrWhiteSpace(priceStr) &&
+                data.TryGetProperty("median_price", out var median))
+                priceStr = median.GetString();
+
+            if (string.IsNullOrWhiteSpace(priceStr))
+                return 0.0;
+
+            priceStr = priceStr
+                .Replace("R$", "")
+                .Replace(".", "")
+                .Replace(",", ".")
+                .Trim();
+
+            if (!double.TryParse(
+                    priceStr,
+                    System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var price))
+                return 0.0;
+
+            _cache.Set(cacheKey, price, TimeSpan.FromMinutes(30));
+            return price;
         }
         catch
         {
             return 0.0;
         }
-        string? priceStr = null;
-        if (data.TryGetProperty("lowest_price", out var lowest))
-        {
-            priceStr = lowest.GetString();
-        }
-        if (string.IsNullOrEmpty(priceStr) && data.TryGetProperty("median_price", out var median))
-        {
-            priceStr = median.GetString();
-        }
-        if (string.IsNullOrEmpty(priceStr)) return 0.0;
-        priceStr = priceStr.Replace("R$", "").Replace(".", "").Replace(",", ".").Trim();
-        if (double.TryParse(priceStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result))
-        {
-            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
-            return result;
-        }
-        return 0.0;
     }
+
 
     public async Task<(double total, List<Game> games)> CalculateGamesValueAsync(string steamId, Func<int, string, Task>? progressCallback = null)
     {
@@ -418,6 +444,79 @@ public class SteamService
             if (!_accountSnapshots.ContainsKey(steamId)) return new List<(DateTime, double)>();
             return _accountSnapshots[steamId].ToList();
         }
+    }
+
+    public void RecordAccountSnapshot(string steamId, double total)
+    {
+        lock (_accountSnapshots)
+        {
+            if (!_accountSnapshots.ContainsKey(steamId)) _accountSnapshots[steamId] = new List<(DateTime, double)>();
+            _accountSnapshots[steamId].Add((DateTime.UtcNow, total));
+        }
+    }
+
+    // Fast variant to compute only total of games without delays or progress callbacks (used for friends quick compare)
+    public async Task<double> CalculateGamesTotalFastAsync(string steamId)
+    {
+        var games = await GetOwnedGamesAsync(steamId);
+        double total = 0.0;
+
+        // Limit concurrency to avoid rate-limiting from store API
+        var semaphore = new System.Threading.SemaphoreSlim(8);
+        var priceTasks = games.Select(async g =>
+        {
+            await semaphore.WaitAsync();
+            try
+            {
+                double price = 0.0;
+                try
+                {
+                    var (p, _) = await GetAppDetailsAsync(g.AppId);
+                    price = p;
+                }
+                catch
+                {
+                    price = 0.0;
+                }
+
+                // fallback: if store price is zero, try market price overview
+                if (price <= 0)
+                {
+                    try
+                    {
+                        var market = await GetMarketPriceAsync(g.Name, g.AppId);
+                        if (market > 0) price = market;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+
+                return price;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }).ToList();
+
+        var results = await Task.WhenAll(priceTasks);
+        total = results.Sum();
+
+        // record snapshot minimal
+        lock (_accountSnapshots)
+        {
+            _account_snapshots_add(steamId, total);
+        }
+        return total;
+    }
+
+    // helper to add snapshot without duplicating code
+    private void _account_snapshots_add(string steamId, double total)
+    {
+        if (!_accountSnapshots.ContainsKey(steamId)) _accountSnapshots[steamId] = new List<(DateTime, double)>();
+        _accountSnapshots[steamId].Add((DateTime.UtcNow, total));
     }
 }
 

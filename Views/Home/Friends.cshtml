@@ -1,0 +1,692 @@
+﻿@model CalculateViewModel
+@{
+    ViewData["Title"] = "Steam Value Calculator - Amigos";
+}
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Value Calculator - Amigos</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/%40microsoft/signalr%40latest/dist/browser/signalr.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1b2838 0%, #2a475e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #c7d5e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+            .header h1 {
+                color: #66c0f4;
+                font-size: 28px;
+                margin-bottom: 15px;
+            }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        #profileUrl {
+            flex: 1;
+            min-width: 300px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: #c7d5e0;
+            font-size: 14px;
+        }
+
+            #profileUrl::placeholder {
+                color: rgba(199, 213, 224, 0.5);
+            }
+
+        .btn {
+            background: linear-gradient(90deg, #06BFFF, #2D73FF);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(6, 191, 255, 0.4);
+            }
+
+            .btn:active {
+                transform: translateY(0);
+            }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+        }
+
+            .controls label {
+                color: #66c0f4;
+                font-weight: 600;
+                font-size: 12px;
+                text-transform: uppercase;
+            }
+
+            .controls select,
+            .controls input[type="text"] {
+                padding: 8px 12px;
+                background: rgba(0, 0, 0, 0.4);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 4px;
+                color: #c7d5e0;
+                font-size: 14px;
+            }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+        }
+
+        @@media (max-width: 1024px) {
+            .main-content
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        }
+
+        .profile-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: fit-content;
+        }
+
+        .profile-header {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 4px;
+            border: 2px solid #66c0f4;
+        }
+
+        .profile-header h2 {
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .profile-header p {
+            color: #67c1f5;
+            font-size: 13px;
+        }
+
+        .profile-details {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+            .profile-details p {
+                margin-bottom: 10px;
+                font-size: 14px;
+                display: flex;
+                justify-content: space-between;
+            }
+
+                .profile-details p:last-child {
+                    margin-bottom: 0;
+                }
+
+            .profile-details strong {
+                color: #66c0f4;
+            }
+
+        .friends-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+            .friends-section h2 {
+                color: #66c0f4;
+                font-size: 20px;
+                margin-bottom: 10px;
+            }
+
+        #friendsCount {
+            display: block;
+            color: rgba(199, 213, 224, 0.7);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        #friendsList {
+            max-height: 600px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+            #friendsList::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            #friendsList::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.2);
+                border-radius: 4px;
+            }
+
+            #friendsList::-webkit-scrollbar-thumb {
+                background: rgba(102, 192, 244, 0.3);
+                border-radius: 4px;
+            }
+
+                #friendsList::-webkit-scrollbar-thumb:hover {
+                    background: rgba(102, 192, 244, 0.5);
+                }
+
+        .friend-card {
+            background: linear-gradient(135deg, rgba(27, 40, 56, 0.6), rgba(42, 71, 94, 0.4));
+            border-radius: 6px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+            .friend-card:hover {
+                transform: translateX(5px);
+                border-color: rgba(102, 192, 244, 0.3);
+            }
+
+        .friend-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .friend-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+            .friend-info > div:first-child {
+                font-weight: 600;
+                color: #fff;
+                margin-bottom: 5px;
+                font-size: 15px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .friend-info > div:not(:first-child) {
+                font-size: 13px;
+                color: rgba(199, 213, 224, 0.8);
+                margin-bottom: 3px;
+            }
+
+        .friend-value {
+            text-align: right;
+            margin-right: 10px;
+        }
+
+        .friend-value-amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .compare-btn {
+            background: linear-gradient(90deg, #ff6b00, #ff8f00);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            white-space: nowrap;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+            .compare-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(255, 107, 0, 0.4);
+            }
+
+            .compare-btn:active {
+                transform: translateY(0);
+            }
+
+        .loading {
+            color: #66c0f4;
+            font-style: italic;
+        }
+
+        .error {
+            color: #ff6b6b;
+        }
+
+        .success {
+            color: #51cf66;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="header">
+            <h1>🎮 Steam Value Calculator</h1>
+
+            <div class="search-bar">
+                <input type="text"
+                       id="profileUrl"
+                       placeholder="Cole a URL do perfil Steam (ex: https://steamcommunity.com/id/seu-perfil)"
+                       value="@(ViewData["ProfileUrl"] as string ?? "")">
+                <button class="btn" onclick="loadProfile()">CARREGAR PERFIL</button>
+            </div>
+
+            <div class="controls">
+                <label>ORDENAR POR:</label>
+                <select id="sortSelect" onchange="renderFriendsList()">
+                    <option value="value">Valor (maior → menor)</option>
+                    <option value="name">Nome (A → Z)</option>
+                </select>
+
+                <label>FILTRAR VALOR MAX (R$):</label>
+                <input type="text" id="filterValue" placeholder="Ex: 1000" oninput="renderFriendsList()">
+
+                <button class="btn" onclick="applyFilters()">APLICAR FILTROS</button>
+            </div>
+        </div>
+
+        <div class="main-content"
+
+        >
+
+            <div class="profile-card">
+                <div class="profile-header">
+                    <img id="profileAvatar" class="profile-avatar" src="https://via.placeholder.com/80?text=Steam" alt="Avatar">
+                    <div>
+                        <h2 id="profileName">Aguardando...</h2>
+                        <p id="profileStatus">Digite uma URL acima</p>
+                    </div>
+                </div>
+
+                <div class="profile-details">
+                    <p><strong>País:</strong> <span id="profileCountry">-</span></p>
+                    <p><strong>Último login:</strong> <span id="profileLastLogin">-</span></p>
+                    <p><strong>Total de jogos:</strong> <span id="profileGames">-</span></p>
+                    <p><strong>Valor da conta:</strong> <span id="profileValue" class="loading">-</span></p>
+                </div>
+            </div>
+
+            <div class="friends-section">
+                <h2>👥 LISTA DE AMIGOS</h2>
+                <span id="friendsCount">0 amigos carregados</span>
+                <div id="friendsList">
+                    <p style="text-align: center; color: rgba(199, 213, 224, 0.5); padding: 40px;">
+                        Carregue um perfil para visualizar os amigos
+                    </p>
+                </div>
+                <button class="btn" onclick="compareAll()" style="width: 100%;">CALCULAR TODOS OS VALORES</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let latestFriends = [];
+        let connection = null;
+
+        // Initialize SignalR connection
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSignalR();
+        });
+
+        function initializeSignalR() {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/calculationHub")
+                .withAutomaticReconnect()
+                .build();
+
+            // Handle profile summary
+            connection.on("ReceiveProfileSummary", (summary) => {
+                renderProfileSummary(summary);
+            });
+
+            // Handle profile totals
+            connection.on("ReceiveProfileTotalsDetailed", (data) => {
+                const profileGames = document.getElementById('profileGames');
+                const profileValue = document.getElementById('profileValue');
+
+                if (data.gamesCount != null) {
+                    profileGames.textContent = data.gamesCount.toLocaleString('pt-BR');
+                }
+
+                if (data.total != null) {
+                    profileValue.textContent = 'R$ ' + Number(data.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                    profileValue.classList.remove('loading');
+                    profileValue.classList.add('success');
+                } else {
+                    profileValue.textContent = 'Calculando...';
+                }
+            });
+
+            // Handle friends list
+            connection.on("ReceiveFriends", (friends) => {
+                console.log('ReceiveFriends', friends);
+                // Normalize friend objects and start requesting totals for public friends
+                latestFriends = (friends || []).map(f => ({ id: f.id || f.steamId || f.steamid, name: f.name || f.personaname || f.personName, avatar: f.avatar || f.avatarfull || f.avatarmedium, total: (f.total !== undefined && f.total !== null) ? Number(f.total) : null, visibility: f.visibility || f.communityvisibilitystate || 0, isCalculating: false, progress: 0, gamesCount: null, gamesValue: null, inventoryCount: null, inventoryValue: null }));
+
+                // Request totals for public friends (visibility === 3), but queue sequentially to avoid overloading the server
+                try {
+                    (async function processQueue() {
+                        for (let idx = 0; idx < latestFriends.length && idx < 50; idx++) {
+                            const fr = latestFriends[idx];
+                            if (fr.visibility === 3 && !calculatedFriends.has(fr.id)) {
+                                // mark as computing
+                                fr.total = null;
+                                fr.isCalculating = true;
+                                fr.progress = 0;
+                                renderFriendsList();
+                                try {
+                                    console.log('Invoking ComputeTotalsForSteamId for', fr.id);
+                                    await connection.invoke('ComputeTotalsForSteamId', fr.id, true, false);
+                                    console.log('Invoke returned for', fr.id);
+                                } catch (err) {
+                                    console.error('ComputeTotalsForSteamId error for', fr.id, err);
+                                    fr.isCalculating = false;
+                                }
+                                calculatedFriends.add(fr.id);
+                                // small delay between requests
+                                await new Promise(r => setTimeout(r, 400));
+                            }
+                        }
+                    })();
+                } catch (e) { /* ignore */ }
+
+                renderFriendsList();
+            });
+
+            connection.on("ReceiveFriendTotalsDetailed",(steamId,d)=>{
+                console.log('ReceiveFriendTotalsDetailed', steamId, d);
+                const f=latestFriends.find(x=>x.id===steamId);
+                if(f) {
+                    f.gamesCount = d.gamesCount ?? f.gamesCount;
+                    f.gamesValue = d.gamesValue ?? f.gamesValue;
+                    f.inventoryCount = d.inventoryCount ?? f.inventoryCount;
+                    f.inventoryValue = d.inventoryValue ?? f.inventoryValue;
+                    f.total = d.total ?? f.total;
+                    f.isCalculating = false;
+                    f.progress = 100;
+                }
+                renderFriendsList();
+            });
+
+            // Handle simple friend total updates (sent by ComputeTotalsForSteamId)
+            connection.on("ReceiveFriendTotal", (steamId, total) => {
+                console.log('ReceiveFriendTotal', steamId, total);
+                try {
+                    const f = latestFriends.find(x => x.id === steamId);
+                    if (f) {
+                        if (total === null || total === undefined) {
+                            f.total = null; // computing
+                            f.isCalculating = true;
+                        } else {
+                            f.total = Number(total);
+                            f.isCalculating = false;
+                            f.progress = 100;
+                        }
+                        renderFriendsList();
+                    }
+                } catch (e) { console.error(e); }
+            });
+
+            // Friend-specific progress updates (for button UI)
+            connection.on('UpdateFriendProgress', (steamId, progress, message) => {
+                try {
+                    const f = latestFriends.find(x => x.id === steamId);
+                    if (f) {
+                        f.progress = progress;
+                        f.isCalculating = true;
+                        renderFriendsList();
+                    }
+                } catch (e) { console.error(e); }
+            });
+
+            // Start connection
+            connection.start()
+                .then(() => {
+                    console.log('SignalR connected successfully');
+                    const url = document.getElementById('profileUrl').value.trim();
+                    if (url) {
+                        loadProfile();
+                    }
+                })
+                .catch(err => {
+                    console.error('SignalR connection error:', err);
+                    document.getElementById('profileStatus').textContent = 'Erro de conexão';
+                    document.getElementById('profileStatus').classList.add('error');
+                });
+        }
+
+        function loadProfile() {
+            const url = document.getElementById('profileUrl').value.trim();
+            if (!url) {
+                alert('Por favor, insira uma URL de perfil Steam válida');
+                return;
+            }
+
+            if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
+                alert('Aguarde a conexão com o servidor...');
+                return;
+            }
+
+            // Reset state
+            document.getElementById('profileName').textContent = 'Carregando...';
+            document.getElementById('profileStatus').textContent = 'Buscando dados...';
+            document.getElementById('profileValue').textContent = 'Calculando...';
+            document.getElementById('profileValue').classList.add('loading');
+            latestFriends = [];
+            renderFriendsList();
+
+            // Request profile data
+            connection.invoke('GetProfileSummary', url)
+                .catch(err => console.error('Error getting profile summary:', err));
+
+            connection.invoke('GetFriends', url)
+                .catch(err => console.error('Error getting friends:', err));
+
+            // Also request profile totals so the left panel shows the total value
+            connection.invoke('GetProfileTotals', url)
+                .catch(err => console.error('Error getting profile totals:', err));
+        }
+
+        function renderProfileSummary(summary) {
+            const player = summary?.response?.players?.[0];
+            if (!player) {
+                document.getElementById('profileName').textContent = 'Perfil não encontrado';
+                document.getElementById('profileStatus').textContent = 'Verifique a URL';
+                document.getElementById('profileStatus').classList.add('error');
+                return;
+            }
+
+            document.getElementById('profileAvatar').src = player.avatarfull || 'https://via.placeholder.com/80?text=Steam';
+            document.getElementById('profileName').textContent = player.personaname || 'Desconhecido';
+            document.getElementById('profileCountry').textContent = player.loccountrycode || 'N/A';
+
+            if (player.lastlogoff) {
+                const date = new Date(player.lastlogoff * 1000);
+                document.getElementById('profileLastLogin').textContent = date.toLocaleString('pt-BR');
+            } else {
+                document.getElementById('profileLastLogin').textContent = 'Nunca';
+            }
+
+            document.getElementById('profileStatus').textContent = 'Online';
+            document.getElementById('profileStatus').classList.remove('error');
+        }
+
+        function renderFriendsList() {
+            const friendsList = document.getElementById('friendsList');
+            const friendsCount = document.getElementById('friendsCount');
+
+            if (!latestFriends || latestFriends.length === 0) {
+                friendsList.innerHTML = '<p style="text-align: center; color: rgba(199, 213, 224, 0.5); padding: 40px;">Nenhum amigo encontrado</p>';
+                friendsCount.textContent = '0 amigos';
+                return;
+            }
+
+            // Apply filters
+            let filtered = [...latestFriends];
+            const maxValue = parseFloat(document.getElementById('filterValue').value);
+
+            if (!isNaN(maxValue) && maxValue > 0) {
+                filtered = filtered.filter(f => {
+                    if (f.total === null) return true; // Keep unprocessed friends
+                    return f.total <= maxValue;
+                });
+            }
+
+            // Apply sorting
+            const sortBy = document.getElementById('sortSelect').value;
+            if (sortBy === 'value') {
+                filtered.sort((a, b) => (b.total ?? 0) - (a.total ?? 0));
+            } else {
+                filtered.sort((a, b) => a.name.localeCompare(b.name));
+            }
+
+            friendsCount.textContent = `${filtered.length} amigo(s) ${filtered.length !== latestFriends.length ? `(de ${latestFriends.length} total)` : ''}`;
+
+            // Render friend cards
+            friendsList.innerHTML = filtered.map(f => `
+                <div class="friend-card">
+                    <img src="${f.avatar}" class="friend-avatar" alt="${f.name}">
+                    <div class="friend-info">
+                        <div title="${f.name}">${f.name}</div>
+                        <div>🎮 Jogos: ${f.gamesCount ?? '?'} (${f.gamesValue != null ? 'R$ ' + f.gamesValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '?'})</div>
+                        <div>🎒 Inventário: ${f.inventoryCount ?? '?'} (${f.inventoryValue != null ? 'R$ ' + f.inventoryValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '?'})</div>
+                    </div>
+                    <div class="friend-value">
+                        <div class="friend-value-amount">
+                            ${f.total != null ? 'R$ ' + f.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '—'}
+                        </div>
+                    </div>
+                    <button class="compare-btn" data-steamid="${f.id}" onclick="compareFriend('${f.id}', this)">
+                        ${f.isCalculating ? 'Calculando...' : 'CALCULAR'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function requestFriendTotals() {
+            if (!connection || connection.state !== signalR.HubConnectionState.Connected) return;
+
+            const publicFriends = latestFriends.filter(f => f.visibility === 3).slice(0, 20);
+
+            publicFriends.forEach(friend => {
+                connection.invoke('ComputeTotalsForSteamId', friend.id, true, false)
+                    .catch(err => console.error(`Error computing totals for ${friend.name}:`, err));
+            });
+        }
+
+        function applyFilters() {
+            renderFriendsList();
+        }
+
+        function compareFriend(steamId, btn) {
+            if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
+                alert('Aguarde a conexão com o servidor...');
+                return;
+            }
+
+            // show loading state on button
+            const oldText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '0%';
+
+            // Invoke with full calculation (games + inventory)
+            connection.invoke('ComputeTotalsForSteamId', steamId, true, true)
+                .catch(err => {
+                    console.error('Error comparing friend:', err);
+                    btn.disabled = false;
+                    btn.textContent = oldText;
+                });
+        }
+
+        function compareAll() {
+            if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
+                alert('Aguarde a conexão com o servidor...');
+                return;
+            }
+
+            if (!latestFriends || latestFriends.length === 0) {
+                alert('Nenhum amigo para calcular');
+                return;
+            }
+
+            if (!confirm(`Deseja calcular o valor de todos os ${latestFriends.length} amigos? Isso pode demorar alguns minutos.`)) {
+                return;
+            }
+
+            latestFriends.forEach(friend => {
+                if (friend.visibility === 3) { // Only public profiles
+                    compareFriend(friend.id);
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>

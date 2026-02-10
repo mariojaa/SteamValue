@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using SteamValue.Models;
+using System.Text.Json;
 
 namespace SteamValue.Services
 {
@@ -116,6 +117,9 @@ namespace SteamValue.Services
                 await Clients.Caller.SendAsync("UpdateProgress", 90, "Calculando valor total...");
                 await Clients.Caller.SendAsync("ReceiveTotalValue", totalValue);
                 await Clients.Caller.SendAsync("UpdateProgress", 100, "Cálculo concluído!");
+
+                // Record snapshot for history
+                _steamService.RecordAccountSnapshot(steamId, totalValue);
             }
             catch (Exception ex)
             {
@@ -126,39 +130,130 @@ namespace SteamValue.Services
         // Compute totals for a given steamId (used for friends comparison)
         public async Task ComputeTotalsForSteamId(string steamId, bool calculateGames, bool calculateInventory)
         {
+            // progress callback that sends friend-specific progress events to the caller
             Func<int, string, Task> progressCallback = async (p, m) =>
             {
                 try
                 {
-                    await Clients.Caller.SendAsync("UpdateProgress", p, m);
+                    await Clients.Caller.SendAsync("UpdateFriendProgress", steamId, p, m);
                 }
                 catch { }
             };
 
             try
             {
-                double totalValue = 0;
+                int gamesCount = 0;
+                double gamesValue = 0;
+                int inventoryCount = 0;
+                double inventoryValue = 0;
 
                 if (calculateGames)
                 {
-                    var (gamesTotal, _) = await _steamService.CalculateGamesValueAsync(steamId, progressCallback);
-                    totalValue += gamesTotal;
+                    var owned = await _steamService.GetOwnedGamesAsync(steamId);
+                    gamesCount = owned?.Count ?? 0;
+                    // Use fast total calculator to avoid long per-item delays when computing many friends
+                    gamesValue = await _steamService.CalculateGamesTotalFastAsync(steamId);
                 }
 
                 if (calculateInventory)
                 {
-                    var (invTotal, _) = await _steamService.CalculateInventoryValueAsync(steamId, 730, "CS2", progressCallback);
-                    totalValue += invTotal;
-                    // Note: inventory for other apps omitted for quick friend compare
+                    var (invTotal, items) = await _steamService.CalculateInventoryValueAsync(steamId, 730, "CS2", progressCallback);
+                    inventoryCount = items?.Count ?? 0;
+                    inventoryValue = invTotal;
                 }
 
-                await Clients.Caller.SendAsync("ReceiveFriendTotal", steamId, totalValue);
+                var total = gamesValue + inventoryValue;
+
+                // Send a detailed payload so client can show games/inventory breakdown
+                await Clients.Caller.SendAsync("ReceiveFriendTotalsDetailed", steamId, new
+                {
+                    gamesCount,
+                    gamesValue,
+                    inventoryCount,
+                    inventoryValue,
+                    total
+                });
+
+                // also send the simple total for backwards compatibility
+                await Clients.Caller.SendAsync("ReceiveFriendTotal", steamId, total);
             }
             catch (Exception ex)
             {
                 await Clients.Caller.SendAsync("ReceiveError", ex.Message);
             }
         }
+
+
+        // Compute totals for a given steamId (used for friends comparison)
+        public async Task ComputeFriendDetails(string steamId)
+        {
+            try
+            {
+                // 1️⃣ Buscar summary do amigo
+                var summaryJson = await _steamService.GetPlayerSummariesAsync(steamId);
+                if (summaryJson == null) return;
+
+                var player = summaryJson.Value
+                    .GetProperty("response")
+                    .GetProperty("players")
+                    .EnumerateArray()
+                    .FirstOrDefault();
+
+                if (player.ValueKind == JsonValueKind.Undefined) return;
+
+                string name = player.GetProperty("personaname").GetString()!;
+                string avatar =
+                    player.TryGetProperty("avatarfull", out var af) && !string.IsNullOrWhiteSpace(af.GetString())
+                        ? af.GetString()!
+                        : player.GetProperty("avatarmedium").GetString()!;
+
+                string country =
+                    player.TryGetProperty("loccountrycode", out var cc)
+                        ? cc.GetString() ?? "-"
+                        : "-";
+
+                string lastLogin =
+                    player.TryGetProperty("lastlogoff", out var lo)
+                        ? DateTimeOffset.FromUnixTimeSeconds(lo.GetInt64()).LocalDateTime.ToString("dd/MM/yyyy HH:mm")
+                        : "-";
+
+                // 2️⃣ Jogos
+                var games = await _steamService.GetOwnedGamesAsync(steamId);
+                double gamesValue = 0;
+
+                foreach (var g in games)
+                {
+                    var (price, _) = await _steamService.GetAppDetailsAsync(g.AppId);
+                    gamesValue += price;
+                }
+
+                // 3️⃣ Inventário (CS2 como padrão)
+                var (invValue, invItems) =
+                    await _steamService.CalculateInventoryValueAsync(steamId, 730, "CS2");
+
+                // 4️⃣ Resultado final
+                var result = new
+                {
+                    steamId,
+                    name,
+                    avatar,
+                    country,
+                    lastLogin,
+                    gamesCount = games.Count,
+                    gamesValue,
+                    inventoryCount = invItems.Count,
+                    inventoryValue = invValue,
+                    totalValue = gamesValue + invValue
+                };
+
+                await Clients.Caller.SendAsync("ReceiveFriendDetails", result);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
 
         // Métodos auxiliares para extrair nome e valor
         private string ExtractGameName(string gameString)
@@ -213,7 +308,40 @@ namespace SteamValue.Services
             try
             {
                 var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
-                var friends = await _steamService.GetFriendListAsync(steamId);
+
+                // 1️⃣ Buscar lista de SteamIDs dos amigos
+                var friendSteamIds = await _steamService.GetFriendListAsync(steamId);
+
+                if (friendSteamIds == null || !friendSteamIds.Any())
+                {
+                    await Clients.Caller.SendAsync("ReceiveFriends", new List<object>());
+                    return;
+                }
+
+                // 2️⃣ Buscar summaries em lote (API Steam aceita CSV)
+                var summariesJson = await _steamService.GetPlayerSummariesAsync(string.Join(",", friendSteamIds));
+
+                if (summariesJson == null ||
+                    !summariesJson.Value.TryGetProperty("response", out var response) ||
+                    !response.TryGetProperty("players", out var players))
+                {
+                    await Clients.Caller.SendAsync("ReceiveFriends", new List<object>());
+                    return;
+                }
+
+                // 3️⃣ Mapear corretamente nome + avatar
+                var friends = players.EnumerateArray()
+                    .Select(p => new
+                    {
+                        id = p.GetProperty("steamid").GetString(),
+                        name = p.GetProperty("personaname").GetString(),
+                        avatar = p.TryGetProperty("avatarfull", out var af) && !string.IsNullOrWhiteSpace(af.GetString())
+                                    ? af.GetString()
+                                    : p.GetProperty("avatarmedium").GetString(),
+                        visibility = p.GetProperty("communityvisibilitystate").GetInt32()
+                    })
+                    .ToList();
+
                 await Clients.Caller.SendAsync("ReceiveFriends", friends);
             }
             catch (Exception ex)
@@ -221,6 +349,7 @@ namespace SteamValue.Services
                 await Clients.Caller.SendAsync("ReceiveError", ex.Message);
             }
         }
+
 
         public async Task GetSnapshots(string profileUrl)
         {
@@ -256,6 +385,42 @@ namespace SteamValue.Services
             {
                 var price = await _steamService.GetMarketPriceOverviewAsync(marketHashName, appId);
                 await Clients.Caller.SendAsync("ReceiveMarketOverview", appId, marketHashName, price);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        public async Task GetProfileTotals(string profileUrl)
+        {
+            try
+            {
+                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
+
+                // fast games total
+                double gamesValue = await _steamService.CalculateGamesTotalFastAsync(steamId);
+                var owned = await _steamService.GetOwnedGamesAsync(steamId);
+                int gamesCount = owned?.Count ?? 0;
+
+                // inventory (CS2 only for speed)
+                var invResult = await _steamService.CalculateInventoryValueAsync(steamId, 730, "CS2");
+                double invValue = invResult.total;
+                var invItems = invResult.items;
+                int inventoryCount = invItems?.Count ?? 0;
+
+                var total = gamesValue + invValue;
+
+                await Clients.Caller.SendAsync("ReceiveProfileTotalsDetailed", new
+                {
+                    gamesCount,
+                    gamesValue,
+                    inventoryCount,
+                    inventoryValue = invValue,
+                    total
+                });
+
+                await Clients.Caller.SendAsync("ReceiveProfileTotal", total);
             }
             catch (Exception ex)
             {

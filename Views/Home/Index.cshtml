@@ -579,7 +579,7 @@
             <!-- Quick action buttons -->
             <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
                 <button id="btnProfileSummary" class="btn-calculate" style="width:auto;padding:10px 16px;background:var(--card-bg);font-size:0.95rem;">Ver Resumo do Perfil</button>
-                <button id="btnGetFriends" class="btn-calculate" style="width:auto;padding:10px 16px;background:var(--card-bg);font-size:0.95rem;">Listar Amigos</button>
+                <a id="openFriendsLink" href="/Home/Friends" class="btn-calculate" style="width:auto;padding:10px 16px;background:var(--card-bg);font-size:0.95rem;text-decoration:none;display:inline-block;">Ver Amigos</a>
                 <button id="btnGetSnapshots" class="btn-calculate" style="width:auto;padding:10px 16px;background:var(--card-bg);font-size:0.95rem;">Ver Histórico</button>
                 <button id="btnExportCsv" class="btn-calculate" style="width:auto;padding:10px 16px;background:var(--card-bg);font-size:0.95rem;">Export CSV</button>
             </div>
@@ -654,5 +654,14 @@
     </div>
 
     <script src="~/js/Signalr calculator.js"></script>
+    <script>
+        // Open friends page with current profileUrl as query parameter
+        document.getElementById('openFriendsLink').addEventListener('click', function (e) {
+            e.preventDefault();
+            const profile = document.getElementById('profileUrl').value || '';
+            const url = '/Home/Friends' + (profile ? ('?profileUrl=' + encodeURIComponent(profile)) : '');
+            window.location.href = url;
+        });
+    </script>
 </body>
 </html>
