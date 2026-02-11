@@ -389,6 +389,8 @@
         // State management
         let latestFriends = [];
         let connection = null;
+        let calculatedFriends = new Set(); // track friends we've requested to avoid duplicates
+        let lazyObserver = null; // IntersectionObserver instance
 
         // Initialize SignalR connection
         document.addEventListener('DOMContentLoaded', () => {
@@ -427,36 +429,22 @@
             // Handle friends list
             connection.on("ReceiveFriends", (friends) => {
                 console.log('ReceiveFriends', friends);
-                // Normalize friend objects and start requesting totals for public friends
-                latestFriends = (friends || []).map(f => ({ id: f.id || f.steamId || f.steamid, name: f.name || f.personaname || f.personName, avatar: f.avatar || f.avatarfull || f.avatarmedium, total: (f.total !== undefined && f.total !== null) ? Number(f.total) : null, visibility: f.visibility || f.communityvisibilitystate || 0, isCalculating: false, progress: 0, gamesCount: null, gamesValue: null, inventoryCount: null, inventoryValue: null }));
+                // Normalize friend objects and set initial state
+                latestFriends = (friends || []).map(f => ({
+                    id: f.id || f.steamId || f.steamid,
+                    name: f.name || f.personaname || f.personName,
+                    avatar: f.avatar || f.avatarfull || f.avatarmedium || 'https://via.placeholder.com/60',
+                    total: (f.total !== undefined && f.total !== null) ? Number(f.total) : null,
+                    visibility: f.visibility || f.communityvisibilitystate || 0,
+                    isCalculating: false,
+                    progress: 0,
+                    gamesCount: null,
+                    gamesValue: null,
+                    inventoryCount: null,
+                    inventoryValue: null
+                }));
 
-                // Request totals for public friends (visibility === 3), but queue sequentially to avoid overloading the server
-                try {
-                    (async function processQueue() {
-                        for (let idx = 0; idx < latestFriends.length && idx < 50; idx++) {
-                            const fr = latestFriends[idx];
-                            if (fr.visibility === 3 && !calculatedFriends.has(fr.id)) {
-                                // mark as computing
-                                fr.total = null;
-                                fr.isCalculating = true;
-                                fr.progress = 0;
-                                renderFriendsList();
-                                try {
-                                    console.log('Invoking ComputeTotalsForSteamId for', fr.id);
-                                    await connection.invoke('ComputeTotalsForSteamId', fr.id, true, false);
-                                    console.log('Invoke returned for', fr.id);
-                                } catch (err) {
-                                    console.error('ComputeTotalsForSteamId error for', fr.id, err);
-                                    fr.isCalculating = false;
-                                }
-                                calculatedFriends.add(fr.id);
-                                // small delay between requests
-                                await new Promise(r => setTimeout(r, 400));
-                            }
-                        }
-                    })();
-                } catch (e) { /* ignore */ }
-
+                // Render friends immediately. Do NOT auto-invoke calculations for all — user triggers per-friend or explicit "calculate all".
                 renderFriendsList();
             });
 
@@ -583,8 +571,8 @@
             const friendsCount = document.getElementById('friendsCount');
 
             if (!latestFriends || latestFriends.length === 0) {
-                friendsList.innerHTML = '<p style="text-align: center; color: rgba(199, 213, 224, 0.5); padding: 40px;">Nenhum amigo encontrado</p>';
-                friendsCount.textContent = '0 amigos';
+                friendsList.innerHTML = '<p style="text-align: center; color: rgba(199, 213, 224, 0.5); padding: 40px;">Carregue um perfil para visualizar os amigos</p>';
+                friendsCount.textContent = '0 amigos carregados';
                 return;
             }
 
@@ -609,9 +597,9 @@
 
             friendsCount.textContent = `${filtered.length} amigo(s) ${filtered.length !== latestFriends.length ? `(de ${latestFriends.length} total)` : ''}`;
 
-            // Render friend cards
+            // Render friend cards with data-steamid and per-button state
             friendsList.innerHTML = filtered.map(f => `
-                <div class="friend-card">
+                <div class="friend-card" data-steamid="${f.id}">
                     <img src="${f.avatar}" class="friend-avatar" alt="${f.name}">
                     <div class="friend-info">
                         <div title="${f.name}">${f.name}</div>
@@ -623,9 +611,7 @@
                             ${f.total != null ? 'R$ ' + f.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '—'}
                         </div>
                     </div>
-                    <button class="compare-btn" data-steamid="${f.id}" onclick="compareFriend('${f.id}', this)">
-                        ${f.isCalculating ? 'Calculando...' : 'CALCULAR'}
-                    </button>
+                    <button class="compare-btn" data-steamid="${f.id}" onclick="compareFriend('${f.id}', this)" ${f.isCalculating ? 'disabled' : ''}>${f.isCalculating ? (Math.round(f.progress) + '%') : 'CALCULAR'}</button>
                 </div>
             `).join('');
         }
@@ -676,15 +662,24 @@
                 return;
             }
 
-            if (!confirm(`Deseja calcular o valor de todos os ${latestFriends.length} amigos? Isso pode demorar alguns minutos.`)) {
+            if (!confirm(`Deseja calcular o valor de todos os ${latestFriends.length} amigos públicos? Isso pode demorar alguns minutos.`)) {
                 return;
             }
 
-            latestFriends.forEach(friend => {
-                if (friend.visibility === 3) { // Only public profiles
-                    compareFriend(friend.id);
-                }
-            });
+            // compute only public friends sequentially to avoid overload
+            const publicFriends = latestFriends.filter(f => f.visibility === 3);
+            let i = 0;
+            const next = () => {
+                if (i >= publicFriends.length) return;
+                const friend = publicFriends[i++];
+                // update UI state
+                const f = latestFriends.find(x => x.id === friend.id);
+                if (f) { f.isCalculating = true; f.progress = 0; renderFriendsList(); }
+                connection.invoke('ComputeTotalsForSteamId', friend.id, true, true)
+                    .catch(err => console.error('Error computing all for', friend.id, err))
+                    .finally(() => setTimeout(next, 500)); // small delay between calls
+            };
+            next();
         }
     </script>
 

@@ -659,6 +659,8 @@
         document.getElementById('openFriendsLink').addEventListener('click', function (e) {
             e.preventDefault();
             const profile = document.getElementById('profileUrl').value || '';
+            // store to localStorage so Friends page can pick it up if query param missing
+            try { localStorage.setItem('steamProfileUrl', profile); } catch (ex) { }
             const url = '/Home/Friends' + (profile ? ('?profileUrl=' + encodeURIComponent(profile)) : '');
             window.location.href = url;
         });
