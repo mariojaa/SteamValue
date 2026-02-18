@@ -1615,7 +1615,7 @@ function loadInventoryForGame(appId, gameName) {
     document.getElementById('progressMsg').textContent = `Buscando inventário ${gameName}...`;
 
     ensureConnected(() => 
-        connection.invoke('GetQuickInventory', url, appId)
+        connection.invoke('GetSingleGameInventory', url, appId)
             .catch(e => {
                 showError(e.message);
                 document.getElementById('invLoadingGame').style.display = 'none';

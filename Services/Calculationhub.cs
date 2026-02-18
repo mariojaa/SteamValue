@@ -927,7 +927,44 @@ namespace SteamValue.Services
             }
             catch (Exception ex) { await Clients.Caller.SendAsync("ReceiveError", ex.Message); }
         }
+        // ─── Quick Single Game Inventory ─────────────────────────────────────
+        public async Task GetSingleGameInventory(string profileUrl, int appId)
+        {
+            try
+            {
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
+                var appName = GetAppName(appId);
 
+                var items = await _steam.GetInventoryQuickAsync(steamId, appId);
+
+                await Clients.Caller.SendAsync("ReceiveQuickInventory", appName, appId,
+                    items.Select(it => new {
+                        name = it.Name,
+                        count = it.Count,
+                        imageUrl = it.ImageUrl,
+                        type = it.Type,
+                        rarity = it.Rarity
+                    }));
+
+                await Clients.Caller.SendAsync("ReceiveQuickInventoryDone", items.Count);
+            }
+            catch (Exception ex) { await Clients.Caller.SendAsync("ReceiveError", ex.Message); }
+        }
+
+        private string GetAppName(int appId)
+        {
+            return appId switch
+            {
+                730 => "CS2",
+                570 => "Dota 2",
+                440 => "TF2",
+                252490 => "Rust",
+                1172470 => "Apex Legends",
+                578080 => "PUBG",
+                304930 => "Unturned",
+                _ => $"App {appId}"
+            };
+        }
         // ─── NEW #3: Wishlist Analysis ─────────────────────────────────────────
         public async Task GetWishlistAnalysis(string profileUrl)
         {
