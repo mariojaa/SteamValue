@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SteamValue — Calculadora de Conta</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@@latest/dist/browser/signalr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@@8.0.7/dist/browser/signalr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
@@ -44,7 +44,6 @@
             overflow-x: hidden;
         }
 
-        /* ── Ambient background ── */
         body::before {
             content: '';
             position: fixed; inset: 0; z-index: 0; pointer-events: none;
@@ -55,7 +54,6 @@
                 repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(255,255,255,.012) 60px);
         }
 
-        /* ── Navigation ── */
         .nav {
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 40px; height: 60px;
@@ -83,10 +81,8 @@
             background: rgba(0,229,255,.06);
         }
 
-        /* ── Page ── */
         .page { max-width: 1360px; margin: 0 auto; padding: 32px 24px; position: relative; z-index: 1; }
 
-        /* ── Hero ── */
         .hero { text-align: center; padding: 56px 0 40px; }
         .hero-badge {
             display: inline-block; margin-bottom: 18px;
@@ -104,7 +100,6 @@
         }
         .hero p { color: var(--text2); font-size: 1.1rem; margin-top: 12px; letter-spacing: .5px; }
 
-        /* ── Cards ── */
         .card {
             background: var(--bg1);
             border: 1px solid var(--border);
@@ -117,7 +112,6 @@
         }
         .card-body { padding: 24px; }
 
-        /* ── Input ── */
         .form-section { margin-bottom: 28px; }
         .field-label {
             font-size: .78rem; font-weight: 700; text-transform: uppercase;
@@ -134,7 +128,6 @@
         .steam-input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,229,255,.1); }
         .steam-input::placeholder { color: var(--text3); }
 
-        /* ── Buttons ── */
         .btn {
             display: inline-flex; align-items: center; gap: 8px;
             padding: 12px 22px; border: none; border-radius: 10px;
@@ -160,16 +153,13 @@
         .btn-sm { padding: 8px 14px; font-size: .82rem; }
         .btn:disabled { opacity: .45; pointer-events: none; }
 
-        /* ── Checkboxes ── */
         .checkbox-row { display: flex; gap: 22px; flex-wrap: wrap; margin: 16px 0; }
         .check-item { display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .check-item input { width: 18px; height: 18px; accent-color: var(--cyan); cursor: pointer; }
         .check-item span { font-size: .95rem; font-weight: 500; }
 
-        /* ── Action bar ── */
         .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
 
-        /* ── Tabs (feature tabs) ── */
         .feature-tabs {
             display: flex; gap: 4px; flex-wrap: wrap;
             border-bottom: 1px solid var(--border); margin-bottom: 20px;
@@ -189,7 +179,6 @@
         .ftab-panel { display: none; }
         .ftab-panel.active { display: block; }
 
-        /* ── Progress ── */
         .progress-wrap {
             display: none; margin-top: 18px;
             background: rgba(0,0,0,.4); border-radius: 10px; padding: 16px;
@@ -207,7 +196,6 @@
         }
         .progress-msg { font-size: .82rem; color: var(--text3); margin-top: 7px; font-style: italic; }
 
-        /* ── Stats grid ── */
         .stats-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 14px; margin-bottom: 24px;
@@ -229,7 +217,6 @@
         .stat-gold { color: var(--gold); }
         .stat-orange { color: var(--orange); }
 
-        /* ── Total box ── */
         .total-box {
             background: linear-gradient(135deg, rgba(0,229,255,.08), rgba(255,87,34,.08));
             border: 2px solid var(--gold); border-radius: 14px;
@@ -244,7 +231,6 @@
         .total-label { font-size: .8rem; color: var(--text2); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
         .total-value { font-family: 'Orbitron', sans-serif; font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; color: var(--gold); text-shadow: 0 0 30px rgba(255,215,64,.5); }
 
-        /* ── Profile panel ── */
         .profile-panel {
             display: none; background: var(--bg2); border: 1px solid var(--border);
             border-radius: 14px; padding: 24px; margin-bottom: 22px;
@@ -270,7 +256,6 @@
         .mini-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
         .mini-time { color: var(--text3); }
 
-        /* ── Section ── */
         .section { margin-bottom: 22px; }
         .section-head {
             display: flex; align-items: center; justify-content: space-between;
@@ -287,7 +272,6 @@
             font-size: .75rem; font-weight: 700;
         }
 
-        /* ── Games grid ── */
         .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
         .select-s, .num-s, .text-s {
             padding: 8px 12px; background: rgba(0,0,0,.4);
@@ -320,7 +304,6 @@
         .mc-ok { background: #fc3; color: #000; }
         .mc-bad { background: #f33; color: #fff; }
 
-        /* ── Inventory ── */
         .inv-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
         .inv-tab {
             padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border);
@@ -347,7 +330,21 @@
         .inv-count { font-size: .68rem; color: var(--text3); }
         .inv-rarity { font-size: .65rem; }
 
-        /* ── Wishlist ── */
+        .inv-filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+        .inv-card.pending-price .inv-price { color:var(--text3); font-style:italic; }
+        .inv-card.has-price { animation: priceIn .3s ease; }
+        @@keyframes priceIn { from { border-color:rgba(255,215,64,.5); } to { border-color:var(--border); } }
+        .inv-chart-wrap { height:200px; margin-bottom:18px; }
+        .inv-rarity-breakdown { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+        .inv-rarity-chip { padding:3px 10px; border-radius:99px; font-size:.72rem; font-weight:700; border:1px solid; cursor:pointer; transition:all .15s; }
+        .inv-rarity-chip:hover { opacity:.8; }
+        .inv-rarity-chip.active { box-shadow: 0 0 0 2px #fff4; }
+        .inv-mode-tabs { display:flex; gap:6px; margin-bottom:12px; }
+        .inv-mode-btn { padding:6px 14px; border-radius:7px; border:1px solid var(--border); background:rgba(255,255,255,.03);
+            cursor:pointer; font-size:.82rem; font-weight:600; font-family:'Exo 2',sans-serif; color:var(--text2); transition:all .18s; }
+        .inv-mode-btn.active { background:rgba(0,229,255,.12); border-color:rgba(0,229,255,.4); color:var(--cyan); }
+        .price-queue-info { font-size:.75rem; color:var(--text3); font-style:italic; margin-bottom:8px; }
+
         .wish-list { display: flex; flex-direction: column; gap: 7px; max-height: 320px; overflow-y: auto; }
         .wish-item {
             display: flex; gap: 12px; align-items: center;
@@ -358,20 +355,16 @@
         .wish-name { font-size: .88rem; font-weight: 600; color: var(--text); }
         .wish-priority { font-size: .72rem; color: var(--text3); }
 
-        /* ── Badges ── */
         .badge-stats { display: flex; gap: 14px; flex-wrap: wrap; }
         .badge-stat { background: rgba(0,0,0,.3); border-radius: 8px; padding: 12px 18px; text-align: center; border: 1px solid var(--border); }
         .badge-stat-val { font-family: 'Orbitron', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--purple); }
         .badge-stat-lbl { font-size: .72rem; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
 
-        /* ── Chart ── */
         .chart-wrap { position: relative; height: 220px; }
 
-        /* ── Two column ── */
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
         @@media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
 
-        /* ── Error ── */
         .error-box {
             background: rgba(255,23,68,.1); border: 1px solid rgba(255,23,68,.3);
             border-radius: 10px; padding: 14px 18px; color: var(--red);
@@ -384,11 +377,9 @@
             75% { transform: translateX(5px); }
         }
 
-        /* ── Spinner / dots ── */
         .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,.3); border-top-color: #000; border-radius: 50%; animation: spin .7s linear infinite; }
         @@keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ── Playtime analytics ── */
         .playtime-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
         .pt-stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
         .pt-val { font-family: 'Orbitron', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--cyan); }
@@ -401,7 +392,6 @@
         .mp-name { font-size: .85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .mp-hours { font-size: .78rem; color: var(--gold); font-weight: 700; }
 
-        /* ── Comparison ── */
         .compare-row { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
         .vs-label { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 900; color: var(--orange); padding: 0 6px; }
         .compare-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: start; }
@@ -415,17 +405,26 @@
         .cmp-val.better { color: var(--green); }
         .compare-vs { display: flex; align-items: center; justify-content: center; }
 
-        /* ── Live players ── */
         .live-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
         .live-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
         .live-game { font-size: .85rem; font-weight: 700; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .live-count { font-family: 'Orbitron', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--green); }
         .live-lbl { font-size: .7rem; color: var(--text3); margin-top: 3px; }
 
-        /* ── Hidden ── */
+        .watchlist-item { display:flex; gap:12px; align-items:center; padding:12px 14px; background:rgba(0,0,0,.25); border-radius:10px; border:1px solid var(--border); }
+        .watchlist-item img { width:64px; height:48px; object-fit:cover; border-radius:5px; flex-shrink:0; }
+        .watchlist-add-row { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+        .watchlist-price { font-family:'Orbitron',sans-serif; font-size:1rem; font-weight:700; }
+        .watchlist-trend-up { color:var(--green); }
+        .watchlist-trend-down { color:var(--red); }
+        .watchlist-trend-flat { color:var(--text3); }
+        .wl-badge { padding:3px 8px; border-radius:5px; font-size:.7rem; font-weight:700; }
+
+        .inv-game-pick-btn.active { background: rgba(0,229,255,.12); border-color: rgba(0,229,255,.4); color: var(--cyan); }
+        .inv-card:hover { border-color: rgba(255,215,64,.3); cursor: pointer; }
+
         .hidden { display: none !important; }
 
-        /* ── Achievements ── */
         .ach-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
         .ach-bar-wrap { height: 12px; background: rgba(255,255,255,.07); border-radius: 99px; overflow: hidden; margin: 12px 0; position: relative; }
         .ach-bar { height: 100%; background: linear-gradient(90deg, var(--orange), var(--gold)); border-radius: 99px; transition: width .8s ease; }
@@ -438,6 +437,64 @@
         .ach-date { font-size: .68rem; color: var(--gold); margin-top: 2px; }
 
         @@media (max-width: 600px) { .nav { padding: 0 16px; } .page { padding: 18px 14px; } }
+
+        .roi-item { display:flex; gap:10px; align-items:center; padding:10px 12px; background:rgba(0,0,0,.25); border-radius:8px; border:1px solid var(--border); }
+        .roi-item img { width:60px; height:34px; object-fit:cover; border-radius:4px; flex-shrink:0; }
+        .roi-badge { font-family:'Orbitron',sans-serif; font-size:.85rem; font-weight:700; padding:4px 10px; border-radius:6px; flex-shrink:0; min-width:70px; text-align:center; }
+        .roi-best { background:rgba(0,230,118,.15); color:var(--green); border:1px solid rgba(0,230,118,.3); }
+        .roi-ok { background:rgba(255,215,64,.1); color:var(--gold); border:1px solid rgba(255,215,64,.2); }
+        .roi-bad { background:rgba(255,23,68,.1); color:var(--red); border:1px solid rgba(255,23,68,.2); }
+        .roi-name { font-size:.85rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .roi-detail { font-size:.72rem; color:var(--text3); }
+
+        .lb-item { display:flex; gap:12px; align-items:center; padding:12px 14px; background:rgba(0,0,0,.25); border-radius:10px; border:1px solid var(--border); position:relative; overflow:hidden; }
+        .lb-item.me { border-color:rgba(0,229,255,.4); background:rgba(0,229,255,.05); }
+        .lb-rank { font-family:'Orbitron',sans-serif; font-size:1.1rem; font-weight:900; width:36px; text-align:center; flex-shrink:0; }
+        .lb-rank.r1 { color:var(--gold); }
+        .lb-rank.r2 { color:#aaa; }
+        .lb-rank.r3 { color:#cd7f32; }
+        .lb-avatar { width:44px; height:44px; border-radius:5px; flex-shrink:0; border:1px solid var(--border); }
+        .lb-name { font-size:.9rem; font-weight:700; }
+        .lb-stats { display:flex; gap:12px; flex-wrap:wrap; margin-top:3px; }
+        .lb-stat { font-size:.72rem; color:var(--text2); }
+        .lb-bar { position:absolute; bottom:0; left:0; height:3px; background:linear-gradient(90deg,var(--cyan),var(--orange)); }
+
+        .tracker-card { background:var(--bg3); border:1px solid var(--border); border-radius:12px; padding:14px; }
+        .tracker-name { font-size:.85rem; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:8px; }
+        .tracker-prices { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+        .tp { text-align:center; }
+        .tp-val { font-family:'Orbitron',sans-serif; font-size:.88rem; font-weight:700; }
+        .tp-lbl { font-size:.65rem; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; }
+        .tracker-chart-wrap { height:80px; }
+        .trend-up { color:var(--green); }
+        .trend-down { color:var(--red); }
+        .trend-flat { color:var(--text3); }
+
+        .country-row { display:flex; gap:10px; align-items:center; padding:6px 10px; background:rgba(0,0,0,.2); border-radius:6px; }
+        .country-bar-bg { flex:1; height:8px; background:rgba(255,255,255,.07); border-radius:99px; overflow:hidden; }
+        .country-bar-fill { height:100%; background:linear-gradient(90deg,var(--cyan),var(--purple)); border-radius:99px; }
+        .country-name { font-size:.82rem; font-weight:600; width:80px; flex-shrink:0; }
+        .country-count { font-size:.78rem; color:var(--gold); font-weight:700; width:30px; flex-shrink:0; text-align:right; }
+
+        .connection-status {
+            position: fixed; bottom: 20px; right: 20px;
+            padding: 8px 16px; border-radius: 30px;
+            font-size: .8rem; font-weight: 600; z-index: 1000;
+            backdrop-filter: blur(10px); border: 1px solid;
+            display: flex; align-items: center; gap: 8px;
+            transition: all .3s;
+        }
+        .status-connected { background: rgba(0,230,118,.15); color: var(--green); border-color: rgba(0,230,118,.3); }
+        .status-disconnected { background: rgba(255,23,68,.15); color: var(--red); border-color: rgba(255,23,68,.3); }
+        .status-connecting { background: rgba(255,215,64,.15); color: var(--gold); border-color: rgba(255,215,64,.3); }
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            display: inline-block;
+        }
+        .dot-connected { background: var(--green); box-shadow: 0 0 10px var(--green); }
+        .dot-disconnected { background: var(--red); box-shadow: 0 0 10px var(--red); }
+        .dot-connecting { background: var(--gold); box-shadow: 0 0 10px var(--gold); animation: pulse 1s infinite; }
+        @@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
 </head>
 <body>
@@ -476,10 +533,15 @@
                         <input type="checkbox" id="calcGames" checked>
                         <span>🎮 Calcular jogos</span>
                     </label>
-                    <label class="check-item">
-                        <input type="checkbox" id="calcInventory" checked>
-                        <span>📦 Calcular inventários</span>
-                    </label>
+                </div>
+                <!-- Inventory game selector (shown after games are loaded) -->
+                <div id="invGameSelectorWrap" style="display:none;margin-top:14px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:14px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+                        <span class="field-label" style="margin:0">📦 Buscar Inventário — Selecione um jogo</span>
+                        <span style="font-size:.75rem;color:var(--text3)">Busca somente o jogo selecionado</span>
+                    </div>
+                    <div id="invGameList" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+                    <div id="invGameLoadingMsg" style="display:none;margin-top:10px;font-size:.82rem;color:var(--text2);font-style:italic"></div>
                 </div>
             </div>
 
@@ -490,9 +552,13 @@
                 <button class="btn btn-ghost btn-sm" id="btnPlaytime">⏱ Analytics</button>
                 <button class="btn btn-ghost btn-sm" id="btnCompare">⚔️ Comparar</button>
                 <button class="btn btn-ghost btn-sm" id="btnLivePlayers">🌐 Jogadores Live</button>
-                <button class="btn btn-ghost btn-sm" id="btnFullInv">📦+ Inv. Completo</button>
                 <button class="btn btn-ghost btn-sm" id="btnHistory">📈 Histórico</button>
+                <button class="btn btn-ghost btn-sm" id="btnCountries">🌍 Países</button>
                 <button class="btn btn-ghost btn-sm" id="btnExport">⬇ CSV</button>
+                <button class="btn btn-ghost btn-sm" id="btnROI">💡 ROI</button>
+                <button class="btn btn-ghost btn-sm" id="btnScout">🔭 Scout</button>
+                <button class="btn btn-ghost btn-sm" id="btnLeaderboard">🏅 Leaderboard</button>
+                <button class="btn btn-ghost btn-sm" id="btnTradeTracker">📉 Trade Tracker</button>
                 <a class="btn btn-orange btn-sm" id="btnFriends" href="#">👥 Amigos</a>
             </div>
 
@@ -571,6 +637,12 @@
                 <button class="ftab" data-tab="liveplayers">🌐 Live Players</button>
                 <button class="ftab" data-tab="achievements">🥇 Conquistas</button>
                 <button class="ftab" data-tab="history">📈 Histórico</button>
+                <button class="ftab" data-tab="roi">💡 ROI</button>
+                <button class="ftab" data-tab="scout">🔭 Scout</button>
+                <button class="ftab" data-tab="leaderboard">🏅 Leaderboard</button>
+                <button class="ftab" data-tab="tradetracker">📉 Trade Tracker</button>
+                <button class="ftab" data-tab="countries">🌍 Países</button>
+                <button class="ftab" data-tab="watchlist">👁 Watchlist</button>
             </div>
 
             <!-- Games Tab -->
@@ -597,8 +669,67 @@
             <!-- Inventory Tab -->
             <div class="ftab-panel" id="tab-inventory">
                 <div class="section-head">
-                    <span class="section-title">Inventários</span>
-                    <span class="section-badge" id="invBadge">0 itens</span>
+                    <span class="section-title">Inventário</span>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        <span class="section-badge" id="invBadge">0 itens</span>
+                        <button class="btn btn-ghost btn-sm" id="btnPriceAllItems" style="display:none" onclick="startLazyPricing()">
+                            💰 Precificar itens
+                        </button>
+                    </div>
+                </div>
+                <!-- Game selector for inventory -->
+                <div id="invGamePickerPanel" style="background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+                    <div style="font-size:.82rem;color:var(--text2);margin-bottom:12px;font-weight:600">🎮 Selecione o jogo para buscar o inventário:</div>
+                    <div id="invGamePickerList" style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <div style="color:var(--text3);font-size:.82rem;font-style:italic">Calcule sua conta primeiro para ver os jogos disponíveis</div>
+                    </div>
+                    <div id="invLoadingGame" style="display:none;margin-top:10px;font-size:.82rem;color:var(--cyan);font-style:italic">⏳ Buscando inventário...</div>
+                </div>
+                <!-- CS2 Wear Filters (only shown when CS2 is active) -->
+                <div id="cs2WearFilters" style="display:none;background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.15);border-radius:10px;padding:12px;margin-bottom:12px">
+                    <div style="font-size:.75rem;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🎯 Filtrar por Desgaste</div>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+                            <input type="checkbox" id="wearFN" checked style="accent-color:var(--cyan);width:15px;height:15px">
+                            <span style="color:#b8f5d8">✦ Nova de Fábrica</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+                            <input type="checkbox" id="wearMW" checked style="accent-color:var(--cyan);width:15px;height:15px">
+                            <span style="color:#7ecef4">Pouco Usada</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+                            <input type="checkbox" id="wearFT" checked style="accent-color:var(--cyan);width:15px;height:15px">
+                            <span style="color:#cdd9e5">Testada em Campo</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+                            <input type="checkbox" id="wearWW" checked style="accent-color:var(--cyan);width:15px;height:15px">
+                            <span style="color:#8fadc8">Bem Usada</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+                            <input type="checkbox" id="wearBS" checked style="accent-color:var(--cyan);width:15px;height:15px">
+                            <span style="color:#546e7a">Lixo de Guerra</span>
+                        </label>
+                        <button class="btn btn-ghost btn-sm" onclick="toggleAllWear()">Alternar Todos</button>
+                    </div>
+                </div>
+                <!-- Filters -->
+                <div class="inv-filter-row" id="invFilterRow" style="display:none">
+                    <input type="text" class="text-s" id="invSearch" placeholder="🔍 Buscar item..." style="width:180px" oninput="renderInvGrid()">
+                    <select class="select-s" id="invRarityFilter" onchange="renderInvGrid()">
+                        <option value="">Todas as raridades</option>
+                    </select>
+                    <select class="select-s" id="invSortMode" onchange="renderInvGrid()">
+                        <option value="price_desc">💰 Maior valor</option>
+                        <option value="price_asc">Menor valor</option>
+                        <option value="count_desc">📦 Mais itens</option>
+                        <option value="name_asc">🔤 Nome A-Z</option>
+                    </select>
+                    <div id="priceQueueInfo" class="price-queue-info" style="display:none"></div>
+                </div>
+                <!-- Rarity chart -->
+                <div id="invRarityChart" style="display:none">
+                    <div class="inv-rarity-breakdown" id="invRarityChips"></div>
+                    <div class="inv-chart-wrap"><canvas id="rarityCanvas"></canvas></div>
                 </div>
                 <div class="inv-tabs" id="invTabs"></div>
                 <div class="inv-grid" id="invGrid"></div>
@@ -673,11 +804,103 @@
                 <div class="chart-wrap"><canvas id="histChart"></canvas></div>
                 <p style="font-size:.78rem;color:var(--text3);margin-top:8px">O histórico é gerado cada vez que você calcula. Calcule múltiplas vezes para ver a evolução.</p>
             </div>
+
+            <!-- ROI Tab -->
+            <div class="ftab-panel" id="tab-roi">
+                <div class="section-head">
+                    <span class="section-title">💡 ROI — Custo por Hora Jogada</span>
+                    <span class="section-badge" id="roiBadge">0 jogos</span>
+                </div>
+                <p style="font-size:.8rem;color:var(--text2);margin-bottom:14px">Veja quanto custou cada hora de diversão. Quanto menor o valor, melhor o investimento!</p>
+                <div id="roiList" style="display:flex;flex-direction:column;gap:7px;max-height:420px;overflow-y:auto"></div>
+            </div>
+
+            <!-- Game Scout Tab -->
+            <div class="ftab-panel" id="tab-scout">
+                <div class="section-head">
+                    <span class="section-title">🔭 Game Scout — Jogos dos Amigos</span>
+                    <span class="section-badge" id="scoutBadge">0 sugestões</span>
+                </div>
+                <p style="font-size:.8rem;color:var(--text2);margin-bottom:14px">Jogos que seus amigos possuem e você ainda não tem. Descoberta baseada em popularidade real entre seu círculo!</p>
+                <div class="games-grid" id="scoutGrid"></div>
+            </div>
+
+            <!-- Friend Leaderboard Tab -->
+            <div class="ftab-panel" id="tab-leaderboard">
+                <div class="section-head">
+                    <span class="section-title">🏅 Leaderboard de Amigos</span>
+                </div>
+                <p style="font-size:.8rem;color:var(--text2);margin-bottom:14px">Ranking dos seus amigos por horas jogadas, nível e badges. Quem é o maior gamer do grupo?</p>
+                <div id="leaderboardList" style="display:flex;flex-direction:column;gap:7px;max-height:500px;overflow-y:auto"></div>
+            </div>
+
+            <!-- Trade Tracker Tab -->
+            <div class="ftab-panel" id="tab-tradetracker">
+                <div class="section-head">
+                    <span class="section-title">📉 Trade Tracker — Histórico de Preços</span>
+                </div>
+                <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+                    <select class="select-s" id="ttAppId">
+                        <option value="730">CS2</option>
+                        <option value="570">Dota 2</option>
+                        <option value="440">TF2</option>
+                        <option value="252490">Rust</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" id="btnLoadTracker">📉 Analisar Itens</button>
+                </div>
+                <p style="font-size:.78rem;color:var(--text2);margin-bottom:12px">Histórico de preço dos últimos 90 dias dos seus itens mais valiosos. Veja tendências de alta e baixa!</p>
+                <div id="trackerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;max-height:480px;overflow-y:auto"></div>
+            </div>
+
+            <!-- Countries Tab -->
+            <div class="ftab-panel" id="tab-countries">
+                <div class="section-head">
+                    <span class="section-title">🌍 Distribuição de Países dos Amigos</span>
+                </div>
+                <p style="font-size:.8rem;color:var(--text2);margin-bottom:16px">De onde são seus amigos Steam? Veja a distribuição geográfica da sua lista.</p>
+                <div id="countriesChart" style="position:relative;height:280px;margin-bottom:18px"><canvas id="countriesCanvas"></canvas></div>
+                <div id="countriesList" style="display:flex;flex-direction:column;gap:5px;max-height:240px;overflow-y:auto"></div>
+            </div>
+
+            <!-- Skin Watchlist Tab -->
+            <div class="ftab-panel" id="tab-watchlist">
+                <div class="section-head">
+                    <span class="section-title">👁 Skin Watchlist — Monitor de Preços</span>
+                    <button class="btn btn-ghost btn-sm" onclick="refreshWatchlist()">↺ Atualizar preços</button>
+                </div>
+                <p style="font-size:.8rem;color:var(--text2);margin-bottom:14px">
+                    Acompanhe itens específicos do mercado Steam. Adicione qualquer item e veja o preço atual sempre que quiser!
+                </p>
+                <div class="watchlist-add-row">
+                    <select class="select-s" id="wlAppId">
+                        <option value="730">CS2</option>
+                        <option value="570">Dota 2</option>
+                        <option value="440">TF2</option>
+                        <option value="252490">Rust</option>
+                    </select>
+                    <input type="text" class="text-s" id="wlItemName" placeholder="Nome do item (ex: AK-47 | Redline (Field-Tested))" style="flex:1;min-width:220px">
+                    <button class="btn btn-primary btn-sm" onclick="addToWatchlist()">+ Adicionar</button>
+                </div>
+                <div id="watchlistEmpty" style="color:var(--text3);font-size:.9rem;padding:20px 0;text-align:center">
+                    Nenhum item monitorado ainda. Adicione um item acima para começar!
+                </div>
+                <div id="watchlistGrid" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto"></div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Connection Status Indicator -->
+<div id="connectionStatus" class="connection-status status-disconnected">
+    <span class="status-dot dot-disconnected" id="statusDot"></span>
+    <span id="statusText">Desconectado</span>
+</div>
+
 <script>
+// ── Configuration ──
+const RECONNECT_INTERVAL = 3000;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
 // ── State ──
 let connection = null;
 let allGames = [];
@@ -687,15 +910,75 @@ let histChart = null;
 let snapshotData = [];
 let totalGamesValue = 0, totalInvValue = 0;
 let totalGamesCount = 0, totalInvCount = 0, totalPlaytime = 0;
+let rarityChart = null;
+let activeRarityFilter = '';
 const POPULAR_APPS = [730, 570, 440, 252490, 578080, 1172470, 304930, 1091500, 271590, 892970];
+const INVENTORY_SUPPORTED_APPS = {730:'CS2',570:'Dota 2',440:'TF2',252490:'Rust',1172470:'Apex Legends',578080:'PUBG',304930:'Unturned'};
+let _lazyPricingActive = false;
+let _lazyPricingQueue = [];
+let _trackerCharts = {};
+let _watchlistPriceWait = new Set();
 
-// ── SignalR Setup ──
+// ── Connection Management ──
+function updateConnectionStatus(state) {
+    const statusDiv = document.getElementById('connectionStatus');
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+
+    statusDiv.className = 'connection-status';
+    dot.className = 'status-dot';
+
+    switch(state) {
+        case 'connected':
+            statusDiv.classList.add('status-connected');
+            dot.classList.add('dot-connected');
+            text.textContent = 'Conectado';
+            break;
+        case 'connecting':
+            statusDiv.classList.add('status-connecting');
+            dot.classList.add('dot-connecting');
+            text.textContent = 'Conectando...';
+            break;
+        default:
+            statusDiv.classList.add('status-disconnected');
+            dot.classList.add('dot-disconnected');
+            text.textContent = 'Desconectado';
+    }
+}
+
 function buildConnection() {
+    if (connection && connection.state === signalR.HubConnectionState.Connected) {
+        return Promise.resolve(connection);
+    }
+
+    updateConnectionStatus('connecting');
+
     connection = new signalR.HubConnectionBuilder()
         .withUrl('/calculationHub')
-        .withAutomaticReconnect([0, 1000, 2000, 5000])
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
+        .configureLogging(signalR.LogLevel.Information)
         .build();
 
+    // Connection event handlers
+    connection.onreconnecting(error => {
+        console.log('Reconnecting due to error:', error);
+        updateConnectionStatus('connecting');
+        showError('Conexão perdida. Tentando reconectar...');
+    });
+
+    connection.onreconnected(connectionId => {
+        console.log('Reconnected successfully');
+        updateConnectionStatus('connected');
+        hideError();
+    });
+
+    connection.onclose(error => {
+        console.log('Connection closed:', error);
+        updateConnectionStatus('disconnected');
+        showError('Conexão com o servidor perdida. Recarregue a página.');
+    });
+
+    // ── SignalR Handlers ──
     connection.on('UpdateProgress', (pct, msg) => {
         document.getElementById('progressWrap').classList.add('active');
         document.getElementById('progressBar').style.width = pct + '%';
@@ -704,7 +987,6 @@ function buildConnection() {
     });
 
     connection.on('ReceiveProfileInfo', renderProfileInfo);
-    connection.on('ReceiveProfileSummary', renderProfileSummaryData);
 
     connection.on('ReceiveGamesData', (games, total) => {
         allGames = games || [];
@@ -715,21 +997,134 @@ function buildConnection() {
         applyGamesFilter();
         updateStats();
         resetBtn();
+        populateInvGamePickers();
     });
 
-    connection.on('ReceiveInventoryData', (gameName, items, total) => {
-        if (!items || items.length === 0) return;
-        inventories[gameName] = { items, total };
-        totalInvCount += items.length;
-        totalInvValue += total;
+    connection.on('ReceiveInventoryData', (gameName, rawItems, total) => {
+        if (!rawItems || rawItems.length === 0) return;
+        const hasPrices = rawItems.some(it => it.price >= 0);
+        const items = rawItems.map(it => ({
+            ...it,
+            price: it.price < 0 ? null : it.price,
+            unitPrice: it.unitPrice < 0 ? null : it.unitPrice
+        }));
+        
+        if (inventories[gameName]) {
+            inventories[gameName].items = items;
+            inventories[gameName].total = total;
+            inventories[gameName].hasRealPrices = hasPrices;
+        } else {
+            inventories[gameName] = { 
+                items, 
+                total, 
+                hasRealPrices: hasPrices, 
+                appId: activeInventoryAppId 
+            };
+            totalInvCount += items.length;
+        }
+        
+        if (hasPrices) totalInvValue = Object.values(inventories).reduce((s, inv) => s + (inv.total || 0), 0);
+        
+        document.getElementById('invLoadingGame').style.display = 'none';
+        document.getElementById('invGameLoadingMsg').style.display = 'none';
+        document.getElementById('progressWrap').classList.remove('active');
         renderInvTabs();
         updateStats();
         showFeaturePanel('inventory');
         document.getElementById('invEmpty').classList.add('hidden');
+        document.getElementById('invBadge').textContent = totalInvCount + ' itens';
+        
+        if (activeInventoryAppId === 730) {
+            document.getElementById('cs2WearFilters').style.display = '';
+        }
+        renderRarityChart();
+    });
+
+    connection.on('ReceiveQuickInventory', (gameName, appId, items) => {
+        if (!items || items.length === 0) return;
+        const mapped = items.map(it => ({...it, price: null, unitPrice: null, appId}));
+        inventories[gameName] = { items: mapped, total: 0, hasRealPrices: false, appId };
+        totalInvCount += items.length;
+        
+        document.getElementById('invLoadingGame').style.display = 'none';
+        document.getElementById('invGameLoadingMsg').style.display = 'none';
+        renderInvTabs();
+        showFeaturePanel('inventory');
+        document.getElementById('invEmpty').classList.add('hidden');
+        document.getElementById('invBadge').textContent = totalInvCount + ' itens';
+        
+        if (appId === 730) {
+            document.getElementById('cs2WearFilters').style.display = '';
+        }
+        renderRarityChart();
+    });
+
+    connection.on('ReceiveQuickInventoryDone', (total) => {
+        document.getElementById('progressWrap').classList.remove('active');
+        if (total === 0) {
+            document.getElementById('invEmpty').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('priceQueueInfo').style.display = '';
+        document.getElementById('priceQueueInfo').textContent = `⚡ ${total} itens carregados em segundos! Clique em "💰 Precificar itens" para buscar valores (~3.5s por item único).`;
+        document.getElementById('btnPriceAllItems').style.display = '';
+        document.getElementById('invBadge').textContent = total + ' itens';
+        updateStats();
+    });
+
+    connection.on('ReceiveItemPrice', (marketHashName, appId, price) => {
+        handleWatchlistPrice(marketHashName, appId, price);
+
+        let updated = false;
+        for (const [gameName, inv] of Object.entries(inventories)) {
+            if (inv.hasRealPrices) continue;
+            const item = inv.items.find(it => it.name === marketHashName && it.appId === appId);
+            if (item) {
+                item.unitPrice = price;
+                item.price = price * item.count;
+                if (!inv.hasRealPrices) inv.total = (inv.total || 0) + item.price;
+                updated = true;
+            }
+        }
+        if (updated) {
+            renderInvGrid();
+            renderRarityChart();
+            totalInvValue = Object.values(inventories).reduce((s, inv) => s + (inv.total || 0), 0);
+            updateStats();
+        }
+    });
+
+    connection.on('ReceiveItemPriceUpdate', (gameName, appId, itemName, unitPrice, count) => {
+        handleWatchlistPrice(itemName, appId, unitPrice);
+        const inv = inventories[gameName];
+        if (!inv) return;
+        const item = inv.items.find(it => it.name === itemName);
+        if (item) {
+            item.unitPrice = unitPrice;
+            item.price = unitPrice * count;
+        }
+        inv.total = inv.items.reduce((s, it) => s + (it.price > 0 ? it.price : 0), 0);
+        inv.hasRealPrices = true;
+        
+        if (activeInvTab === gameName) renderInvGrid();
+        totalInvValue = Object.values(inventories).reduce((s, iv) => s + (iv.total || 0), 0);
+        updateStats();
+    });
+
+    connection.on('ReceiveInventoryGameTotal', (gameName, gameTotal) => {
+        if (inventories[gameName]) {
+            inventories[gameName].total = gameTotal;
+            inventories[gameName].hasRealPrices = true;
+        }
+        totalInvValue = Object.values(inventories).reduce((s, iv) => s + (iv.total || 0), 0);
+        renderInvTabs();
+        updateStats();
+        renderRarityChart();
     });
 
     connection.on('ReceiveInventoryTotal', (total) => {
-        // Total from GetFullInventory
+        totalInvValue = total;
+        updateStats();
         if (Object.keys(inventories).length === 0) {
             document.getElementById('invEmpty').classList.remove('hidden');
         }
@@ -780,16 +1175,72 @@ function buildConnection() {
         showFeaturePanel('history');
     });
 
+    connection.on('ReceivePlaytimeROI', (data) => {
+        renderROI(data || []);
+        showFeaturePanel('roi');
+    });
+
+    connection.on('ReceiveGameScout', (data) => {
+        renderGameScout(data || []);
+        showFeaturePanel('scout');
+    });
+
+    connection.on('ReceiveFriendLeaderboard', (data) => {
+        renderLeaderboard(data || []);
+        showFeaturePanel('leaderboard');
+    });
+
+    connection.on('ReceiveTradeTracker', (data) => {
+        renderTradeTracker(data || []);
+        showFeaturePanel('tradetracker');
+    });
+
+    connection.on('ReceiveFriendCountries', (data) => {
+        renderCountries(data || []);
+        showFeaturePanel('countries');
+    });
+
     connection.on('ReceiveError', (msg) => {
         showError(msg);
         resetBtn();
+        document.getElementById('progressWrap').classList.remove('active');
     });
 
-    connection.start().then(() => {
-        // Pre-load live players
-        connection.invoke('GetLivePlayerCounts', POPULAR_APPS).catch(() => {});
-    }).catch(e => console.error('SignalR:', e));
+    return connection.start()
+        .then(() => {
+            console.log('SignalR connected successfully');
+            updateConnectionStatus('connected');
+            hideError();
+            // Pre-load live players
+            connection.invoke('GetLivePlayerCounts', POPULAR_APPS).catch(console.error);
+        })
+        .catch(err => {
+            console.error('SignalR connection error:', err);
+            updateConnectionStatus('disconnected');
+            showError('Erro ao conectar com o servidor. Recarregue a página.');
+            return Promise.reject(err);
+        });
 }
+
+function hideError() {
+    const errorBox = document.getElementById('errorBox');
+    if (errorBox) errorBox.innerHTML = '';
+}
+
+// ── Initialize connection on page load ──
+document.addEventListener('DOMContentLoaded', () => {
+    buildConnection().catch(() => {
+        // Try again after 5 seconds
+        setTimeout(buildConnection, 5000);
+    });
+
+    try {
+        const savedUrl = localStorage.getItem('steamProfileUrl');
+        if (savedUrl) document.getElementById('profileUrl').value = savedUrl;
+    } catch {}
+    
+    renderWatchlistItems();
+});
 
 // ── Feature tabs navigation ──
 document.querySelectorAll('.ftab').forEach(tab => {
@@ -798,6 +1249,10 @@ document.querySelectorAll('.ftab').forEach(tab => {
         document.querySelectorAll('.ftab-panel').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        
+        if (tab.dataset.tab === 'watchlist') {
+            renderWatchlistItems();
+        }
     });
 });
 
@@ -857,16 +1312,6 @@ document.getElementById('btnRefreshLive').addEventListener('click', () => {
     ensureConnected(() => connection.invoke('GetLivePlayerCounts', POPULAR_APPS).catch(console.error));
 });
 
-document.getElementById('btnFullInv').addEventListener('click', () => {
-    const url = getUrl(); if (!url) return;
-    inventories = {}; totalInvCount = 0; totalInvValue = 0;
-    document.getElementById('invEmpty').classList.add('hidden');
-    showFeaturePanel('inventory');
-    document.getElementById('invGrid').innerHTML = '<p style="color:var(--text2);font-style:italic;padding:10px">Buscando todos os inventários...</p>';
-    document.getElementById('progressWrap').classList.add('active');
-    ensureConnected(() => connection.invoke('GetFullInventory', url).catch(e => showError(e.message)));
-});
-
 document.getElementById('btnGetAch').addEventListener('click', () => {
     const url = getUrl(); if (!url) return;
     const appId = parseInt(document.getElementById('achAppId').value);
@@ -877,7 +1322,43 @@ document.getElementById('btnGetAch').addEventListener('click', () => {
 
 document.getElementById('btnHistory').addEventListener('click', () => {
     const url = getUrl(); if (!url) return;
-    ensureConnected(() => { connection.invoke('GetSnapshots', url).catch(console.error); showFeaturePanel('history'); });
+    ensureConnected(() => { 
+        connection.invoke('GetSnapshots', url).catch(console.error); 
+        showFeaturePanel('history'); 
+    });
+});
+
+document.getElementById('btnROI').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    showFeaturePanel('roi');
+    ensureConnected(() => connection.invoke('GetPlaytimeROI', url).catch(console.error));
+});
+
+document.getElementById('btnScout').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    showFeaturePanel('scout');
+    ensureConnected(() => connection.invoke('GetGameScout', url).catch(console.error));
+});
+
+document.getElementById('btnLeaderboard').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    document.getElementById('leaderboardList').innerHTML = '<p style="color:var(--text2);font-style:italic;padding:14px">Montando leaderboard...</p>';
+    showFeaturePanel('leaderboard');
+    ensureConnected(() => connection.invoke('GetFriendLeaderboard', url).catch(e => showError(e.message)));
+});
+
+document.getElementById('btnTradeTracker').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    const appId = parseInt(document.getElementById('ttAppId').value);
+    document.getElementById('trackerGrid').innerHTML = '<p style="color:var(--text2);font-style:italic;padding:14px">Buscando histórico de preços (pode levar ~30s)...</p>';
+    ensureConnected(() => connection.invoke('GetTradeTracker', url, appId).catch(e => showError(e.message)));
+});
+
+document.getElementById('btnCountries').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    document.getElementById('countriesList').innerHTML = '<p style="color:var(--text2);font-style:italic;padding:14px">Mapeando países dos amigos...</p>';
+    showFeaturePanel('countries');
+    ensureConnected(() => connection.invoke('GetFriendCountries', url).catch(e => showError(e.message)));
 });
 
 document.getElementById('btnExport').addEventListener('click', exportCSV);
@@ -901,22 +1382,37 @@ document.getElementById('profileUrl').addEventListener('keydown', e => { if (e.k
 // ── Core Functions ──
 function getUrl() {
     const url = document.getElementById('profileUrl').value.trim();
-    if (!url) { showError('Insira a URL do perfil Steam'); return null; }
+    if (!url) { 
+        showError('Insira a URL do perfil Steam'); 
+        return null; 
+    }
     return url;
 }
 
 function ensureConnected(fn) {
-    if (connection && connection.state === signalR.HubConnectionState.Connected) fn();
-    else showError('Aguardando conexão com o servidor...');
+    if (connection && connection.state === signalR.HubConnectionState.Connected) {
+        fn();
+    } else {
+        showError('Aguardando conexão com o servidor...');
+        buildConnection().then(fn).catch(() => {
+            showError('Não foi possível conectar ao servidor. Recarregue a página.');
+        });
+    }
 }
 
 function startCalculation() {
-    const url = getUrl(); if (!url) return;
+    const url = getUrl(); 
+    if (!url) return;
+    
     const calcGames = document.getElementById('calcGames').checked;
-    const calcInv = document.getElementById('calcInventory').checked;
 
-    allGames = []; inventories = {};
-    totalGamesValue = 0; totalInvValue = 0; totalGamesCount = 0; totalInvCount = 0; totalPlaytime = 0;
+    allGames = []; 
+    inventories = {};
+    totalGamesValue = 0; 
+    totalInvValue = 0; 
+    totalGamesCount = 0; 
+    totalInvCount = 0; 
+    totalPlaytime = 0;
 
     document.getElementById('featurePanel').classList.add('hidden');
     document.getElementById('totalBox').classList.add('hidden');
@@ -926,6 +1422,7 @@ function startCalculation() {
     document.getElementById('gamesGrid').innerHTML = '';
     document.getElementById('invGrid').innerHTML = '';
     document.getElementById('invTabs').innerHTML = '';
+    document.getElementById('invGameSelectorWrap').style.display = 'none';
 
     document.getElementById('btnSpinner').classList.remove('hidden');
     document.getElementById('btnText').textContent = 'Calculando...';
@@ -933,10 +1430,17 @@ function startCalculation() {
     document.getElementById('progressWrap').classList.add('active');
     document.getElementById('progressBar').style.width = '0%';
 
-    try { localStorage.setItem('steamProfileUrl', url); } catch {}
+    try { 
+        localStorage.setItem('steamProfileUrl', url); 
+    } catch {}
 
-    ensureConnected(() => connection.invoke('StartCalculation', url, calcGames, calcInv)
-        .catch(e => { showError(e.message); resetBtn(); }));
+    ensureConnected(() => 
+        connection.invoke('StartCalculation', url, calcGames, false)
+            .catch(e => { 
+                showError(e.message); 
+                resetBtn(); 
+            })
+    );
 }
 
 function resetBtn() {
@@ -989,25 +1493,6 @@ function renderProfileInfo(info) {
     }
 }
 
-function renderProfileSummaryData(data) {
-    if (!data) return;
-    try {
-        const player = data.summary?.response?.players?.[0];
-        if (player) {
-            renderProfileInfo({
-                avatar: player.avatarfull, name: player.personaname,
-                personastate: player.personastate || 0, country: player.loccountrycode,
-                created: player.timecreated, profileUrl: player.profileurl,
-                level: data.level || 0, bans: data.bans,
-                recentGames: data.recentGames || []
-            });
-        }
-        if (data.badgeCount) {
-            renderBadges({ count: data.badgeCount, totalXp: data.totalXp || 0 });
-        }
-    } catch(e) { console.error('renderProfileSummaryData', e); }
-}
-
 // ── Stats ──
 function updateStats() {
     document.getElementById('statsGrid').classList.remove('hidden');
@@ -1055,35 +1540,311 @@ function applyGamesFilter() {
 }
 
 // ── Inventory ──
+let activeInventoryAppId = null;
+
+function populateInvGamePickers() {
+    const supported = allGames.filter(g => INVENTORY_SUPPORTED_APPS[g.appId]);
+    
+    const pickerList = document.getElementById('invGamePickerList');
+    const selectorWrap = document.getElementById('invGameSelectorWrap');
+
+    if (!supported.length) {
+        const defaultGames = Object.entries(INVENTORY_SUPPORTED_APPS).map(([id, name]) => ({ appId: parseInt(id), name }));
+        renderInvGameButtons(defaultGames, pickerList);
+        renderInvGameButtons(defaultGames, document.getElementById('invGameList'));
+    } else {
+        renderInvGameButtons(supported, pickerList);
+        renderInvGameButtons(supported, document.getElementById('invGameList'));
+    }
+    selectorWrap.style.display = '';
+}
+
+function renderInvGameButtons(games, container) {
+    if (!container) return;
+    const gameImgMap = {
+        730:'https://cdn.akamai.steamstatic.com/steam/apps/730/capsule_sm_120.jpg',
+        570:'https://cdn.akamai.steamstatic.com/steam/apps/570/capsule_sm_120.jpg',
+        440:'https://cdn.akamai.steamstatic.com/steam/apps/440/capsule_sm_120.jpg',
+        252490:'https://cdn.akamai.steamstatic.com/steam/apps/252490/capsule_sm_120.jpg',
+        1172470:'https://cdn.akamai.steamstatic.com/steam/apps/1172470/capsule_sm_120.jpg',
+        578080:'https://cdn.akamai.steamstatic.com/steam/apps/578080/capsule_sm_120.jpg',
+        304930:'https://cdn.akamai.steamstatic.com/steam/apps/304930/capsule_sm_120.jpg'
+    };
+    container.innerHTML = games.map(g => {
+        const appId = g.appId;
+        const name = INVENTORY_SUPPORTED_APPS[appId] || g.name;
+        return `<button class="btn btn-ghost btn-sm inv-game-pick-btn" data-appid="${appId}"
+                    onclick="loadInventoryForGame(${appId},'${name.replace(/'/g,"\\'")}')"
+                    style="display:flex;align-items:center;gap:6px;padding:7px 12px;">
+            <img src="${gameImgMap[appId]||''}" style="width:28px;height:16px;border-radius:3px;object-fit:cover" onerror="this.style.display='none'">
+            ${name}
+        </button>`;
+    }).join('');
+}
+
+function loadInventoryForGame(appId, gameName) {
+    const url = document.getElementById('profileUrl').value.trim();
+    if (!url) { 
+        showError('Insira a URL do perfil Steam'); 
+        return; 
+    }
+
+    activeInventoryAppId = appId;
+
+    document.querySelectorAll('.inv-game-pick-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.appid) === appId);
+    });
+
+    document.getElementById('cs2WearFilters').style.display = appId === 730 ? '' : 'none';
+
+    const gameKey = INVENTORY_SUPPORTED_APPS[appId] || gameName;
+    delete inventories[gameKey];
+    totalInvCount = 0;
+    totalInvValue = 0;
+
+    document.getElementById('invEmpty').classList.add('hidden');
+    document.getElementById('invGrid').innerHTML = '';
+    document.getElementById('invLoadingGame').style.display = '';
+    document.getElementById('invLoadingGame').textContent = `⏳ Buscando inventário: ${gameName}...`;
+    document.getElementById('invGameLoadingMsg').style.display = '';
+    document.getElementById('invGameLoadingMsg').textContent = `⏳ Buscando inventário: ${gameName}...`;
+
+    showFeaturePanel('inventory');
+    document.getElementById('progressWrap').classList.add('active');
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('progressMsg').textContent = `Buscando inventário ${gameName}...`;
+
+    ensureConnected(() => 
+        connection.invoke('GetQuickInventory', url, appId)
+            .catch(e => {
+                showError(e.message);
+                document.getElementById('invLoadingGame').style.display = 'none';
+                document.getElementById('invGameLoadingMsg').style.display = 'none';
+            })
+    );
+}
+
+function toggleAllWear() {
+    const ids = ['wearFN','wearMW','wearFT','wearWW','wearBS'];
+    const anyUnchecked = ids.some(id => !document.getElementById(id).checked);
+    ids.forEach(id => document.getElementById(id).checked = anyUnchecked);
+    renderInvGrid();
+}
+
+['wearFN','wearMW','wearFT','wearWW','wearBS'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', renderInvGrid);
+});
+
 function renderInvTabs() {
     const tabs = document.getElementById('invTabs');
     const names = Object.keys(inventories);
     if (!activeInvTab || !inventories[activeInvTab]) activeInvTab = names[0] || null;
-    tabs.innerHTML = names.map(name =>
-        `<button class="inv-tab ${name===activeInvTab?'active':''}" onclick="setInvTab('${name}')">${name} (${inventories[name].items.length}) ${fmtBRL(inventories[name].total)}</button>`
-    ).join('');
+    tabs.innerHTML = names.map(name => {
+        const inv = inventories[name];
+        const priceLabel = inv.hasRealPrices ? fmtBRL(inv.total) : `${inv.items.length} itens`;
+        return `<button class="inv-tab ${name===activeInvTab?'active':''}" onclick="setInvTab('${name}')">${name} (${inv.items.length}) ${priceLabel}</button>`;
+    }).join('');
+
+    if (names.length > 0) {
+        document.getElementById('invFilterRow').style.display = 'flex';
+        updateRarityFilterOptions();
+    }
     renderInvGrid();
 }
 
-function setInvTab(name) { activeInvTab = name; renderInvTabs(); }
+function setInvTab(name) {
+    activeInvTab = name;
+    activeRarityFilter = '';
+    document.getElementById('invRarityFilter').value = '';
+    renderInvTabs();
+    renderRarityChart();
+}
+
+function updateRarityFilterOptions() {
+    const sel = document.getElementById('invRarityFilter');
+    const cur = sel.value;
+    const allItems = activeInvTab && inventories[activeInvTab] ? inventories[activeInvTab].items : [];
+    const rarities = [...new Set(allItems.map(it => it.rarity).filter(Boolean))].sort();
+    sel.innerHTML = '<option value="">Todas as raridades</option>' +
+        rarities.map(r => `<option value="${r}" ${r===cur?'selected':''}>${r}</option>`).join('');
+}
 
 function renderInvGrid() {
     const grid = document.getElementById('invGrid');
-    if (!activeInvTab || !inventories[activeInvTab]) { grid.innerHTML = ''; return; }
-    const items = [...inventories[activeInvTab].items].sort((a,b) => b.price - a.price);
+    if (!activeInvTab || !inventories[activeInvTab]) { 
+        grid.innerHTML = ''; 
+        return; 
+    }
+
+    const inv = inventories[activeInvTab];
+    const searchTerm = (document.getElementById('invSearch').value || '').toLowerCase();
+    const rarityFilter = document.getElementById('invRarityFilter').value;
+    const sortMode = document.getElementById('invSortMode').value;
+
+    let items = [...inv.items];
+
+    if (searchTerm) items = items.filter(it => it.name.toLowerCase().includes(searchTerm));
+    if (rarityFilter) items = items.filter(it => it.rarity === rarityFilter);
+
+    const isCS2 = activeInvTab === 'CS2' || (inv.appId === 730);
+    if (isCS2) {
+        const wears = {
+            fn: document.getElementById('wearFN')?.checked ?? true,
+            mw: document.getElementById('wearMW')?.checked ?? true,
+            ft: document.getElementById('wearFT')?.checked ?? true,
+            ww: document.getElementById('wearWW')?.checked ?? true,
+            bs: document.getElementById('wearBS')?.checked ?? true
+        };
+        items = items.filter(it => {
+            const n = it.name.toLowerCase();
+            if (n.includes('factory new') || n.includes('nova de fábrica') || n.includes('fn)')) return wears.fn;
+            if (n.includes('minimal wear') || n.includes('pouco usada') || n.includes('mw)')) return wears.mw;
+            if (n.includes('field-tested') || n.includes('testada em campo') || n.includes('ft)')) return wears.ft;
+            if (n.includes('well-worn') || n.includes('bem usada') || n.includes('ww)')) return wears.ww;
+            if (n.includes('battle-scarred') || n.includes('lixo de guerra') || n.includes('bs)')) return wears.bs;
+            return true;
+        });
+    }
+
+    if (sortMode === 'price_desc') items.sort((a,b) => (b.price??-1) - (a.price??-1));
+    else if (sortMode === 'price_asc') items.sort((a,b) => (a.price??Infinity) - (b.price??Infinity));
+    else if (sortMode === 'count_desc') items.sort((a,b) => (b.count||1) - (a.count||1));
+    else items.sort((a,b) => a.name.localeCompare(b.name));
+
+    const marketAppId = inv.appId || 730;
+
     grid.innerHTML = items.map(it => {
         const rarityColor = getRarityColor(it.rarity);
-        return `<div class="inv-card" title="${it.name}">
-            <img src="${it.imageUrl || 'https://placehold.co/120x75/0d1524/00e5ff?text=Item'}" alt="${it.name}"
+        const isPending = it.price === null;
+        const priceHtml = isPending
+            ? `<div class="inv-price" style="color:var(--text3);font-size:.68rem">⏳ aguardando...</div>`
+            : `<div class="inv-price">${it.price >= 0 ? fmtBRL(it.price) : '—'}</div>`;
+        const marketUrl = `https://steamcommunity.com/market/listings/${marketAppId}/${encodeURIComponent(it.name)}`;
+        return `<div class="inv-card ${isPending ? 'pending-price' : 'has-price'}" title="${it.name} — Clique para ver no mercado Steam"
+                     onclick="window.open('${marketUrl}','_blank')" style="cursor:pointer">
+            <img src="${it.imageUrl || ''}" alt="${it.name}"
                  onerror="this.src='https://placehold.co/120x75/0d1524/00e5ff?text=?'">
             <div class="inv-card-info">
                 <div class="inv-name">${it.name}</div>
-                <div class="inv-price">${fmtBRL(it.price)}</div>
-                ${it.count > 1 ? `<div class="inv-count">x${it.count} (unit: ${fmtBRL(it.unitPrice||0)})</div>` : ''}
+                ${priceHtml}
+                ${(it.count||1) > 1 ? `<div class="inv-count">x${it.count}${it.unitPrice>=0&&!isPending ? ' · '+fmtBRL(it.unitPrice) : ''}</div>` : ''}
                 ${it.rarity ? `<div class="inv-rarity" style="color:${rarityColor}">${it.rarity}</div>` : ''}
             </div>
         </div>`;
     }).join('');
+}
+
+function renderRarityChart() {
+    if (!activeInvTab || !inventories[activeInvTab]) return;
+    const items = inventories[activeInvTab].items;
+    const rarityMap = {};
+    for (const it of items) {
+        const r = it.rarity || 'Sem raridade';
+        if (!rarityMap[r]) rarityMap[r] = { count: 0, value: 0 };
+        rarityMap[r].count += (it.count || 1);
+        rarityMap[r].value += (it.price > 0 ? it.price : 0);
+    }
+    if (Object.keys(rarityMap).length === 0) return;
+
+    document.getElementById('invRarityChart').style.display = 'block';
+
+    const chipsEl = document.getElementById('invRarityChips');
+    const sorted = Object.entries(rarityMap).sort((a,b) => b[1].count - a[1].count);
+    chipsEl.innerHTML = sorted.map(([rarity, data]) => {
+        const color = getRarityColor(rarity);
+        return `<div class="inv-rarity-chip ${activeRarityFilter===rarity?'active':''}"
+            style="color:${color};border-color:${color}40;background:${color}18"
+            onclick="toggleRarityFilter('${rarity.replace(/'/g,"\\'")}')">
+            ${rarity} (${data.count})
+        </div>`;
+    }).join('');
+
+    const ctx = document.getElementById('rarityCanvas').getContext('2d');
+    const labels = sorted.map(([r]) => r);
+    const counts = sorted.map(([,d]) => d.count);
+    const colors = sorted.map(([r]) => getRarityColor(r));
+
+    if (rarityChart) rarityChart.destroy();
+    rarityChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{ data: counts, backgroundColor: colors.map(c => c + 'bb'), borderColor: colors, borderWidth: 2 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color:'#8fadc8', font:{family:'Exo 2',size:11}, boxWidth:14, padding:8 } },
+                tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} itens` } }
+            }
+        }
+    });
+}
+
+function toggleRarityFilter(rarity) {
+    activeRarityFilter = activeRarityFilter === rarity ? '' : rarity;
+    document.getElementById('invRarityFilter').value = activeRarityFilter;
+    renderRarityChart();
+    renderInvGrid();
+}
+
+function startLazyPricing() {
+    const url = document.getElementById('profileUrl').value.trim();
+    if (!url) { showError('Insira a URL do perfil primeiro'); return; }
+
+    _lazyPricingQueue = [];
+    for (const [gameName, inv] of Object.entries(inventories)) {
+        if (inv.hasRealPrices) continue;
+        for (const item of inv.items) {
+            if (item.price === null && item.appId) {
+                _lazyPricingQueue.push({ name: item.name, appId: item.appId });
+            }
+        }
+    }
+    
+    const seen = new Set();
+    _lazyPricingQueue = _lazyPricingQueue.filter(it => {
+        const k = `${it.appId}:${it.name}`;
+        if (seen.has(k)) return false;
+        seen.add(k); return true;
+    });
+
+    if (!_lazyPricingQueue.length) {
+        document.getElementById('priceQueueInfo').textContent = '✓ Todos os itens já têm preço!';
+        return;
+    }
+
+    _lazyPricingActive = true;
+    document.getElementById('btnPriceAllItems').disabled = true;
+    document.getElementById('btnPriceAllItems').textContent = '⏳ Precificando...';
+    document.getElementById('priceQueueInfo').style.display = '';
+    pricingStep();
+}
+
+function pricingStep() {
+    if (!_lazyPricingActive || !_lazyPricingQueue.length) {
+        document.getElementById('btnPriceAllItems').disabled = false;
+        document.getElementById('btnPriceAllItems').textContent = '✓ Precificado!';
+        document.getElementById('priceQueueInfo').textContent = '✓ Todos os itens precificados!';
+        return;
+    }
+    const item = _lazyPricingQueue.shift();
+    const remaining = _lazyPricingQueue.length;
+    document.getElementById('priceQueueInfo').textContent =
+        `⏳ Precificando "${item.name.slice(0,30)}…" — ${remaining} restantes (Steam: ~3.5s/item)`;
+    
+    ensureConnected(() => connection.invoke('PriceInventoryItem', item.name, item.appId).catch(() => {}));
+    
+    if (_lazyPricingQueue.length > 0) {
+        setTimeout(pricingStep, 3600);
+    } else {
+        setTimeout(() => {
+            document.getElementById('btnPriceAllItems').disabled = false;
+            document.getElementById('btnPriceAllItems').textContent = '✓ Precificado!';
+            document.getElementById('priceQueueInfo').textContent = '✓ Todos os itens precificados!';
+        }, 3600);
+    }
 }
 
 function getRarityColor(rarity) {
@@ -1125,6 +1886,7 @@ function renderBadges(data) {
         <div class="badge-stat"><div class="badge-stat-val">${data.count}</div><div class="badge-stat-lbl">Badges</div></div>
         <div class="badge-stat"><div class="badge-stat-val">${(data.totalXp||0).toLocaleString('pt-BR')}</div><div class="badge-stat-lbl">XP Total</div></div>`;
 }
+
 function renderBadgesDetailed(data) {
     document.getElementById('badgeStats').innerHTML = `
         <div class="badge-stat"><div class="badge-stat-val">${data.level}</div><div class="badge-stat-lbl">Nível Steam</div></div>
@@ -1253,6 +2015,194 @@ function renderAchievements(appId, total, unlocked, pct, list) {
     showFeaturePanel('achievements');
 }
 
+// ── ROI Renderer ──
+function renderROI(data) {
+    if (!data || !data.length) {
+        document.getElementById('roiList').innerHTML = '<p style="color:var(--text3);padding:14px">Nenhum jogo com tempo suficiente encontrado. Jogue pelo menos 1 hora em algum jogo primeiro!</p>';
+        document.getElementById('roiBadge').textContent = '0 jogos';
+        return;
+    }
+    document.getElementById('roiBadge').textContent = data.length + ' jogos';
+    const maxH = data[0]?.hours || 1;
+    
+    document.getElementById('roiList').innerHTML = data.map((r, i) => {
+        const isFree = r.price <= 0;
+        const cls = isFree ? 'roi-best' : r.costPerHour < 0.5 ? 'roi-best' : r.costPerHour < 2 ? 'roi-ok' : 'roi-bad';
+        const icon = isFree ? '🎁' : r.costPerHour < 0.5 ? '🏆' : r.costPerHour < 2 ? '✅' : '💸';
+        const costLabel = isFree ? 'Grátis' : fmtBRL(r.costPerHour) + '/h';
+        return `<div class="roi-item" onclick="window.open('https://store.steampowered.com/app/${r.appId}','_blank')" style="cursor:pointer">
+            <span style="font-family:'Orbitron',sans-serif;font-size:.72rem;color:var(--text3);width:22px;flex-shrink:0">#${i+1}</span>
+            <img src="${r.imageUrl}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${r.appId}/header.jpg'">
+            <div style="flex:1;min-width:0">
+                <div class="roi-name" title="${r.name}">${r.name}</div>
+                <div class="roi-detail">${isFree ? '🎁 Grátis' : fmtBRL(r.price)} · ${r.hours}h jogadas${r.genre ? ' · ' + r.genre : ''}</div>
+                <div style="height:4px;background:rgba(255,255,255,.07);border-radius:99px;margin-top:4px;overflow:hidden">
+                    <div style="height:100%;width:${Math.min(100, (r.hours / maxH)*100)}%;background:linear-gradient(90deg,var(--cyan),var(--orange));border-radius:99px"></div>
+                </div>
+            </div>
+            <div class="roi-badge ${cls}">${icon} ${costLabel}</div>
+        </div>`;
+    }).join('');
+}
+
+// ── Game Scout Renderer ──
+function renderGameScout(data) {
+    if (!data || !data.length) {
+        document.getElementById('scoutGrid').innerHTML = '<p style="color:var(--text3);padding:14px">Nenhum jogo encontrado. Verifique se sua lista de amigos está pública e se você tem amigos com jogos que você não tem.</p>';
+        document.getElementById('scoutBadge').textContent = '0 sugestões';
+        return;
+    }
+    document.getElementById('scoutBadge').textContent = data.length + ' sugestões';
+    document.getElementById('scoutGrid').innerHTML = data.map(g => {
+        const mc = g.metacritic > 0 ? `<span class="metacritic-badge ${g.metacritic>=75?'mc-good':g.metacritic>=50?'mc-ok':'mc-bad'}">${g.metacritic}</span>` : '';
+        return `<div class="game-card" onclick="window.open('https://store.steampowered.com/app/${g.appId}','_blank')">
+            <img src="${g.imageUrl}" alt="${g.name}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
+            <div class="game-card-info">
+                <div class="game-name" title="${g.name}">${g.name}</div>
+                <div class="game-price">${g.price > 0 ? fmtBRL(g.price) : 'Grátis'}</div>
+                <div class="game-playtime">👥 ${g.friendsWhoOwn} amigo(s) · ~${g.avgFriendHours}h médias</div>
+                <div class="game-meta">${mc}${g.genre || ''}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Leaderboard Renderer ──
+let countriesChart = null;
+
+function renderLeaderboard(data) {
+    const maxHours = data[0]?.totalHours || 1;
+    document.getElementById('leaderboardList').innerHTML = data.map((e, i) => {
+        const rankCls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+        const barW = Math.round((e.totalHours / maxHours) * 100);
+        return `<div class="lb-item ${e.isMe ? 'me' : ''}">
+            <div class="lb-rank ${rankCls}">${medal}</div>
+            <img class="lb-avatar" src="${e.avatar || 'https://avatars.cloudflare.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}" onerror="this.src='https://via.placeholder.com/44?text=?'">
+            <div style="flex:1;min-width:0">
+                <div class="lb-name">${e.name || e.steamId} ${e.isMe ? '<span style="font-size:.7rem;color:var(--cyan)">← você</span>' : ''}</div>
+                <div class="lb-stats">
+                    <span class="lb-stat">⏱ <strong style="color:var(--gold)">${(e.totalHours||0).toLocaleString('pt-BR')}h</strong></span>
+                    <span class="lb-stat">🎮 ${e.totalGames} jogos</span>
+                    <span class="lb-stat">⭐ Nível ${e.level}</span>
+                    <span class="lb-stat">🏅 ${e.badgeCount} badges</span>
+                </div>
+            </div>
+            <div class="lb-bar" style="width:${barW}%"></div>
+        </div>`;
+    }).join('');
+}
+
+// ── Trade Tracker Renderer ──
+function renderTradeTracker(items) {
+    if (!items.length) {
+        document.getElementById('trackerGrid').innerHTML = '<p style="color:var(--text3);padding:14px">Nenhum item negociável encontrado ou inventário privado.</p>';
+        return;
+    }
+    document.getElementById('trackerGrid').innerHTML = items.map((t, i) => {
+        const trendIcon = t.trend > 0.05 ? '📈' : t.trend < -0.05 ? '📉' : '➡️';
+        const trendCls = t.trend > 0.05 ? 'trend-up' : t.trend < -0.05 ? 'trend-down' : 'trend-flat';
+        const trendTxt = t.trend > 0.05 ? `+${fmtBRL(t.trend)}` : fmtBRL(t.trend);
+        return `<div class="tracker-card">
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+                <img src="${t.imageUrl}" style="width:52px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0">
+                <div class="tracker-name" title="${t.name}">${t.name}${t.count > 1 ? ` <span style="color:var(--text3);font-size:.72rem">x${t.count}</span>` : ''}</div>
+            </div>
+            <div class="tracker-prices">
+                <div class="tp"><div class="tp-val" style="color:var(--cyan)">${fmtBRL(t.currentPrice)}</div><div class="tp-lbl">Atual</div></div>
+                <div class="tp"><div class="tp-val" style="color:var(--green)">${fmtBRL(t.minPrice)}</div><div class="tp-lbl">Mínimo 90d</div></div>
+                <div class="tp"><div class="tp-val" style="color:var(--red)">${fmtBRL(t.maxPrice)}</div><div class="tp-lbl">Máximo 90d</div></div>
+                <div class="tp"><div class="tp-val">${fmtBRL(t.avgPrice)}</div><div class="tp-lbl">Média</div></div>
+                <div class="tp"><div class="tp-val ${trendCls}">${trendIcon} ${trendTxt}</div><div class="tp-lbl">Tendência</div></div>
+            </div>
+            <div class="tracker-chart-wrap"><canvas id="tchart_${i}"></canvas></div>
+        </div>`;
+    }).join('');
+
+    requestAnimationFrame(() => {
+        items.forEach((t, i) => {
+            const canvas = document.getElementById(`tchart_${i}`);
+            if (!canvas || !t.priceHistory || t.priceHistory.length < 2) return;
+            const ctx = canvas.getContext('2d');
+            const prices = t.priceHistory.map(p => p.price || p);
+            const labels = t.priceHistory.map((p, idx) => idx % 10 === 0 ? new Date((p.ts || 0) * 1000).toLocaleDateString('pt-BR', {month:'short',day:'numeric'}) : '');
+            if (_trackerCharts[i]) _trackerCharts[i].destroy();
+            _trackerCharts[i] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: prices,
+                        borderColor: t.trend > 0.05 ? '#00e676' : t.trend < -0.05 ? '#ff1744' : '#00e5ff',
+                        backgroundColor: 'transparent',
+                        tension: .4, pointRadius: 0, borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false, min: Math.min(...prices)*0.9, max: Math.max(...prices)*1.1 }
+                    }
+                }
+            });
+        });
+    });
+}
+
+// ── Countries Renderer ──
+function renderCountries(data) {
+    if (!data.length) {
+        document.getElementById('countriesList').innerHTML = '<p style="color:var(--text3);padding:14px">Nenhum dado de país encontrado.</p>';
+        return;
+    }
+    const total = data.reduce((s, c) => s + c.count, 0);
+    const countryNames = { 
+        BR:'Brasil', US:'Estados Unidos', DE:'Alemanha', UK:'Reino Unido', GB:'Reino Unido', 
+        FR:'França', RU:'Rússia', PL:'Polônia', CA:'Canadá', AU:'Austrália', NL:'Holanda', 
+        SE:'Suécia', FI:'Finlândia', NO:'Noruega', AR:'Argentina', MX:'México', ES:'Espanha', 
+        PT:'Portugal', IT:'Itália', JP:'Japão', KR:'Coreia do Sul', CN:'China', IN:'Índia', 
+        TR:'Turquia', UA:'Ucrânia' 
+    };
+    const flags = { 
+        BR:'🇧🇷', US:'🇺🇸', DE:'🇩🇪', UK:'🇬🇧', GB:'🇬🇧', FR:'🇫🇷', RU:'🇷🇺', PL:'🇵🇱', 
+        CA:'🇨🇦', AU:'🇦🇺', NL:'🇳🇱', SE:'🇸🇪', FI:'🇫🇮', NO:'🇳🇴', AR:'🇦🇷', MX:'🇲🇽', 
+        ES:'🇪🇸', PT:'🇵🇹', IT:'🇮🇹', JP:'🇯🇵', KR:'🇰🇷', CN:'🇨🇳', IN:'🇮🇳', TR:'🇹🇷', UA:'🇺🇦' 
+    };
+    const maxCount = data[0].count;
+
+    document.getElementById('countriesList').innerHTML = data.map(c => {
+        const name = countryNames[c.code] || c.code;
+        const flag = flags[c.code] || '🌐';
+        const pct = Math.round(c.count / total * 100);
+        return `<div class="country-row">
+            <div class="country-name">${flag} ${name}</div>
+            <div class="country-bar-bg"><div class="country-bar-fill" style="width:${Math.round(c.count/maxCount*100)}%"></div></div>
+            <div style="font-size:.75rem;color:var(--text3);flex-shrink:0;width:38px;text-align:right">${pct}%</div>
+            <div class="country-count">${c.count}</div>
+        </div>`;
+    }).join('');
+
+    const ctx = document.getElementById('countriesCanvas').getContext('2d');
+    if (countriesChart) countriesChart.destroy();
+    const top10 = data.slice(0, 10);
+    const colors = ['#00e5ff','#ff5722','#ffd740','#00e676','#e040fb','#69ff47','#40c4ff','#ff6e40','#b2ff59','#ff4081'];
+    countriesChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: top10.map(c => (flags[c.code]||'🌐') + ' ' + (countryNames[c.code]||c.code)),
+            datasets: [{ data: top10.map(c => c.count), backgroundColor: colors, borderColor: 'rgba(0,0,0,.3)', borderWidth: 2 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: '#8fadc8', font: { family: 'Exo 2', size: 11 }, boxWidth: 14, padding: 8 } }
+            }
+        }
+    });
+}
+
 // ── History Chart ──
 function updateHistChart() {
     if (!snapshotData.length) return;
@@ -1261,7 +2211,12 @@ function updateHistChart() {
     const labels = snapshotData.map(s => s.time);
     const values = snapshotData.map(s => s.total);
 
-    if (histChart) { histChart.data.labels = labels; histChart.data.datasets[0].data = values; histChart.update(); return; }
+    if (histChart) { 
+        histChart.data.labels = labels; 
+        histChart.data.datasets[0].data = values; 
+        histChart.update(); 
+        return; 
+    }
 
     histChart = new Chart(ctx, {
         type: 'line',
@@ -1285,6 +2240,98 @@ function updateHistChart() {
     });
 }
 
+// ── Feature 2: Skin Watchlist ────────────────────────────────────────────
+function getWatchlist() {
+    try { return JSON.parse(localStorage.getItem('sv_watchlist') || '[]'); } catch { return []; }
+}
+
+function saveWatchlist(list) {
+    try { localStorage.setItem('sv_watchlist', JSON.stringify(list)); } catch {}
+}
+
+function addToWatchlist() {
+    const appId = parseInt(document.getElementById('wlAppId').value);
+    const name = document.getElementById('wlItemName').value.trim();
+    if (!name) { showError('Digite o nome do item'); return; }
+    const list = getWatchlist();
+    if (list.find(it => it.name === name && it.appId === appId)) {
+        showError('Item já está na watchlist'); 
+        return;
+    }
+    list.push({ name, appId, addedAt: Date.now(), price: null, prevPrice: null, imageUrl: '' });
+    saveWatchlist(list);
+    document.getElementById('wlItemName').value = '';
+    renderWatchlistItems();
+    ensureConnected(() => connection.invoke('PriceInventoryItem', name, appId).catch(() => {}));
+    _watchlistPriceWait.add(`${appId}:${name}`);
+}
+
+function removeFromWatchlist(name, appId) {
+    const list = getWatchlist().filter(it => !(it.name === name && it.appId === appId));
+    saveWatchlist(list);
+    renderWatchlistItems();
+}
+
+function refreshWatchlist() {
+    const list = getWatchlist();
+    if (!list.length) return;
+    showFeaturePanel('watchlist');
+    document.getElementById('watchlistGrid').innerHTML = '<p style="color:var(--text2);font-style:italic;padding:10px">Atualizando preços...</p>';
+    list.forEach(it => {
+        _watchlistPriceWait.add(`${it.appId}:${it.name}`);
+        ensureConnected(() => connection.invoke('PriceInventoryItem', it.name, it.appId).catch(() => {}));
+    });
+}
+
+function handleWatchlistPrice(name, appId, price) {
+    const key = `${appId}:${name}`;
+    if (!_watchlistPriceWait.has(key)) return;
+    _watchlistPriceWait.delete(key);
+    const list = getWatchlist();
+    const item = list.find(it => it.name === name && it.appId === appId);
+    if (item) {
+        item.prevPrice = item.price;
+        item.price = price;
+        item.updatedAt = Date.now();
+        saveWatchlist(list);
+        renderWatchlistItems();
+    }
+}
+
+function renderWatchlistItems() {
+    const list = getWatchlist();
+    const grid = document.getElementById('watchlistGrid');
+    const empty = document.getElementById('watchlistEmpty');
+    if (!list.length) { 
+        grid.innerHTML = ''; 
+        empty.style.display = ''; 
+        return; 
+    }
+    empty.style.display = 'none';
+    const gameNames = {730:'CS2',570:'Dota 2',440:'TF2',252490:'Rust',1172470:'Apex',578080:'PUBG'};
+    grid.innerHTML = list.map(it => {
+        const trend = it.prevPrice !== null && it.price !== null ? it.price - it.prevPrice : 0;
+        const trendCls = trend > 0.01 ? 'watchlist-trend-up' : trend < -0.01 ? 'watchlist-trend-down' : 'watchlist-trend-flat';
+        const trendIcon = trend > 0.01 ? '📈' : trend < -0.01 ? '📉' : '➡️';
+        const trendTxt = Math.abs(trend) > 0.01 ? `${trend > 0 ? '+' : ''}${fmtBRL(trend)}` : '';
+        const priceHtml = it.price !== null ? `<span class="watchlist-price">${fmtBRL(it.price)}</span>` : `<span style="color:var(--text3);font-size:.8rem">⏳ carregando...</span>`;
+        const updatedTxt = it.updatedAt ? new Date(it.updatedAt).toLocaleString('pt-BR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}) : '';
+        return `<div class="watchlist-item">
+            <img src="https://community.cloudflare.steamstatic.com/economy/image//3c3dc3b22c7eb30e7d26e3b57d9f0d0aecb8a1d2a9c8f4f2e1b3d5e7a9c1e3f5/62fx62f" 
+                 onerror="this.style.display='none'" alt="${it.name}" style="display:none">
+            <div style="flex:1;min-width:0">
+                <div style="font-size:.88rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${it.name}">${it.name}</div>
+                <div style="font-size:.72rem;color:var(--text3);margin-top:2px">${gameNames[it.appId]||it.appId}${updatedTxt ? ' · ' + updatedTxt : ''}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+                ${priceHtml}
+                ${trendTxt ? `<div class="${trendCls}" style="font-size:.75rem;margin-top:2px">${trendIcon} ${trendTxt}</div>` : ''}
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="removeFromWatchlist('${it.name.replace(/'/g,"\\'")}',${it.appId})" title="Remover">✕</button>
+        </div>`;
+    }).join('');
+}
+
 // ── CSV Export ──
 function exportCSV() {
     const rows = ['Tipo,Nome,Preço (R$),Horas,Gênero,Metacritic'];
@@ -1299,13 +2346,19 @@ function exportCSV() {
 }
 
 // ── Helpers ──
-function fmtBRL(v) { return 'R$ ' + Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }); }
-function fmtTime(m) { if (!m) return '0min'; return m < 60 ? m+'min' : Math.round(m/60)+'h'; }
-function showError(msg) { document.getElementById('errorBox').innerHTML = `<div class="error-box">⚠ ${msg}</div>`; }
+function fmtBRL(v) { 
+    if (v === null || v === undefined) return 'R$ 0,00';
+    return 'R$ ' + Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); 
+}
 
-// ── Init ──
-buildConnection();
-try { const s = localStorage.getItem('steamProfileUrl'); if (s) document.getElementById('profileUrl').value = s; } catch {}
+function fmtTime(m) { 
+    if (!m) return '0min'; 
+    return m < 60 ? m+'min' : Math.round(m/60)+'h'; 
+}
+
+function showError(msg) { 
+    document.getElementById('errorBox').innerHTML = `<div class="error-box">⚠ ${msg}</div>`; 
+}
 </script>
 </body>
 </html>

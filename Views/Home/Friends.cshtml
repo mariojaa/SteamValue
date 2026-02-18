@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "SteamValue – Amigos";
     Layout = null;
+    string initUrl = ViewData["ProfileUrl"]?.ToString() ?? "";
 }
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -13,713 +14,1283 @@
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@@latest/dist/browser/signalr.min.js"></script>
     <style>
         :root {
-            --bg: #060b14; --bg1: #0d1524; --bg2: #111d2e; --bg3: #162236;
-            --border: #1a3050; --border2: #243f5e;
-            --cyan: #00e5ff; --cyan2: #00b8d9; --orange: #ff5722; --orange2: #e64a19;
-            --gold: #ffd740; --green: #00e676; --red: #ff1744; --purple: #e040fb;
-            --text: #cdd9e5; --text2: #8fadc8; --text3: #4a6480;
-            --online: #00e676; --offline: #546e7a; --ingame: #69ff47;
+            --bg:#060b14; --bg1:#0d1524; --bg2:#111d2e; --bg3:#162236;
+            --border:#1a3050; --border2:#243f5e;
+            --cyan:#00e5ff; --cyan2:#00b8d9; --orange:#ff5722; --orange2:#e64a19;
+            --gold:#ffd740; --green:#00e676; --red:#ff1744; --purple:#e040fb; --blue:#448aff;
+            --text:#cdd9e5; --text2:#8fadc8; --text3:#4a6480;
+            --online:#00e676; --offline:#546e7a; --ingame:#69ff47;
         }
-        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-        body {
-            font-family: 'Exo 2', sans-serif;
-            background: var(--bg); color: var(--text); min-height: 100vh;
-        }
-        body::before {
-            content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-            background:
-                radial-gradient(ellipse 60% 40% at 15% 30%, rgba(0,229,255,.05) 0%, transparent 70%),
-                radial-gradient(ellipse 50% 50% at 85% 70%, rgba(255,87,34,.05) 0%, transparent 70%),
-                repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(255,255,255,.01) 60px),
-                repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(255,255,255,.01) 60px);
-        }
-        .nav {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 40px; height: 60px;
-            background: rgba(6,11,20,.92); border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 200;
-        }
-        .nav-brand {
-            font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 900;
-            background: linear-gradient(90deg, var(--cyan), var(--orange));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px;
-        }
-        .nav-links { display: flex; gap: 6px; }
-        .nav-link {
-            padding: 6px 16px; border-radius: 6px; color: var(--text2); text-decoration: none;
-            font-size: .88rem; font-weight: 500; transition: all .2s; border: 1px solid transparent;
-        }
-        .nav-link:hover, .nav-link.active { color: var(--cyan); border-color: rgba(0,229,255,.25); background: rgba(0,229,255,.06); }
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Exo 2',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+        body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+            background:radial-gradient(ellipse 60% 40% at 15% 30%,rgba(0,229,255,.05) 0%,transparent 70%),
+            radial-gradient(ellipse 50% 50% at 85% 70%,rgba(255,87,34,.05) 0%,transparent 70%),
+            repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,.01) 60px),
+            repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,.01) 60px)}
 
-        .page { max-width: 1440px; margin: 0 auto; padding: 24px 20px; position: relative; z-index: 1; }
+        /* NAV */
+        .nav{display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:58px;
+            background:rgba(6,11,20,.95);border-bottom:1px solid var(--border);
+            backdrop-filter:blur(20px);position:sticky;top:0;z-index:300}
+        .nav-brand{font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;
+            background:linear-gradient(90deg,var(--cyan),var(--orange));
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px}
+        .nav-links{display:flex;gap:4px}
+        .nav-link{padding:6px 14px;border-radius:6px;color:var(--text2);text-decoration:none;
+            font-size:.87rem;font-weight:500;transition:all .2s;border:1px solid transparent}
+        .nav-link:hover,.nav-link.active{color:var(--cyan);border-color:rgba(0,229,255,.25);background:rgba(0,229,255,.06)}
 
-        /* ── Top bar ── */
-        .top-bar {
-            background: var(--bg1); border: 1px solid var(--border);
-            border-radius: 14px; padding: 22px 26px; margin-bottom: 20px;
-        }
-        .top-bar h1 {
-            font-family: 'Orbitron', sans-serif; font-size: 1.4rem; font-weight: 900;
-            color: #fff; margin-bottom: 16px; letter-spacing: 1px;
-        }
-        .search-row { display: flex; gap: 10px; flex-wrap: wrap; }
-        .url-input {
-            flex: 1; min-width: 280px; padding: 12px 16px;
-            background: rgba(0,0,0,.4); border: 1.5px solid var(--border);
-            border-radius: 10px; color: #fff; font-size: .95rem; font-family: 'Exo 2', sans-serif;
-            transition: border-color .25s, box-shadow .25s;
-        }
-        .url-input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,229,255,.1); }
-        .url-input::placeholder { color: var(--text3); }
+        .page{max-width:1600px;margin:0 auto;padding:20px 16px;position:relative;z-index:1}
 
-        /* ── Buttons ── */
-        .btn {
-            display: inline-flex; align-items: center; gap: 7px;
-            padding: 10px 18px; border: none; border-radius: 10px;
-            font-family: 'Exo 2', sans-serif; font-size: .9rem; font-weight: 700;
-            cursor: pointer; transition: all .2s; white-space: nowrap;
-        }
-        .btn-primary { background: linear-gradient(135deg, var(--cyan), var(--cyan2)); color: #000; }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .btn-orange { background: linear-gradient(135deg, var(--orange), var(--orange2)); color: #fff; box-shadow: 0 4px 16px rgba(255,87,34,.2); }
-        .btn-orange:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .btn-ghost { background: rgba(255,255,255,.04); color: var(--text2); border: 1px solid var(--border); }
-        .btn-ghost:hover { background: rgba(255,255,255,.08); color: var(--text); }
-        .btn-sm { padding: 7px 13px; font-size: .82rem; }
-        .btn:disabled { opacity: .45; pointer-events: none; }
+        /* SEARCH BAR */
+        .search-bar{background:var(--bg1);border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+        .url-input{flex:1;min-width:260px;padding:11px 15px;background:rgba(0,0,0,.4);
+            border:1.5px solid var(--border);border-radius:10px;color:#fff;font-size:.93rem;font-family:'Exo 2',sans-serif;transition:border-color .25s,box-shadow .25s}
+        .url-input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,.1)}
+        .url-input::placeholder{color:var(--text3)}
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border:none;border-radius:10px;
+            font-family:'Exo 2',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+        .btn-cyan{background:linear-gradient(135deg,var(--cyan),var(--cyan2));color:#000}
+        .btn-cyan:hover{filter:brightness(1.1);transform:translateY(-1px)}
+        .btn-orange{background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff;box-shadow:0 4px 12px rgba(255,87,34,.2)}
+        .btn-orange:hover{filter:brightness(1.1);transform:translateY(-1px)}
+        .btn-ghost{background:rgba(255,255,255,.04);color:var(--text2);border:1px solid var(--border)}
+        .btn-ghost:hover{background:rgba(255,255,255,.08);color:var(--text)}
+        .btn-green{background:linear-gradient(135deg,var(--green),#00c853);color:#000}
+        .btn-sm{padding:6px 12px;font-size:.8rem}
+        .btn-xs{padding:4px 9px;font-size:.75rem}
+        .btn:disabled{opacity:.4;pointer-events:none}
 
-        .controls-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
-        .select-s, .text-s { padding: 8px 12px; background: rgba(0,0,0,.4); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Exo 2', sans-serif; font-size: .85rem; }
-        .lbl-s { font-size: .75rem; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; }
+        /* MAIN LAYOUT */
+        .main{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+        @@media (max-width:1024px){.main{grid-template-columns:1fr}}
 
-        /* ── Main grid ── */
-        .main-grid { display: grid; grid-template-columns: 290px 1fr; gap: 18px; }
-        @@media (max-width: 960px) { .main-grid { grid-template-columns: 1fr; } }
+        /* FRIENDS LIST PANEL */
+        .friends-panel{background:var(--bg1);border:1px solid var(--border);border-radius:14px;overflow:hidden;height:calc(100vh - 160px);display:flex;flex-direction:column;position:sticky;top:74px}
+        .panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+        .panel-title{font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:700;color:#fff;letter-spacing:.5px}
+        .panel-filter{padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+        .filter-input{width:100%;padding:7px 11px;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.83rem;font-family:'Exo 2',sans-serif}
+        .filter-input:focus{outline:none;border-color:var(--cyan)}
+        .friends-list{overflow-y:auto;flex:1;padding:8px}
+        .friends-list::-webkit-scrollbar{width:4px}
+        .friends-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+        .friend-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;transition:all .2s;border:1px solid transparent;margin-bottom:3px}
+        .friend-item:hover{background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.15)}
+        .friend-item.active{background:rgba(0,229,255,.1);border-color:rgba(0,229,255,.3)}
+        .friend-avatar-wrap{position:relative;flex-shrink:0}
+        .friend-avatar{width:38px;height:38px;border-radius:6px;object-fit:cover;background:var(--bg3)}
+        .status-dot{position:absolute;bottom:-2px;right:-2px;width:11px;height:11px;border-radius:50%;border:2px solid var(--bg1)}
+        .status-online{background:var(--online)}
+        .status-offline{background:var(--offline)}
+        .status-ingame{background:var(--ingame)}
+        .friend-info{flex:1;min-width:0}
+        .friend-name{font-size:.83rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .friend-sub{font-size:.72rem;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .friends-loading{text-align:center;padding:40px;color:var(--text3)}
+        .spinner{display:inline-block;width:20px;height:20px;border:2px solid rgba(0,229,255,.2);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite}
+        @@keyframes spin{to{transform:rotate(360deg)}}
 
-        /* ── Profile card ── */
-        .profile-card { background: var(--bg1); border: 1px solid var(--border); border-radius: 14px; padding: 20px; height: fit-content; }
-        .pf-header { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
-        .pf-avatar { width: 74px; height: 74px; border-radius: 6px; border: 2px solid var(--cyan); flex-shrink: 0; }
-        .pf-name { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
-        .pf-status { font-size: .82rem; display: flex; align-items: center; gap: 6px; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-        .pf-details { background: rgba(0,0,0,.25); border-radius: 8px; padding: 12px; }
-        .pf-row { display: flex; justify-content: space-between; font-size: .84rem; margin-bottom: 7px; }
-        .pf-row:last-child { margin-bottom: 0; }
-        .pf-row strong { color: var(--cyan); }
-        .pf-val { color: #fff; font-weight: 600; }
-        .pf-loading { color: var(--text3); font-style: italic; }
-        .recent-title { font-size: .72rem; text-transform: uppercase; color: var(--text3); margin: 12px 0 6px; letter-spacing: 1px; }
-        .recent-row { display: flex; gap: 7px; flex-wrap: wrap; }
-        .mini-thumb { width: 76px; }
-        .mini-thumb img { width: 100%; height: 38px; object-fit: cover; border-radius: 4px; display: block; }
-        .mini-thumb-name { font-size: .65rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; color: var(--text2); }
+        /* PROFILE PANEL (right side) */
+        .profile-panel{background:var(--bg1);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+        .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 40px;gap:16px;text-align:center}
+        .empty-icon{font-size:3rem;opacity:.4}
+        .empty-title{font-size:1.1rem;color:var(--text2);font-family:'Orbitron',sans-serif;font-weight:700}
+        .empty-sub{font-size:.85rem;color:var(--text3)}
 
-        /* ── Friends card ── */
-        .friends-card { background: var(--bg1); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-        .friends-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-        .friends-title { font-family: 'Orbitron', sans-serif; font-size: .9rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
-        .friends-count { font-size: .78rem; color: var(--text3); margin-top: 3px; }
-        #friendsList { max-height: 700px; overflow-y: auto; }
-        #friendsList::-webkit-scrollbar { width: 4px; }
-        #friendsList::-webkit-scrollbar-thumb { background: rgba(0,229,255,.2); border-radius: 99px; }
+        /* FRIEND PROFILE HEADER */
+        .friend-profile-header{position:relative;overflow:hidden}
+        .profile-bg{position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,229,255,.05),rgba(255,87,34,.05));z-index:0}
+        .profile-hero{position:relative;z-index:1;padding:24px;display:flex;gap:20px;align-items:flex-start}
+        .profile-avatar-lg{width:80px;height:80px;border-radius:10px;border:3px solid var(--border2);object-fit:cover}
+        .profile-main-info{flex:1}
+        .profile-name{font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;color:#fff;margin-bottom:4px}
+        .profile-realname{font-size:.83rem;color:var(--text3);margin-bottom:8px}
+        .profile-badges-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+        .profile-badge{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:.5px}
+        .badge-level{background:rgba(255,215,64,.15);color:var(--gold);border:1px solid rgba(255,215,64,.3)}
+        .badge-vac{background:rgba(255,23,68,.15);color:var(--red);border:1px solid rgba(255,23,68,.3)}
+        .badge-clean{background:rgba(0,230,118,.15);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+        .badge-country{background:rgba(68,138,255,.15);color:var(--blue);border:1px solid rgba(68,138,255,.3)}
+        .badge-online{background:rgba(0,230,118,.15);color:var(--online);border:1px solid rgba(0,230,118,.3)}
+        .badge-ingame{background:rgba(105,255,71,.15);color:var(--ingame);border:1px solid rgba(105,255,71,.3)}
+        .badge-offline{background:rgba(84,110,122,.15);color:var(--text3);border:1px solid rgba(84,110,122,.3)}
+        .profile-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 
-        /* ── Friend card ── */
-        .friend-card {
-            background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
-            padding: 13px 15px; display: flex; gap: 12px; align-items: center;
-            margin-bottom: 7px; transition: transform .18s, border-color .18s;
-        }
-        .friend-card:hover { transform: translateX(4px); border-color: rgba(0,229,255,.2); }
-        .friend-card.online-card { border-left: 3px solid var(--online); }
-        .friend-card.ingame-card { border-left: 3px solid var(--ingame); }
-        .f-avatar { width: 50px; height: 50px; border-radius: 5px; border: 1px solid var(--border); position: relative; flex-shrink: 0; }
-        .f-avatar img { width: 100%; height: 100%; border-radius: 5px; object-fit: cover; }
-        .f-status-badge { position: absolute; bottom: -3px; right: -3px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--bg3); }
-        .f-info { flex: 1; min-width: 0; }
-        .f-name-row { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; }
-        .f-name { font-size: .92rem; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .f-state-lbl { font-size: .68rem; font-weight: 700; border-radius: 4px; padding: 2px 6px; flex-shrink: 0; }
-        .lbl-online { background: rgba(0,230,118,.12); color: var(--online); }
-        .lbl-ingame { background: rgba(105,255,71,.12); color: var(--ingame); }
-        .lbl-offline { background: rgba(84,110,122,.12); color: var(--offline); }
-        .f-sub { font-size: .75rem; color: var(--text2); margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .f-game { font-size: .75rem; color: var(--ingame); margin-bottom: 3px; }
-        .f-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 3px; }
-        .f-link { font-size: .73rem; color: var(--cyan); cursor: pointer; }
-        .f-link:hover { text-decoration: underline; }
-        .f-value { text-align: right; flex-shrink: 0; margin-right: 4px; }
-        .f-val-amount { font-family: 'Orbitron', sans-serif; font-size: .9rem; font-weight: 700; color: #fff; }
-        .f-val-sub { font-size: .68rem; color: var(--text3); }
-        .f-calc-btn {
-            background: linear-gradient(135deg, var(--orange), var(--orange2)); color: #fff;
-            border: none; border-radius: 7px; padding: 7px 12px;
-            font-family: 'Exo 2', sans-serif; font-weight: 700; font-size: .78rem;
-            cursor: pointer; transition: all .2s; white-space: nowrap; flex-shrink: 0;
-        }
-        .f-calc-btn:hover { filter: brightness(1.1); }
-        .f-calc-btn:disabled { opacity: .5; pointer-events: none; }
-        .f-progress { font-size: .72rem; color: var(--cyan); margin-top: 2px; }
+        /* STATS ROW */
+        .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+        .stat-cell{background:var(--bg1);padding:14px 16px;text-align:center}
+        .stat-val{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;color:var(--cyan)}
+        .stat-label{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
 
-        /* ── Section separator ── */
-        .section-sep {
-            font-size: .72rem; text-transform: uppercase; letter-spacing: 1.5px;
-            color: var(--text3); padding: 8px 4px 4px;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .section-sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+        /* TABS */
+        .tabs-bar{display:flex;gap:2px;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;flex-wrap:nowrap}
+        .tabs-bar::-webkit-scrollbar{height:3px}
+        .tabs-bar::-webkit-scrollbar-thumb{background:var(--border2)}
+        .tab-btn{padding:7px 14px;border-radius:8px;border:none;background:transparent;color:var(--text3);font-family:'Exo 2',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0}
+        .tab-btn:hover{color:var(--text);background:rgba(255,255,255,.05)}
+        .tab-btn.active{color:#fff;background:rgba(0,229,255,.15);border:1px solid rgba(0,229,255,.3)}
 
-        /* ── Pagination ── */
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 12px; }
-        .page-info { color: var(--text2); font-size: .82rem; }
+        /* TAB CONTENT */
+        .tab-content{display:none;padding:16px}
+        .tab-content.active{display:block}
 
-        /* ── Error / Loading ── */
-        .error-box { background: rgba(255,23,68,.1); border: 1px solid rgba(255,23,68,.3); border-radius: 8px; padding: 12px 16px; color: var(--red); margin-top: 10px; font-size: .88rem; }
-        .loading-msg { color: var(--text3); font-style: italic; padding: 24px; text-align: center; }
-        .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(0,229,255,.2); border-top-color: var(--cyan); border-radius: 50%; animation: spin .7s linear infinite; }
-        @@keyframes spin { to { transform: rotate(360deg); } }
-        .dots span { animation: blink 1.4s infinite both; }
-        .dots span:nth-child(2) { animation-delay: .2s; }
-        .dots span:nth-child(3) { animation-delay: .4s; }
-        @@keyframes blink { 0%,80%,100% { opacity:0; } 40% { opacity:1; } }
+        /* GAMES TABLE */
+        .games-search{width:100%;padding:8px 12px;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.85rem;margin-bottom:12px}
+        .games-search:focus{outline:none;border-color:var(--cyan)}
+        .games-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+        .sort-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--text2);font-size:.77rem;cursor:pointer;font-family:'Exo 2',sans-serif;transition:all .2s}
+        .sort-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,.08)}
+        .games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;max-height:520px;overflow-y:auto}
+        .games-grid::-webkit-scrollbar{width:4px}
+        .games-grid::-webkit-scrollbar-thumb{background:var(--border2)}
+        .game-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s}
+        .game-card:hover{border-color:var(--cyan);transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,229,255,.1)}
+        .game-thumb{width:100%;height:80px;object-fit:cover;background:var(--bg3)}
+        .game-card-body{padding:8px}
+        .game-card-name{font-size:.75rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+        .game-card-meta{font-size:.68rem;color:var(--text3)}
+        .game-price-tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.7rem;font-weight:700;margin-top:4px}
+        .price-paid{background:rgba(0,229,255,.1);color:var(--cyan)}
+        .price-free{background:rgba(0,230,118,.1);color:var(--green)}
 
-        /* ── Modal ── */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,.8);
-            display: flex; align-items: center; justify-content: center; z-index: 9999;
-        }
-        .modal-box {
-            background: var(--bg1); border: 1px solid var(--border); border-radius: 16px;
-            padding: 24px; width: 94%; max-width: 980px; max-height: 86vh; overflow-y: auto;
-        }
-        .modal-box::-webkit-scrollbar { width: 4px; }
-        .modal-box::-webkit-scrollbar-thumb { background: rgba(0,229,255,.25); border-radius: 99px; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
-        .modal-title { font-family: 'Orbitron', sans-serif; font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: .5px; }
-        .modal-games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
-        .modal-game { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform .18s, border-color .18s; }
-        .modal-game:hover { transform: translateY(-2px); border-color: rgba(0,229,255,.3); }
-        .modal-game img { width: 100%; height: 80px; object-fit: cover; display: block; }
-        .modal-game-body { padding: 8px; }
-        .modal-game-name { font-size: .8rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
-        .modal-game-price { font-size: .76rem; color: var(--green); font-weight: 700; margin-top: 2px; }
-        .modal-game-meta { font-size: .68rem; color: var(--text3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .modal-inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 8px; }
-        .modal-inv-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; overflow: hidden; transition: border-color .15s; }
-        .modal-inv-item:hover { border-color: rgba(255,215,64,.3); }
-        .modal-inv-item img { width: 100%; height: 74px; object-fit: cover; display: block; background: #0d1524; }
-        .modal-inv-body { padding: 7px; }
-        .modal-inv-name { font-size: .72rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .modal-inv-price { font-size: .75rem; color: var(--gold); font-weight: 700; }
-        .modal-inv-count { font-size: .65rem; color: var(--text3); }
-        .modal-inv-rarity { font-size: .65rem; }
-        .inv-section-title {
-            font-family: 'Orbitron', sans-serif; font-size: .82rem; font-weight: 700;
-            color: var(--cyan); margin: 18px 0 10px; text-transform: uppercase; letter-spacing: 1px;
-        }
-        .inv-empty { color: var(--text3); font-size: .82rem; padding: 12px 0; font-style: italic; }
+        /* INVENTORY */
+        .inv-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+        .inv-tab{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:.8rem;cursor:pointer;font-family:'Exo 2',sans-serif;transition:all .2s}
+        .inv-tab.active{border-color:var(--orange);color:var(--orange);background:rgba(255,87,34,.08)}
+        .friend-inv-game-btn.active{border-color:var(--orange);color:var(--orange);background:rgba(255,87,34,.08)}
+        .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:480px;overflow-y:auto}
+        .inv-grid::-webkit-scrollbar{width:4px}
+        .inv-grid::-webkit-scrollbar-thumb{background:var(--border2)}
+        .inv-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative}
+        .inv-card-img{width:100%;height:75px;object-fit:cover;background:var(--bg3)}
+        .inv-card-body{padding:6px}
+        .inv-card-name{font-size:.68rem;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .inv-card-price{font-size:.72rem;font-weight:700;color:var(--green)}
+        .inv-card-count{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.8);border-radius:4px;padding:1px 5px;font-size:.67rem;font-weight:700;color:#fff}
+        .rarity-badge{position:absolute;top:4px;left:4px;padding:1px 5px;border-radius:3px;font-size:.6rem;font-weight:700}
+        .inv-total-bar{background:var(--bg3);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
 
-        /* ── Inv loading ── */
-        .inv-loading { display: flex; align-items: center; gap: 8px; padding: 10px 0; color: var(--text3); font-style: italic; font-size: .82rem; }
+        /* BADGES TAB */
+        .badges-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+        .badge-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+        .badge-card img{width:64px;height:64px;object-fit:contain}
+        .badge-card-name{font-size:.65rem;color:var(--text2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .badge-card-xp{font-size:.7rem;font-weight:700;color:var(--gold)}
+
+        /* RECENT GAMES */
+        .recent-list{display:flex;flex-direction:column;gap:8px}
+        .recent-item{display:flex;gap:12px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+        .recent-thumb{width:56px;height:32px;border-radius:4px;object-fit:cover}
+        .recent-info{flex:1;min-width:0}
+        .recent-name{font-size:.85rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .recent-time{font-size:.75rem;color:var(--text3)}
+        .recent-hours{font-size:.8rem;font-weight:700;color:var(--cyan)}
+
+        /* DNA TAB */
+        .dna-hero{text-align:center;padding:20px;background:linear-gradient(135deg,rgba(0,229,255,.05),rgba(255,87,34,.05));border-radius:12px;margin-bottom:16px}
+        .dna-archetype{font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:900;color:var(--cyan);text-shadow:0 0 30px rgba(0,229,255,.4)}
+        .dna-score{font-size:3rem;font-weight:900;font-family:'Orbitron',sans-serif;background:linear-gradient(135deg,var(--cyan),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .dna-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+        .dna-pillar{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+        .dna-pillar-label{font-size:.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+        .dna-bar-wrap{background:rgba(0,0,0,.4);border-radius:4px;height:8px;margin-bottom:6px}
+        .dna-bar{height:8px;border-radius:4px;transition:width .8s ease}
+        .dna-pillar-val{font-size:1.1rem;font-weight:700;font-family:'Orbitron',sans-serif}
+
+        /* WISHLIST TAB */
+        .wishlist-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:14px}
+        .wish-stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+        .wish-stat-val{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;color:var(--gold)}
+        .wish-stat-label{font-size:.7rem;color:var(--text3);margin-top:2px}
+        .wishlist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:420px;overflow-y:auto}
+        .wish-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+        .wish-card img{width:100%;height:70px;object-fit:cover}
+        .wish-card-body{padding:8px}
+        .wish-card-name{font-size:.74rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+        .wish-sale-bar{height:4px;border-radius:2px;margin-top:6px}
+        .sale-hot{background:var(--red)}
+        .sale-warm{background:var(--orange)}
+        .sale-cool{background:var(--text3)}
+
+        /* ACTIVITY PATTERNS TAB */
+        .slots-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+        .slot-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px}
+        .slot-title{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:10px}
+        .slot-friends{display:flex;flex-wrap:wrap;gap:4px}
+        .slot-avatar{width:28px;height:28px;border-radius:4px;object-fit:cover;cursor:pointer}
+        .slot-count{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:700;color:var(--cyan)}
+
+        /* ACHIEVEMENTS TAB */
+        .ach-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+        .ach-progress{background:rgba(0,0,0,.4);border-radius:6px;height:10px;flex:1;max-width:300px}
+        .ach-fill{height:10px;border-radius:6px;background:linear-gradient(90deg,var(--cyan),var(--orange))}
+        .ach-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;max-height:460px;overflow-y:auto}
+        .ach-item{display:flex;gap:10px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+        .ach-item.unlocked{border-color:rgba(0,230,118,.25);background:rgba(0,230,118,.04)}
+        .ach-icon{width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0}
+        .ach-info{min-width:0}
+        .ach-name{font-size:.8rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .ach-desc{font-size:.72rem;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+        /* COMPARISON */
+        .compare-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;margin-bottom:16px}
+        .compare-stat{text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px}
+        .compare-vs{font-family:'Orbitron',sans-serif;font-size:1.2rem;font-weight:900;color:var(--text3)}
+        .compare-label{font-size:.7rem;color:var(--text3);margin-bottom:6px}
+        .compare-val{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700}
+        .val-win{color:var(--green)}
+        .val-lose{color:var(--text3)}
+        .val-tie{color:var(--gold)}
+
+        /* LOADING OVERLAY */
+        .loading-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(6,11,20,.8);z-index:10;border-radius:14px}
+        .loading-box{text-align:center;padding:24px}
+        .loading-text{color:var(--text2);font-size:.9rem;margin-top:12px}
+
+        /* ERROR */
+        .error-box{background:rgba(255,23,68,.08);border:1px solid rgba(255,23,68,.3);border-radius:10px;padding:12px 16px;color:var(--red);font-size:.85rem;margin:8px 0}
+
+        /* SECTION TITLE */
+        .sec-title{font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+        /* TAG */
+        .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600;background:rgba(0,229,255,.1);color:var(--cyan);border:1px solid rgba(0,229,255,.2)}
+
+        .text-center{text-align:center}
+        .text-muted{color:var(--text3);font-size:.8rem}
+        .mt-8{margin-top:8px}
+        .flex{display:flex}
+        .gap-8{gap:8px}
+        .wrap{flex-wrap:wrap}
+        .items-center{align-items:center}
+        .between{justify-content:space-between}
     </style>
 </head>
 <body>
-
 <nav class="nav">
-    <div class="nav-brand">⚡ STEAMVALUE</div>
+    <span class="nav-brand">STEAMVALUE</span>
     <div class="nav-links">
-        <a href="/" class="nav-link">Calculadora</a>
-        <a href="/Home/Friends" class="nav-link active">Amigos</a>
+        <a href="/" class="nav-link">⬡ Início</a>
+        <a href="/Home/Friends" class="nav-link active">👥 Amigos</a>
     </div>
 </nav>
 
 <div class="page">
-    <div class="top-bar">
-        <h1>👥 Lista de Amigos</h1>
-        <div class="search-row">
-            <input type="text" class="url-input" id="profileUrl"
-                   placeholder="https://steamcommunity.com/id/seu-perfil"
-                   value="@(ViewData["ProfileUrl"] as string ?? "")">
-            <button class="btn btn-primary" onclick="loadProfile()">
-                <div class="spinner" id="loadSpinner" style="display:none"></div>
-                CARREGAR PERFIL
-            </button>
-        </div>
-        <div class="controls-row">
-            <span class="lbl-s">Ordenar:</span>
-            <select class="select-s" id="sortSelect" onchange="renderFriendsList()">
-                <option value="online_first">Online primeiro</option>
-                <option value="value_desc">Maior valor</option>
-                <option value="name_asc">Nome A-Z</option>
-            </select>
-            <span class="lbl-s">Filtrar:</span>
-            <input type="text" class="text-s" id="filterValue" placeholder="Valor máx R$" style="width:130px" oninput="renderFriendsList()">
-            <input type="text" class="text-s" id="friendSearch" placeholder="🔍 Buscar amigo..." style="width:175px" oninput="applySearch()">
-            <button class="btn btn-orange btn-sm" onclick="compareAll()" id="btnCalcAll">⚡ Calcular Todos</button>
-            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ CSV</button>
-        </div>
-        <div id="errorBox"></div>
+    <!-- Search Bar -->
+    <div class="search-bar">
+        <span style="font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;color:#fff;white-space:nowrap">👥 Mapa de Amigos</span>
+        <input id="urlInput" type="text" class="url-input" placeholder="steamcommunity.com/id/seuNome ou /profiles/76561..." value="@initUrl">
+        <button id="loadBtn" class="btn btn-cyan">🔍 Carregar Amigos</button>
     </div>
+    <div id="errBox" class="error-box" style="display:none"></div>
 
-    <div class="main-grid">
-        <!-- Left: profile card -->
-        <div>
-            <div class="profile-card">
-                <div class="pf-header">
-                    <img src="https://avatars.cloudflare.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
-                         alt="" class="pf-avatar" id="pfAvatar">
-                    <div>
-                        <div class="pf-name" id="pfName">Aguardando...</div>
-                        <div class="pf-status" id="pfStatus">
-                            <span class="status-dot" style="background:var(--offline)"></span>
-                            Insira a URL acima
+    <div class="main">
+        <!-- LEFT: Friends List -->
+        <div class="friends-panel">
+            <div class="panel-header">
+                <span class="panel-title">Amigos</span>
+                <span id="friendCount" style="font-size:.8rem;color:var(--text3)">—</span>
+            </div>
+            <div class="panel-filter">
+                <input id="filterInput" type="text" class="filter-input" placeholder="🔎 Filtrar por nome...">
+            </div>
+            <div class="friends-list" id="friendsList">
+                <div class="friends-loading">
+                    <div style="font-size:2.5rem;opacity:.3">👥</div>
+                    <div style="color:var(--text3);font-size:.85rem;margin-top:8px">Insira uma URL e clique em Carregar</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Profile Panel -->
+        <div class="profile-panel" id="profilePanel" style="position:relative">
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">👈</div>
+                <div class="empty-title">Selecione um amigo</div>
+                <div class="empty-sub">Clique em um amigo para ver o perfil completo</div>
+            </div>
+
+            <!-- Profile loaded content (hidden initially) -->
+            <div id="friendProfile" style="display:none">
+                <!-- Header -->
+                <div class="friend-profile-header">
+                    <div class="profile-bg"></div>
+                    <div class="profile-hero">
+                        <img id="fp-avatar" class="profile-avatar-lg" src="" alt="">
+                        <div class="profile-main-info">
+                            <div class="profile-name" id="fp-name"></div>
+                            <div class="profile-realname" id="fp-realname"></div>
+                            <div class="profile-badges-row" id="fp-badges"></div>
+                            <div class="profile-actions">
+                                <a id="fp-steam-link" href="#" target="_blank" class="btn btn-ghost btn-sm">🔗 Ver na Steam</a>
+                                <button id="btn-compare" class="btn btn-ghost btn-sm">⚔️ Comparar</button>
+                                <button id="btn-load-games" class="btn btn-cyan btn-sm">🎮 Jogos</button>
+                                <button id="btn-load-inv" class="btn btn-orange btn-sm">📦 Inventário</button>
+                                <button id="btn-load-dna" class="btn btn-green btn-sm">🧬 DNA</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="pf-details">
-                    <div class="pf-row"><span>País</span><span class="pf-val" id="pfCountry">—</span></div>
-                    <div class="pf-row"><span>Nível Steam</span><span class="pf-val" id="pfLevel">—</span></div>
-                    <div class="pf-row"><span>Badges</span><span class="pf-val" id="pfBadges">—</span></div>
-                    <div class="pf-row"><span>Último login</span><span class="pf-val" id="pfLastLogin">—</span></div>
-                    <div class="pf-row"><span>Jogos</span><span class="pf-val" id="pfGames">—</span></div>
-                    <div class="pf-row"><span>Valor estimado</span><span class="pf-val pf-loading" id="pfValue">—</span></div>
-                </div>
-                <div class="recent-title" id="recentTitle" style="display:none">Jogados recentemente</div>
-                <div class="recent-row" id="pfRecentGames"></div>
-            </div>
-        </div>
 
-        <!-- Right: friends -->
-        <div class="friends-card">
-            <div class="friends-header">
-                <div>
-                    <div class="friends-title">Lista de Amigos</div>
-                    <div class="friends-count" id="friendsCount">Carregue um perfil para ver amigos</div>
+                <!-- Stats Row -->
+                <div class="stats-row" id="fp-stats-row">
+                    <div class="stat-cell"><div class="stat-val" id="st-level">—</div><div class="stat-label">Nível</div></div>
+                    <div class="stat-cell"><div class="stat-val" id="st-games">—</div><div class="stat-label">Jogos</div></div>
+                    <div class="stat-cell"><div class="stat-val" id="st-badges">—</div><div class="stat-label">Medalhas</div></div>
+                    <div class="stat-cell"><div class="stat-val" id="st-xp">—</div><div class="stat-label">XP</div></div>
+                    <div class="stat-cell"><div class="stat-val" id="st-wishlist">—</div><div class="stat-label">Wishlist</div></div>
+                    <div class="stat-cell"><div class="stat-val" id="st-groups">—</div><div class="stat-label">Grupos</div></div>
+                    <div class="stat-cell"><div class="stat-val" id="st-gvalue">—</div><div class="stat-label">Valor Jogos</div></div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs-bar">
+                    <button class="tab-btn active" data-tab="recent">🕐 Recentes</button>
+                    <button class="tab-btn" data-tab="games">🎮 Biblioteca</button>
+                    <button class="tab-btn" data-tab="inventory">📦 Inventário</button>
+                    <button class="tab-btn" data-tab="badges">🏅 Medalhas</button>
+                    <button class="tab-btn" data-tab="achievements">🏆 Conquistas</button>
+                    <button class="tab-btn" data-tab="dna">🧬 DNA Gamer</button>
+                    <button class="tab-btn" data-tab="wishlist">💛 Wishlist</button>
+                    <button class="tab-btn" data-tab="activity">🌙 Atividade</button>
+                    <button class="tab-btn" data-tab="compare">⚔️ Comparar</button>
+                </div>
+
+                <!-- Tab: Recentes -->
+                <div class="tab-content active" id="tab-recent">
+                    <div class="sec-title">Jogos Jogados Recentemente</div>
+                    <div id="recent-list" class="recent-list"></div>
+                </div>
+
+                <!-- Tab: Biblioteca -->
+                <div class="tab-content" id="tab-games">
+                    <div class="games-controls">
+                        <input type="text" id="games-search" class="games-search" placeholder="🔎 Buscar jogo...">
+                        <button class="sort-btn active" data-sort="playtime">⏱ Mais Jogado</button>
+                        <button class="sort-btn" data-sort="price">💰 Maior Preço</button>
+                        <button class="sort-btn" data-sort="name">🔤 Nome</button>
+                        <button class="sort-btn" data-sort="metacritic">⭐ Metacritic</button>
+                    </div>
+                    <div id="games-grid" class="games-grid">
+                        <div class="text-muted text-center" style="grid-column:1/-1;padding:30px">Clique em "🎮 Jogos" para carregar a biblioteca</div>
+                    </div>
+                </div>
+
+                <!-- Tab: Inventário -->
+                <div class="tab-content" id="tab-inventory">
+                    <!-- Game selector for inventory -->
+                    <div id="friendInvGameSelector" style="background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+                        <div style="font-size:.82rem;color:var(--text2);margin-bottom:10px;font-weight:600">🎮 Selecione o jogo para ver o inventário:</div>
+                        <div id="friendInvGameBtns" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+                        <div id="friendInvLoadingMsg" style="display:none;margin-top:10px;font-size:.82rem;color:var(--cyan);font-style:italic"></div>
+                    </div>
+                    <!-- CS2 Wear Filters -->
+                    <div id="friendCs2WearFilters" style="display:none;background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.15);border-radius:10px;padding:12px;margin-bottom:12px">
+                        <div style="font-size:.75rem;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🎯 Filtrar por Desgaste</div>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap">
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+                                <input type="checkbox" id="fWearFN" checked style="accent-color:var(--cyan);width:15px;height:15px">
+                                <span style="color:#b8f5d8">✦ Nova de Fábrica</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+                                <input type="checkbox" id="fWearMW" checked style="accent-color:var(--cyan);width:15px;height:15px">
+                                <span style="color:#7ecef4">Pouco Usada</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+                                <input type="checkbox" id="fWearFT" checked style="accent-color:var(--cyan);width:15px;height:15px">
+                                <span style="color:#cdd9e5">Testada em Campo</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+                                <input type="checkbox" id="fWearWW" checked style="accent-color:var(--cyan);width:15px;height:15px">
+                                <span style="color:#8fadc8">Bem Usada</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+                                <input type="checkbox" id="fWearBS" checked style="accent-color:var(--cyan);width:15px;height:15px">
+                                <span style="color:#546e7a">Lixo de Guerra</span>
+                            </label>
+                            <button class="btn btn-ghost btn-sm" onclick="toggleFriendWear()">Alternar</button>
+                        </div>
+                    </div>
+                    <div class="inv-tabs" id="inv-tabs"></div>
+                    <div class="inv-total-bar">
+                        <span style="font-size:.85rem;color:var(--text2)">Valor total do inventário</span>
+                        <span id="inv-total" style="font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;color:var(--green)">—</span>
+                    </div>
+                    <div id="inv-grid" class="inv-grid">
+                        <div class="text-muted text-center" style="grid-column:1/-1;padding:30px">Selecione um jogo acima para ver o inventário</div>
+                    </div>
+                </div>
+
+                <!-- Tab: Medalhas -->
+                <div class="tab-content" id="tab-badges">
+                    <div class="sec-title">Medalhas Steam</div>
+                    <div id="badges-grid" class="badges-grid"></div>
+                </div>
+
+                <!-- Tab: Conquistas -->
+                <div class="tab-content" id="tab-achievements">
+                    <div class="ach-header">
+                        <div>
+                            <div class="sec-title" style="border:none;margin:0">Conquistas</div>
+                            <div id="ach-count" class="text-muted"></div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div class="ach-progress"><div id="ach-fill" class="ach-fill" style="width:0%"></div></div>
+                            <span id="ach-pct" style="font-size:.85rem;font-weight:700;color:var(--cyan)">0%</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap" id="ach-game-btns"></div>
+                    <div id="ach-list" class="ach-list"></div>
+                </div>
+
+                <!-- Tab: DNA Gamer -->
+                <div class="tab-content" id="tab-dna">
+                    <div id="dna-content">
+                        <div class="text-muted text-center" style="padding:30px">Clique em "🧬 DNA" para analisar o perfil</div>
+                    </div>
+                </div>
+
+                <!-- Tab: Wishlist -->
+                <div class="tab-content" id="tab-wishlist">
+                    <div id="wishlist-content">
+                        <div class="text-muted text-center" style="padding:30px">Clique em "💛 Wishlist" na aba para carregar</div>
+                    </div>
+                </div>
+
+                <!-- Tab: Atividade (Sleep Schedule) -->
+                <div class="tab-content" id="tab-activity">
+                    <div id="activity-content">
+                        <div class="text-muted text-center" style="padding:30px">Carregue os amigos para ver padrões de atividade</div>
+                    </div>
+                </div>
+
+                <!-- Tab: Comparar -->
+                <div class="tab-content" id="tab-compare">
+                    <div style="margin-bottom:14px">
+                        <div class="sec-title">Comparar com outro perfil</div>
+                        <div style="display:flex;gap:8px">
+                            <input id="compare-url" type="text" class="url-input" style="flex:1" placeholder="URL ou SteamID do outro perfil...">
+                            <button id="btn-do-compare" class="btn btn-cyan">⚔️ Comparar</button>
+                        </div>
+                    </div>
+                    <div id="compare-result"></div>
                 </div>
             </div>
-            <div id="friendsList">
-                <p class="loading-msg">Insira uma URL de perfil acima e clique em carregar</p>
-            </div>
-            <div class="pagination">
-                <button class="btn btn-ghost btn-sm" id="prevBtn" onclick="changePage(-1)">‹ Anterior</button>
-                <span class="page-info" id="pageInfo">Página 1</span>
-                <button class="btn btn-ghost btn-sm" id="nextBtn" onclick="changePage(1)">Próxima ›</button>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Modal -->
-<div id="globalModal" style="display:none" class="modal-overlay">
-    <div class="modal-box">
-        <div class="modal-header">
-            <div class="modal-title" id="modalTitle"></div>
-            <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕ Fechar</button>
+            <!-- Loading overlay -->
+            <div id="profileLoading" class="loading-overlay" style="display:none">
+                <div class="loading-box">
+                    <div class="spinner" style="width:36px;height:36px;border-width:3px"></div>
+                    <div class="loading-text" id="profileLoadingText">Carregando...</div>
+                </div>
+            </div>
         </div>
-        <div id="modalContent"></div>
     </div>
 </div>
 
 <script>
-let connection = null;
-let latestFriends = [];
-let filteredFriends = [];
-let currentPage = 1;
-const pageSize = 8;
-
-// ── SignalR ──
-(function init() {
-    connection = new signalR.HubConnectionBuilder()
-        .withUrl('/calculationHub')
-        .withAutomaticReconnect([0, 1000, 2000, 5000])
-        .build();
-
-    connection.on('ReceiveProfileSummary', renderProfileSummary);
-    connection.on('ReceiveProfileTotalsDetailed', renderProfileTotals);
-    connection.on('ReceiveProfileTotal', (total) => {
-        const el = document.getElementById('pfValue');
-        el.textContent = fmtBRL(total);
-        el.classList.remove('pf-loading');
-    });
-
-    connection.on('ReceiveFriends', (friends) => {
-        document.getElementById('loadSpinner').style.display = 'none';
-        latestFriends = (friends || []).map(f => ({
-            id: f.id, name: f.name || '', avatar: f.avatar || '',
-            visibility: f.visibility || 1, personastate: f.personastate ?? 0,
-            isOnline: f.isOnline || false, lastLogoff: f.lastLogoff || 0,
-            country: f.country || '', friendSince: f.friendSince || 0,
-            gameId: f.gameId || '', gameExtra: f.gameExtra || '',
-            total: null, gamesCount: null, gamesValue: null,
-            inventoryCount: null, inventoryValue: null,
-            isCalculating: false, progress: 0
-        }));
-        applySearch();
-    });
-
-    connection.on('ReceiveFriendTotalsDetailed', (steamId, d) => {
-        const f = latestFriends.find(x => x.id === steamId);
-        if (!f) return;
-        f.gamesCount = d.gamesCount ?? f.gamesCount;
-        f.gamesValue = d.gamesValue ?? f.gamesValue;
-        f.inventoryCount = d.inventoryCount ?? f.inventoryCount;
-        f.inventoryValue = d.inventoryValue ?? f.inventoryValue;
-        f.total = d.total ?? f.total;
-        f.isCalculating = false; f.progress = 100;
-        renderFriendsList();
-    });
-
-    connection.on('ReceiveFriendTotal', (steamId, total) => {
-        const f = latestFriends.find(x => x.id === steamId);
-        if (f) { f.total = Number(total); f.isCalculating = false; f.progress = 100; renderFriendsList(); }
-    });
-
-    connection.on('UpdateFriendProgress', (steamId, pct, msg) => {
-        const f = latestFriends.find(x => x.id === steamId);
-        if (!f) return;
-        f.progress = pct; f.isCalculating = true;
-        const card = document.querySelector(`.friend-card[data-id="${steamId}"]`);
-        if (card) {
-            const btn = card.querySelector('.f-calc-btn');
-            const prog = card.querySelector('.f-progress');
-            if (btn) btn.textContent = Math.round(pct) + '%';
-            if (prog) prog.textContent = msg || '';
+const connection = new signalR.HubConnectionBuilder()
+    .withUrl('/calculationHub')
+    .withAutomaticReconnect({
+        nextRetryDelayInMilliseconds: ctx => {
+            const delays = [1000, 3000, 10000, 30000, 60000];
+            return delays[ctx.previousRetryCount] ?? 60000;
         }
-    });
+    })
+    .build();
 
-    connection.on('ReceiveFriendGames', (steamId, games) => {
-        const modal = document.getElementById('globalModal');
-        if (modal.style.display === 'none') return;
-        const content = document.getElementById('modalContent');
-        if (!games || games.length === 0) {
-            content.innerHTML = '<p class="loading-msg">Nenhum jogo encontrado ou perfil privado</p>';
-            return;
-        }
-        const sorted = [...games].sort((a,b) => b.price - a.price);
-        const totalVal = sorted.reduce((s,g) => s+g.price, 0);
-        content.innerHTML = `
-            <div style="margin-bottom:14px;font-size:.88rem;color:var(--text2)">
-                ${sorted.length} jogos · Total: <strong style="color:var(--green)">${fmtBRL(totalVal)}</strong>
+let currentSteamId = null;
+let currentFriendId = null;
+let myProfileUrl = '';
+let allFriends = [];
+let gamesData = [];
+let inventoryData = {};
+let currentInvApp = 730;
+let gamesSortKey = 'playtime';
+
+// ── SignalR handlers ───────────────────────────────────────────────────────
+connection.on('ReceiveFriends', friends => {
+    allFriends = friends;
+    document.getElementById('friendCount').textContent = `${friends.length} amigos`;
+    renderFriendsList(friends);
+});
+
+connection.on('ReceiveFriendDetails', d => {
+    hideProfileLoading();
+    renderFriendProfile(d);
+});
+
+connection.on('ReceiveFriendGames', (steamId, games) => {
+    gamesData = games;
+    renderGames(games);
+    hideProfileLoading();
+});
+
+connection.on('ReceiveFriendInventory', (steamId, appId, items, total) => {
+    inventoryData[appId] = { items, total };
+    renderInventory(appId, items, total);
+    // Wire up wear filter checkboxes for re-render
+    ['fWearFN','fWearMW','fWearFT','fWearWW','fWearBS'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el._wired) { el._wired = true; el.addEventListener('change', () => { if (inventoryData[appId]) renderInventory(appId, inventoryData[appId].items, inventoryData[appId].total); }); }
+    });
+    hideProfileLoading();
+});
+
+connection.on('ReceiveBadgesAndLevel', data => {
+    renderBadgesTab(data);
+    hideProfileLoading();
+});
+
+connection.on('ReceiveAchievements', (appId, total, unlocked, pct, list) => {
+    renderAchievements(appId, total, unlocked, pct, list);
+    hideProfileLoading();
+});
+
+connection.on('ReceiveGamerDna', dna => {
+    renderDna(dna);
+    hideProfileLoading();
+});
+
+connection.on('ReceiveWishlistAnalysis', data => {
+    renderWishlistAnalysis(data);
+    hideProfileLoading();
+});
+
+connection.on('ReceiveFriendActivityPatterns', patterns => {
+    renderActivityPatterns(patterns);
+    hideProfileLoading();
+});
+
+connection.on('ReceiveProfileComparison', data => {
+    renderComparison(data);
+    document.getElementById('profileLoading').style.display = 'none';
+});
+
+connection.on('ReceiveError', msg => {
+    hideProfileLoading();
+    showErr(msg);
+});
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function showErr(msg) {
+    const b = document.getElementById('errBox');
+    b.textContent = '❌ ' + msg;
+    b.style.display = 'block';
+    setTimeout(() => b.style.display = 'none', 6000);
+}
+
+function showProfileLoading(text) {
+    document.getElementById('profileLoading').style.display = 'flex';
+    document.getElementById('profileLoadingText').textContent = text || 'Carregando...';
+}
+
+function hideProfileLoading() {
+    document.getElementById('profileLoading').style.display = 'none';
+}
+
+function fmtHours(min) {
+    const h = min / 60;
+    return h < 1 ? `${min}m` : h < 100 ? `${h.toFixed(1)}h` : `${Math.round(h)}h`;
+}
+
+function fmtBRL(val) {
+    return val > 0 ? `R$ ${val.toFixed(2)}` : 'Grátis';
+}
+
+function stateLabel(s) {
+    const m = { 0: ['Offline','badge-offline'], 1: ['Online','badge-online'], 2: ['Ocupado','badge-offline'],
+                 3: ['Ausente','badge-offline'], 4: ['Soneca','badge-offline'], 5: ['Quer jogar','badge-online'],
+                 6: ['Quer trocar','badge-online'] };
+    return m[s] || ['Offline','badge-offline'];
+}
+
+function countryFlag(code) {
+    if (!code) return '';
+    return code.toUpperCase().replace(/./g, c => String.fromCodePoint(c.charCodeAt(0) + 127397));
+}
+
+// ── Load friends ───────────────────────────────────────────────────────────
+async function loadFriends() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+    myProfileUrl = url;
+    document.getElementById('friendsList').innerHTML = '<div class="friends-loading"><div class="spinner"></div><div style="margin-top:8px;font-size:.82rem;color:var(--text3)">Carregando amigos...</div></div>';
+    document.getElementById('emptyState').style.display = 'flex';
+    document.getElementById('friendProfile').style.display = 'none';
+    await connection.invoke('GetFriends', url);
+}
+
+// ── Render friends list ────────────────────────────────────────────────────
+function renderFriendsList(friends) {
+    const container = document.getElementById('friendsList');
+    if (!friends || friends.length === 0) {
+        container.innerHTML = '<div class="friends-loading"><div style="opacity:.4">😶</div><div style="color:var(--text3);font-size:.83rem;margin-top:8px">Nenhum amigo encontrado</div></div>';
+        return;
+    }
+    container.innerHTML = friends.map(f => {
+        const dotClass = f.gameExtra ? 'status-ingame' : (f.isOnline ? 'status-online' : 'status-offline');
+        const sub = f.gameExtra ? `🎮 ${f.gameExtra}` : (f.isOnline ? 'Online' : 'Offline');
+        const av = f.avatar || 'https://avatars.cloudflare.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg';
+        return `<div class="friend-item" data-id="${f.id}" onclick="selectFriend('${f.id}','${escHtml(f.name||f.id)}')">
+            <div class="friend-avatar-wrap">
+                <img class="friend-avatar" src="${av}" alt="" loading="lazy" onerror="this.src='https://avatars.cloudflare.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'">
+                <div class="status-dot ${dotClass}"></div>
             </div>
-            <div class="modal-games-grid">
-            ${sorted.map(g => {
-                let mc = g.metacritic > 0 ? `<span style="background:${g.metacritic>=75?'#6c3':g.metacritic>=50?'#fc3':'#f33'};color:#000;padding:1px 4px;border-radius:3px;font-size:.65rem;font-weight:700;margin-right:3px">${g.metacritic}</span>` : '';
-                return `<div class="modal-game" onclick="window.open('https://store.steampowered.com/app/${g.appId}','_blank')">
-                    <img src="${g.imageUrl}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
-                    <div class="modal-game-body">
-                        <div class="modal-game-name" title="${g.name}">${g.name}</div>
-                        <div class="modal-game-price">${g.price > 0 ? fmtBRL(g.price) : 'Grátis'}</div>
-                        <div class="modal-game-meta">${mc}${Math.round((g.playtimeMinutes||0)/60)}h${g.genre ? ' · '+g.genre : ''}</div>
-                    </div>
-                </div>`;
-            }).join('')}
-            </div>`;
-    });
-
-    connection.on('ReceiveFriendInventory', (steamId, appId, items, total) => {
-        const modal = document.getElementById('globalModal');
-        if (modal.style.display === 'none') return;
-        const content = document.getElementById('modalContent');
-        const appName = {730:'CS2', 570:'Dota 2', 440:'TF2', 252490:'Rust', 1172470:'Apex Legends', 578080:'PUBG'}[appId] || ('App ' + appId);
-
-        // Replace loading placeholder for this appId
-        let section = content.querySelector(`[data-appid="${appId}"]`);
-        if (!section) {
-            section = document.createElement('div');
-            section.setAttribute('data-appid', appId);
-            content.appendChild(section);
-        }
-
-        if (!items || items.length === 0) {
-            section.innerHTML = `<div class="inv-section-title">${appName}</div><div class="inv-empty">Inventário vazio, privado ou sem itens negociáveis</div>`;
-            return;
-        }
-
-        const sorted = [...items].sort((a,b) => b.price - a.price);
-        section.innerHTML = `
-            <div class="inv-section-title">${appName} <span style="color:var(--text2);font-family:'Exo 2';font-weight:400;font-size:.78rem">— ${sorted.length} itens · ${fmtBRL(total)}</span></div>
-            <div class="modal-inv-grid">
-            ${sorted.slice(0, 100).map(it => {
-                const rc = getRarityColor(it.rarity||'');
-                return `<div class="modal-inv-item" title="${it.name}">
-                    <img src="${it.imageUrl || 'https://placehold.co/125x74/0d1524/00e5ff?text=Item'}" onerror="this.src='https://placehold.co/125x74/0d1524/00e5ff?text=?'">
-                    <div class="modal-inv-body">
-                        <div class="modal-inv-name">${it.name}</div>
-                        <div class="modal-inv-price">${fmtBRL(it.price)}</div>
-                        ${it.count > 1 ? `<div class="modal-inv-count">x${it.count} (un: ${fmtBRL(it.unitPrice||0)})</div>` : ''}
-                        ${it.rarity ? `<div class="modal-inv-rarity" style="color:${rc}">${it.rarity}</div>` : ''}
-                    </div>
-                </div>`;
-            }).join('')}
-            </div>`;
-    });
-
-    connection.on('ReceiveError', (msg) => {
-        showError(msg);
-        document.getElementById('loadSpinner').style.display = 'none';
-    });
-
-    connection.start().then(() => {
-        const url = document.getElementById('profileUrl').value.trim()
-            || (() => { try { return localStorage.getItem('steamProfileUrl') || ''; } catch { return ''; } })();
-        if (url) { document.getElementById('profileUrl').value = url; loadProfile(); }
-    }).catch(e => showError('Erro de conexão: ' + e.message));
-})();
-
-// ── Load ──
-function loadProfile() {
-    const url = document.getElementById('profileUrl').value.trim();
-    if (!url) { showError('Insira a URL do perfil Steam.'); return; }
-    if (!connection || connection.state !== signalR.HubConnectionState.Connected) { showError('Aguardando conexão...'); return; }
-
-    document.getElementById('loadSpinner').style.display = 'inline-block';
-    document.getElementById('pfName').textContent = 'Carregando...';
-    document.getElementById('pfValue').textContent = 'Calculando...';
-    document.getElementById('pfValue').classList.add('pf-loading');
-    latestFriends = []; filteredFriends = []; currentPage = 1;
-    document.getElementById('friendsList').innerHTML = '<p class="loading-msg">Buscando amigos<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>';
-    clearError();
-    try { localStorage.setItem('steamProfileUrl', url); } catch {}
-
-    connection.invoke('GetProfileSummary', url).catch(e => showError(e.message));
-    connection.invoke('GetFriends', url).catch(e => showError(e.message));
-    connection.invoke('GetProfileTotals', url).catch(e => showError(e.message));
+            <div class="friend-info">
+                <div class="friend-name">${escHtml(f.name||f.id)}</div>
+                <div class="friend-sub">${escHtml(sub)}</div>
+            </div>
+        </div>`;
+    }).join('');
 }
 
-document.getElementById('profileUrl').addEventListener('keydown', e => { if (e.key === 'Enter') loadProfile(); });
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ── Profile rendering ──
-function renderProfileSummary(data) {
-    if (!data) return;
-    let player;
-    try { player = data?.summary?.response?.players?.[0]; } catch { return; }
-    if (!player) return;
+document.getElementById('filterInput').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    const filtered = q ? allFriends.filter(f => (f.name||'').toLowerCase().includes(q)) : allFriends;
+    renderFriendsList(filtered);
+});
 
-    document.getElementById('pfAvatar').src = player.avatarfull || '';
-    document.getElementById('pfName').textContent = player.personaname || '';
+// ── Select Friend ──────────────────────────────────────────────────────────
+async function selectFriend(steamId, name) {
+    if (currentFriendId === steamId) return;
+    currentFriendId = steamId;
 
-    const s = player.personastate || 0;
-    const stateColors = ['var(--offline)','var(--online)','var(--green)','var(--gold)','#60a5fa','#a78bfa','#f472b6'];
-    const stateNames = ['Offline','Online','Ocupado','Ausente','Cochilando','Quer jogar','Quer conversar'];
-    document.getElementById('pfStatus').innerHTML =
-        `<span class="status-dot" style="background:${stateColors[s]||'var(--offline)'}"></span> ${stateNames[s]||'Offline'}`;
-    document.getElementById('pfCountry').textContent = player.loccountrycode || '—';
-    document.getElementById('pfLevel').textContent = data.level > 0 ? 'Nível ' + data.level : '—';
-    document.getElementById('pfBadges').textContent = data.badgeCount > 0 ? data.badgeCount + ' badges' : '—';
+    // Highlight selected
+    document.querySelectorAll('.friend-item').forEach(el => el.classList.remove('active'));
+    const el = document.querySelector(`.friend-item[data-id="${steamId}"]`);
+    if (el) el.classList.add('active');
 
-    if (player.lastlogoff) document.getElementById('pfLastLogin').textContent = new Date(player.lastlogoff*1000).toLocaleDateString('pt-BR');
+    // Reset UI
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('friendProfile').style.display = 'block';
+    gamesData = [];
+    inventoryData = {};
+    document.getElementById('fp-name').textContent = name;
+    document.getElementById('fp-avatar').src = '';
+    document.getElementById('fp-badges').innerHTML = '';
+    document.getElementById('st-level').textContent = '—';
+    document.getElementById('st-games').textContent = '—';
+    document.getElementById('st-badges').textContent = '—';
+    document.getElementById('st-xp').textContent = '—';
+    document.getElementById('st-wishlist').textContent = '—';
+    document.getElementById('st-groups').textContent = '—';
+    document.getElementById('st-gvalue').textContent = '—';
+    document.getElementById('games-grid').innerHTML = '<div class="text-muted text-center" style="grid-column:1/-1;padding:30px">Clique em "🎮 Jogos" para carregar a biblioteca</div>';
+    document.getElementById('inv-grid').innerHTML = '<div class="text-muted text-center" style="grid-column:1/-1;padding:30px">Selecione um jogo acima para ver o inventário</div>';
+    document.getElementById('inv-tabs').innerHTML = '';
+    document.getElementById('inv-total').textContent = '—';
+    document.getElementById('friendInvLoadingMsg').style.display = 'none';
+    document.getElementById('friendCs2WearFilters').style.display = 'none';
+    // Reset inv game buttons if they exist
+    const invGameBtns = document.getElementById('friendInvGameBtns');
+    if (invGameBtns) invGameBtns.innerHTML = '';
+    document.getElementById('badges-grid').innerHTML = '';
+    document.getElementById('ach-list').innerHTML = '';
+    document.getElementById('ach-game-btns').innerHTML = '';
+    document.getElementById('dna-content').innerHTML = '<div class="text-muted text-center" style="padding:30px">Clique em "🧬 DNA" para analisar o perfil</div>';
+    document.getElementById('wishlist-content').innerHTML = '<div class="text-muted text-center" style="padding:30px">Carregando...</div>';
+    document.getElementById('activity-content').innerHTML = '<div class="text-muted text-center" style="padding:30px">Carregando padrões de atividade...</div>';
+    document.getElementById('compare-result').innerHTML = '';
+    document.getElementById('recent-list').innerHTML = '';
 
-    const rg = data.recentGames;
-    if (rg && rg.length > 0) {
-        document.getElementById('recentTitle').style.display = 'block';
-        document.getElementById('pfRecentGames').innerHTML = rg.map(g =>
-            `<div class="mini-thumb">
-                <img src="${g.imageUrl}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
-                <div class="mini-thumb-name" title="${g.name}">${g.name}</div>
-            </div>`
-        ).join('');
+    // Switch to recent tab
+    switchTab('recent');
+
+    showProfileLoading('Carregando perfil...');
+    await connection.invoke('ComputeFriendDetails', steamId);
+}
+
+// ── Render Friend Profile ─────────────────────────────────────────────────
+function renderFriendProfile(d) {
+    document.getElementById('fp-name').textContent = d.name || d.steamId;
+    document.getElementById('fp-realname').textContent = d.realName ? `"${d.realName}"` : '';
+    document.getElementById('fp-avatar').src = d.avatar || '';
+    document.getElementById('fp-steam-link').href = d.profileUrl || `https://steamcommunity.com/profiles/${d.steamId}`;
+
+    // State badge
+    const [stateTxt, stateClass] = stateLabel(d.personastate);
+    let badgesHtml = `<span class="profile-badge ${stateClass}">${stateTxt}</span>`;
+    badgesHtml += `<span class="profile-badge badge-level">Nível ${d.level}</span>`;
+    if (d.country) badgesHtml += `<span class="profile-badge badge-country">${countryFlag(d.country)} ${d.country}</span>`;
+    if (d.bans) {
+        if (d.bans.vacBanned || d.bans.numberOfVacBans > 0)
+            badgesHtml += `<span class="profile-badge badge-vac">⚠️ VAC BAN</span>`;
+        else
+            badgesHtml += `<span class="profile-badge badge-clean">✅ Sem Bans</span>`;
+        if (d.bans.numberOfGameBans > 0)
+            badgesHtml += `<span class="profile-badge badge-vac">${d.bans.numberOfGameBans} Game Ban(s)</span>`;
     }
-}
+    document.getElementById('fp-badges').innerHTML = badgesHtml;
 
-function renderProfileTotals(data) {
-    if (!data) return;
-    if (data.gamesCount != null) document.getElementById('pfGames').textContent = data.gamesCount.toLocaleString('pt-BR') + ' jogos';
-    if (data.total != null) {
-        document.getElementById('pfValue').textContent = fmtBRL(data.total);
-        document.getElementById('pfValue').classList.remove('pf-loading');
+    // Stats
+    document.getElementById('st-level').textContent = d.level || 0;
+    document.getElementById('st-games').textContent = d.gamesCount || 0;
+    document.getElementById('st-badges').textContent = d.badgeCount || 0;
+    document.getElementById('st-xp').textContent = d.totalXp ? d.totalXp.toLocaleString() : 0;
+    document.getElementById('st-wishlist').textContent = d.wishlistCount || 0;
+    document.getElementById('st-groups').textContent = d.groupCount || 0;
+    document.getElementById('st-gvalue').textContent = d.gamesValue ? `R$${d.gamesValue.toFixed(0)}` : '—';
+
+    // Recent games
+    const recentContainer = document.getElementById('recent-list');
+    if (d.recentGames && d.recentGames.length > 0) {
+        recentContainer.innerHTML = d.recentGames.map(g => `
+            <div class="recent-item">
+                <img class="recent-thumb" src="${g.imageUrl}" alt="${escHtml(g.name)}" onerror="this.src='https://via.placeholder.com/56x32/111d2e/4a6480?text=N/A'">
+                <div class="recent-info">
+                    <div class="recent-name">${escHtml(g.name)}</div>
+                    <div class="recent-time">Total: ${fmtHours(g.playtimeForever)}</div>
+                </div>
+                <div class="recent-hours">${fmtHours(g.playtime2weeks)} / 2 sem</div>
+                <button class="btn btn-ghost btn-xs" onclick="loadAchievements(${g.appId},'${escHtml(g.name)}')">🏆</button>
+            </div>
+        `).join('');
+    } else {
+        recentContainer.innerHTML = '<div class="text-muted text-center" style="padding:20px">Perfil privado ou sem atividade recente</div>';
     }
+
+    // Auto-load badges and wishlist
+    loadBadgesTab();
+    loadWishlistAnalysis();
+    loadActivityPatterns();
 }
 
-// ── Friends list ──
-function applySearch() {
-    const q = document.getElementById('friendSearch').value.trim().toLowerCase();
-    filteredFriends = !q ? [...latestFriends] : latestFriends.filter(f => (f.name||'').toLowerCase().includes(q) || f.id.includes(q));
-    currentPage = 1;
-    renderFriendsList();
+// ── Tabs ───────────────────────────────────────────────────────────────────
+function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + name));
 }
 
-function renderFriendsList() {
-    const listEl = document.getElementById('friendsList');
-    if (!latestFriends.length) {
-        listEl.innerHTML = '<p class="loading-msg">Nenhum amigo encontrado</p>';
-        document.getElementById('friendsCount').textContent = '0 amigos';
+document.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => switchTab(b.dataset.tab));
+});
+
+// ── Games ─────────────────────────────────────────────────────────────────
+document.getElementById('btn-load-games').addEventListener('click', () => {
+    if (!currentFriendId) return;
+    showProfileLoading('Carregando biblioteca...');
+    switchTab('games');
+    connection.invoke('GetFriendGames', currentFriendId);
+});
+
+document.getElementById('games-search').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll('.game-card').forEach(card => {
+        const name = card.querySelector('.game-card-name').textContent.toLowerCase();
+        card.style.display = name.includes(q) ? '' : 'none';
+    });
+});
+
+document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        gamesSortKey = btn.dataset.sort;
+        if (gamesData.length) renderGames(gamesData);
+    });
+});
+
+function renderGames(games) {
+    const sorted = [...games].sort((a, b) => {
+        if (gamesSortKey === 'playtime') return b.playtimeMinutes - a.playtimeMinutes;
+        if (gamesSortKey === 'price') return b.price - a.price;
+        if (gamesSortKey === 'metacritic') return b.metacritic - a.metacritic;
+        return a.name.localeCompare(b.name);
+    });
+    const container = document.getElementById('games-grid');
+    if (!sorted.length) {
+        container.innerHTML = '<div class="text-muted text-center" style="grid-column:1/-1;padding:30px">Nenhum jogo encontrado</div>';
+        return;
+    }
+    container.innerHTML = sorted.map(g => {
+        const priceHtml = g.price > 0
+            ? `<span class="game-price-tag price-paid">R$${g.price.toFixed(2)}</span>`
+            : `<span class="game-price-tag price-free">Grátis</span>`;
+        return `<div class="game-card" onclick="loadAchievements(${g.appId},'${escHtml(g.name)}')">
+            <img class="game-thumb" src="${g.imageUrl}" alt="${escHtml(g.name)}" loading="lazy" onerror="this.src='https://via.placeholder.com/160x80/111d2e/4a6480?text=N/A'">
+            <div class="game-card-body">
+                <div class="game-card-name" title="${escHtml(g.name)}">${escHtml(g.name)}</div>
+                <div class="game-card-meta">${fmtHours(g.playtimeMinutes)} • ${g.metacritic ? '⭐'+g.metacritic : g.genre || ''}</div>
+                ${priceHtml}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Inventory ─────────────────────────────────────────────────────────────
+const appNames = {730:'CS2',570:'Dota 2',440:'TF2',252490:'Rust',1172470:'Apex Legends',578080:'PUBG'};
+const appIds = [730, 570, 440, 252490, 1172470, 578080];
+const appImgs = {730:'https://cdn.akamai.steamstatic.com/steam/apps/730/capsule_sm_120.jpg',570:'https://cdn.akamai.steamstatic.com/steam/apps/570/capsule_sm_120.jpg',440:'https://cdn.akamai.steamstatic.com/steam/apps/440/capsule_sm_120.jpg',252490:'https://cdn.akamai.steamstatic.com/steam/apps/252490/capsule_sm_120.jpg',1172470:'https://cdn.akamai.steamstatic.com/steam/apps/1172470/capsule_sm_120.jpg',578080:'https://cdn.akamai.steamstatic.com/steam/apps/578080/capsule_sm_120.jpg'};
+
+document.getElementById('btn-load-inv').addEventListener('click', () => {
+    if (!currentFriendId) return;
+    switchTab('inventory');
+    buildFriendInvGameSelector();
+});
+
+function buildFriendInvGameSelector() {
+    const btns = document.getElementById('friendInvGameBtns');
+    btns.innerHTML = appIds.map(id => `
+        <button class="inv-tab friend-inv-game-btn" data-appid="${id}" onclick="loadFriendInvGame(${id})"
+                style="display:flex;align-items:center;gap:6px">
+            <img src="${appImgs[id]||''}" style="width:28px;height:16px;border-radius:3px;object-fit:cover" onerror="this.style.display='none'">
+            ${appNames[id]}
+        </button>
+    `).join('');
+}
+
+function loadFriendInvGame(appId) {
+    if (!currentFriendId) return;
+
+    // Highlight button
+    document.querySelectorAll('.friend-inv-game-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.appid) === appId);
+    });
+
+    // Show/hide CS2 filters
+    document.getElementById('friendCs2WearFilters').style.display = appId === 730 ? '' : 'none';
+
+    if (inventoryData[appId]) {
+        renderInventory(appId, inventoryData[appId].items, inventoryData[appId].total);
+        return;
+    }
+    document.getElementById('friendInvLoadingMsg').style.display = '';
+    document.getElementById('friendInvLoadingMsg').textContent = `⏳ Carregando inventário ${appNames[appId]}...`;
+    document.getElementById('inv-grid').innerHTML = '<div class="text-muted text-center" style="grid-column:1/-1;padding:30px">Carregando...</div>';
+    connection.invoke('GetFriendInventory', currentFriendId, appId);
+}
+
+function loadInvTab(appId) {
+    loadFriendInvGame(appId);
+}
+
+function toggleFriendWear() {
+    const ids = ['fWearFN','fWearMW','fWearFT','fWearWW','fWearBS'];
+    const anyUnchecked = ids.some(id => !document.getElementById(id).checked);
+    ids.forEach(id => document.getElementById(id).checked = anyUnchecked);
+    if (inventoryData[currentInvApp]) renderInventory(currentInvApp, inventoryData[currentInvApp].items, inventoryData[currentInvApp].total);
+}
+
+function renderInventory(appId, items, total) {
+    currentInvApp = appId;
+    document.getElementById('inv-total').textContent = `R$ ${(total||0).toFixed(2)}`;
+    document.getElementById('friendInvLoadingMsg').style.display = 'none';
+    hideProfileLoading();
+
+    const container = document.getElementById('inv-grid');
+    if (!items || items.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center" style="grid-column:1/-1;padding:30px">Inventário vazio ou privado</div>';
         return;
     }
 
-    let list = [...(filteredFriends.length || document.getElementById('friendSearch').value ? filteredFriends : latestFriends)];
+    let filtered = [...items];
 
-    const maxVal = parseFloat(document.getElementById('filterValue').value);
-    if (!isNaN(maxVal) && maxVal > 0) list = list.filter(f => f.total === null || f.total <= maxVal);
-
-    const sort = document.getElementById('sortSelect').value;
-    if (sort === 'value_desc') list.sort((a,b) => (b.total ?? -1) - (a.total ?? -1));
-    else if (sort === 'name_asc') list.sort((a,b) => (a.name||'').localeCompare(b.name||''));
-    else list.sort((a,b) => { const sa = fScore(a), sb = fScore(b); return sa !== sb ? sb - sa : b.lastLogoff - a.lastLogoff; });
-
-    const onlineCount = latestFriends.filter(f => f.isOnline).length;
-    document.getElementById('friendsCount').textContent = `${list.length} amigo(s) • Online: ${onlineCount}`;
-
-    const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
-    if (currentPage > totalPages) currentPage = totalPages;
-    const start = (currentPage - 1) * pageSize;
-    const page = list.slice(start, start + pageSize);
-    document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
-
-    const inGame = page.filter(f => f.isOnline && f.gameExtra);
-    const online = page.filter(f => f.isOnline && !f.gameExtra);
-    const offline = page.filter(f => !f.isOnline);
-
-    let html = '';
-    if (inGame.length) html += `<div class="section-sep">🎮 Em jogo (${inGame.length})</div>` + inGame.map(renderFriendCard).join('');
-    if (online.length) html += `<div class="section-sep">🟢 Online (${online.length})</div>` + online.map(renderFriendCard).join('');
-    if (offline.length) html += `<div class="section-sep">⚫ Offline (${offline.length})</div>` + offline.map(renderFriendCard).join('');
-    listEl.innerHTML = html;
-}
-
-function fScore(f) { return f.isOnline && f.gameExtra ? 3 : f.isOnline ? 2 : 0; }
-
-function renderFriendCard(f) {
-    const isInGame = f.isOnline && f.gameExtra;
-    const cardClass = isInGame ? 'ingame-card' : f.isOnline ? 'online-card' : '';
-    const stateLbl = isInGame ? 'lbl-ingame' : f.isOnline ? 'lbl-online' : 'lbl-offline';
-    const stateName = isInGame ? '🎮 Em jogo' : f.isOnline ? '🟢 Online' : '⚫ Offline';
-    const dotColor = isInGame ? 'var(--ingame)' : f.isOnline ? 'var(--online)' : 'var(--offline)';
-    const isPublic = f.visibility === 3;
-
-    return `<div class="friend-card ${cardClass}" data-id="${f.id}">
-        <div class="f-avatar">
-            <img src="${f.avatar || 'https://avatars.cloudflare.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"
-                 onerror="this.src='https://via.placeholder.com/50?text=?'" alt="${f.name}">
-            <span class="f-status-badge" style="background:${dotColor}"></span>
-        </div>
-        <div class="f-info">
-            <div class="f-name-row">
-                <span class="f-name"><a href="https://steamcommunity.com/profiles/${f.id}" target="_blank" style="color:inherit;text-decoration:none">${f.name}</a></span>
-                <span class="f-state-lbl ${stateLbl}">${stateName}</span>
-                ${!isPublic ? '<span class="f-state-lbl" style="background:rgba(255,215,64,.1);color:var(--gold)">🔒 Privado</span>' : ''}
-            </div>
-            ${f.gameExtra ? `<div class="f-game">🕹 ${f.gameExtra}</div>` : ''}
-            ${f.country ? `<div class="f-sub">📍 ${f.country}${f.lastLogoff && !f.isOnline ? ' · Visto: '+fmtDate(f.lastLogoff) : ''}</div>` : (f.lastLogoff && !f.isOnline ? `<div class="f-sub">Visto: ${fmtDate(f.lastLogoff)}</div>` : '')}
-            <div class="f-links">
-                ${isPublic ? `<span class="f-link" onclick="openGamesModal('${f.id}','${(f.name||'').replace(/'/g,"\\'")}')">🎮 Jogos</span>` : ''}
-                ${isPublic ? `<span class="f-link" onclick="openInvModal('${f.id}','${(f.name||'').replace(/'/g,"\\'")}')">📦 Inventário</span>` : ''}
-                <a class="f-link" href="https://steamcommunity.com/profiles/${f.id}" target="_blank">↗ Perfil</a>
-            </div>
-            ${f.gamesCount != null ? `<div class="f-sub" style="font-size:.72rem;color:var(--text3)">🎮 ${f.gamesCount} jogos (${fmtBRL(f.gamesValue||0)}) · 📦 ${f.inventoryCount||0} itens (${fmtBRL(f.inventoryValue||0)})</div>` : ''}
-            ${f.isCalculating ? `<div class="f-progress">Calculando: ${Math.round(f.progress)}%</div>` : ''}
-        </div>
-        <div class="f-value">
-            <div class="f-val-amount">${f.total != null ? fmtBRL(f.total) : '—'}</div>
-            <div class="f-val-sub">total</div>
-        </div>
-        ${isPublic ? `<button class="f-calc-btn" data-steamid="${f.id}" onclick="calcFriend('${f.id}',this)" ${f.isCalculating ? 'disabled' : ''}>${f.isCalculating ? Math.round(f.progress)+'%' : 'CALCULAR'}</button>` : ''}
-    </div>`;
-}
-
-// ── Pagination ──
-function changePage(d) {
-    const list = (filteredFriends.length || document.getElementById('friendSearch').value) ? filteredFriends : latestFriends;
-    const total = Math.max(1, Math.ceil(list.length / pageSize));
-    currentPage = Math.min(total, Math.max(1, currentPage + d));
-    renderFriendsList();
-}
-
-// ── Calculate ──
-function calcFriend(steamId, btn) {
-    if (!ensureConn()) return;
-    btn.disabled = true; btn.textContent = '0%';
-    const f = latestFriends.find(x => x.id === steamId);
-    if (f) { f.isCalculating = true; f.progress = 0; }
-    connection.invoke('ComputeTotalsForSteamId', steamId, true, true)
-        .catch(e => { showError(e.message); btn.disabled = false; btn.textContent = 'CALCULAR'; });
-}
-
-function compareAll() {
-    if (!ensureConn()) return;
-    const pub = latestFriends.filter(f => f.visibility === 3);
-    if (!pub.length) { showError('Nenhum amigo com perfil público'); return; }
-    if (!confirm(`Calcular ${pub.length} amigos públicos? Pode demorar.`)) return;
-    let i = 0;
-    const next = () => {
-        if (i >= pub.length) return;
-        const f = pub[i++];
-        const found = latestFriends.find(x => x.id === f.id);
-        if (found) { found.isCalculating = true; found.progress = 0; renderFriendsList(); }
-        connection.invoke('ComputeTotalsForSteamId', f.id, true, true).catch(() => {}).finally(() => setTimeout(next, 800));
-    };
-    next();
-}
-
-// ── Modal: Games ──
-function openGamesModal(steamId, name) {
-    if (!ensureConn()) return;
-    document.getElementById('globalModal').style.display = 'flex';
-    document.getElementById('modalTitle').textContent = `🎮 Jogos de ${name}`;
-    document.getElementById('modalContent').innerHTML = '<p class="loading-msg">Carregando jogos<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>';
-    connection.invoke('GetFriendGames', steamId).catch(e => {
-        document.getElementById('modalContent').innerHTML = `<div class="error-box">Erro: ${e.message}</div>`;
-    });
-}
-
-// ── Modal: Inventory ──
-function openInvModal(steamId, name) {
-    if (!ensureConn()) return;
-    document.getElementById('globalModal').style.display = 'flex';
-    document.getElementById('modalTitle').textContent = `📦 Inventário de ${name}`;
-
-    const apps = [{id:730,name:'CS2'},{id:570,name:'Dota 2'},{id:440,name:'TF2'},{id:252490,name:'Rust'},{id:1172470,name:'Apex'},{id:578080,name:'PUBG'}];
-    const content = document.getElementById('modalContent');
-    content.innerHTML = apps.map(app =>
-        `<div data-appid="${app.id}">
-            <div class="inv-section-title">${app.name}</div>
-            <div class="inv-loading"><div class="spinner"></div> Buscando itens de ${app.name}...</div>
-        </div>`
-    ).join('');
-
-    apps.forEach(app => {
-        connection.invoke('GetFriendInventory', steamId, app.id).catch(() => {
-            const s = content.querySelector(`[data-appid="${app.id}"]`);
-            if (s) s.innerHTML = `<div class="inv-section-title">${app.name}</div><div class="inv-empty">Inventário privado ou erro</div>`;
+    // CS2 wear filter
+    if (appId === 730) {
+        const wFN = document.getElementById('fWearFN')?.checked ?? true;
+        const wMW = document.getElementById('fWearMW')?.checked ?? true;
+        const wFT = document.getElementById('fWearFT')?.checked ?? true;
+        const wWW = document.getElementById('fWearWW')?.checked ?? true;
+        const wBS = document.getElementById('fWearBS')?.checked ?? true;
+        filtered = filtered.filter(it => {
+            const n = (it.name||'').toLowerCase();
+            if (n.includes('factory new') || n.includes('fn)')) return wFN;
+            if (n.includes('minimal wear') || n.includes('mw)')) return wMW;
+            if (n.includes('field-tested') || n.includes('ft)')) return wFT;
+            if (n.includes('well-worn') || n.includes('ww)')) return wWW;
+            if (n.includes('battle-scarred') || n.includes('bs)')) return wBS;
+            return true;
         });
-    });
+    }
+
+    const sorted = [...filtered].sort((a, b) => (b.price||0) - (a.price||0));
+    container.innerHTML = sorted.map(it => {
+        const rarityColor = getRarityColor(it.rarity);
+        const marketUrl = `https://steamcommunity.com/market/listings/${appId}/${encodeURIComponent(it.name)}`;
+        const priceHtml = it.price > 0
+            ? `<div class="inv-card-price">R$ ${it.price.toFixed(2)}</div>`
+            : it.unitPrice === -1
+                ? '<div class="inv-card-price" style="color:var(--text3)">Precificando...</div>'
+                : '<div class="inv-card-price" style="color:var(--text3)">—</div>';
+        return `<div class="inv-card" onclick="window.open('${marketUrl}','_blank')"
+                     title="${escHtml(it.name)} — Clique para ver no mercado Steam"
+                     style="cursor:pointer">
+            ${it.imageUrl ? `<img class="inv-card-img" src="${it.imageUrl}" alt="" loading="lazy">` : '<div class="inv-card-img" style="background:var(--bg3)"></div>'}
+            ${it.count > 1 ? `<div class="inv-card-count">×${it.count}</div>` : ''}
+            ${it.rarity ? `<div class="rarity-badge" style="background:${rarityColor}20;color:${rarityColor};border:1px solid ${rarityColor}50">${it.rarity}</div>` : ''}
+            <div class="inv-card-body">
+                <div class="inv-card-name" title="${escHtml(it.name)}">${escHtml(it.name)}</div>
+                ${priceHtml}
+            </div>
+        </div>`;
+    }).join('');
 }
 
-function closeModal() { document.getElementById('globalModal').style.display = 'none'; }
-document.getElementById('globalModal').addEventListener('click', e => {
-    if (e.target === document.getElementById('globalModal')) closeModal();
+function getRarityColor(r) {
+    if (!r) return '#546e7a';
+    const map = { 'Consumer Grade': '#b0c3d9', 'Industrial Grade': '#5e98d9', 'Mil-Spec': '#4b69ff',
+        'Restricted': '#8847ff', 'Classified': '#d32ce6', 'Covert': '#eb4b4b',
+        'Contraband': '#e4ae39', 'Base Grade': '#b0c3d9', 'Uncommon': '#5e98d9',
+        'Rare': '#4b69ff', 'Mythical': '#8847ff', 'Legendary': '#d32ce6',
+        'Ancient': '#eb4b4b', 'Immortal': '#e4ae39' };
+    for (const [k, v] of Object.entries(map))
+        if (r.toLowerCase().includes(k.toLowerCase())) return v;
+    return '#546e7a';
+}
+
+// ── Badges ────────────────────────────────────────────────────────────────
+function loadBadgesTab() {
+    if (!currentFriendId) return;
+    const profileUrl = `https://steamcommunity.com/profiles/${currentFriendId}`;
+    connection.invoke('GetBadgesAndLevel', profileUrl);
+}
+
+function renderBadgesTab(data) {
+    const container = document.getElementById('badges-grid');
+    if (!data.badges || data.badges.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center" style="grid-column:1/-1;padding:30px">Sem medalhas ou perfil privado</div>';
+        return;
+    }
+    container.innerHTML = data.badges.map(b => {
+        const img = b.AppId > 0
+            ? `https://cdn.akamai.steamstatic.com/steam/apps/${b.AppId}/capsule_sm_120.jpg`
+            : `https://community.cloudflare.steamstatic.com/public/images/badges/13_tf2/${b.BadgeId||1}_80px.png`;
+        return `<div class="badge-card">
+            <img src="${img}" alt="" onerror="this.src='https://via.placeholder.com/64x64/111d2e/4a6480?text=🏅'">
+            <div class="badge-card-name">App #${b.AppId || b.BadgeId}</div>
+            <div class="badge-card-xp">⭐ ${b.Xp} XP</div>
+            <div style="font-size:.6rem;color:var(--text3)">Nível ${b.Level}</div>
+        </div>`;
+    }).join('');
+}
+
+// ── Achievements ──────────────────────────────────────────────────────────
+function loadAchievements(appId, gameName) {
+    if (!currentFriendId) return;
+    switchTab('achievements');
+    showProfileLoading(`Carregando conquistas: ${gameName}...`);
+    // Add to game buttons
+    const btns = document.getElementById('ach-game-btns');
+    if (!btns.querySelector(`[data-appid="${appId}"]`)) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-ghost btn-sm';
+        btn.dataset.appid = appId;
+        btn.textContent = gameName;
+        btn.onclick = () => {
+            showProfileLoading(`Carregando conquistas: ${gameName}...`);
+            connection.invoke('GetAchievements', `https://steamcommunity.com/profiles/${currentFriendId}`, appId);
+        };
+        btns.appendChild(btn);
+    }
+    connection.invoke('GetAchievements', `https://steamcommunity.com/profiles/${currentFriendId}`, appId);
+}
+
+function renderAchievements(appId, total, unlocked, pct, list) {
+    document.getElementById('ach-count').textContent = `${unlocked} / ${total} conquistas desbloqueadas`;
+    document.getElementById('ach-fill').style.width = pct.toFixed(1) + '%';
+    document.getElementById('ach-pct').textContent = pct.toFixed(1) + '%';
+    const container = document.getElementById('ach-list');
+    if (!list || list.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center" style="grid-column:1/-1;padding:20px">Sem conquistas ou perfil privado</div>';
+        return;
+    }
+    const fallbackIcon = 'https://community.cloudflare.steamstatic.com/public/images/acquisitions/v1/games/achievements/no_achievement.png';
+    container.innerHTML = list.map(a => {
+        const achieved = a.Achieved ?? a.achieved ?? false;
+        const name = a.Name || a.name || a.ApiName || a.apiName || '';
+        const desc = a.Description || a.description || '';
+        const iconUrl = a.IconUrl || a.iconUrl || fallbackIcon;
+        const unlockTime = a.UnlockTime || a.unlockTime || 0;
+        const dateHtml = achieved && unlockTime > 0
+            ? `<div style="font-size:.68rem;color:var(--gold);margin-top:2px">🏆 ${new Date(unlockTime * 1000).toLocaleDateString('pt-BR')}</div>`
+            : '';
+        return `
+        <div class="ach-item${achieved ? ' unlocked' : ''}">
+            <img class="ach-icon"
+                 src="${iconUrl}"
+                 alt="${escHtml(name)}"
+                 title="${escHtml(name)}"
+                 onerror="this.src='${fallbackIcon}'"
+                 style="${achieved ? '' : 'filter:grayscale(1);opacity:.45'}">
+            <div class="ach-info">
+                <div class="ach-name">${escHtml(name)}</div>
+                ${desc ? `<div class="ach-desc">${escHtml(desc)}</div>` : ''}
+                ${dateHtml}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Gamer DNA ─────────────────────────────────────────────────────────────
+document.getElementById('btn-load-dna').addEventListener('click', () => {
+    if (!currentFriendId) return;
+    switchTab('dna');
+    showProfileLoading('Analisando DNA gamer...');
+    loadDna();
 });
 
-// ── CSV ──
-function exportCSV() {
-    if (!latestFriends.length) { showError('Carregue amigos primeiro.'); return; }
-    const rows = ['Nome,SteamID,Status,País,Jogos,Valor Jogos,Itens Inv,Valor Inv,Total'];
-    latestFriends.forEach(f => {
-        const stat = f.isOnline ? (f.gameExtra ? 'Em jogo' : 'Online') : 'Offline';
-        rows.push(`"${(f.name||'').replace(/"/g,'""')}","${f.id}","${stat}","${f.country||''}","${f.gamesCount||''}","${f.gamesValue||''}","${f.inventoryCount||''}","${f.inventoryValue||''}","${f.total||''}"`);
-    });
-    const blob = new Blob(['\ufeff' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = `amigos_steam_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+function loadDna() {
+    connection.invoke('GetGamerDna', `https://steamcommunity.com/profiles/${currentFriendId}`);
 }
 
-// ── Helpers ──
-function ensureConn() {
-    if (connection && connection.state === signalR.HubConnectionState.Connected) return true;
-    showError('Aguardando conexão...'); return false;
+function renderDna(dna) {
+    const pillars = [
+        { key: 'explorerScore', label: 'Explorador', color: '#00e5ff' },
+        { key: 'veteranScore', label: 'Veterano', color: '#ff5722' },
+        { key: 'collectorScore', label: 'Colecionador', color: '#ffd740' },
+        { key: 'achieverScore', label: 'Conquistador', color: '#e040fb' },
+        { key: 'socialScore', label: 'Social', color: '#00e676' },
+        { key: 'intensityScore', label: 'Intensidade', color: '#448aff' }
+    ];
+
+    document.getElementById('dna-content').innerHTML = `
+        <div class="dna-hero">
+            <div style="font-size:.8rem;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Arquétipo Gamer</div>
+            <div class="dna-archetype">${escHtml(dna.archetype)}</div>
+            <div class="dna-score">${dna.overallScore}</div>
+            <div style="font-size:.78rem;color:var(--text3)">Score Geral</div>
+        </div>
+        <div class="dna-grid">
+            ${pillars.map(p => `
+                <div class="dna-pillar">
+                    <div class="dna-pillar-label">${p.label}</div>
+                    <div class="dna-bar-wrap"><div class="dna-bar" style="width:${dna[p.key]}%;background:${p.color}20;border:1px solid ${p.color}60;
+                        background:linear-gradient(90deg,${p.color}40,${p.color})"></div></div>
+                    <div class="dna-pillar-val" style="color:${p.color}">${dna[p.key]}</div>
+                </div>
+            `).join('')}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+            <div class="wish-stat"><div class="wish-stat-val" style="color:var(--cyan)">${dna.totalHours.toLocaleString()}h</div><div class="wish-stat-label">Total de Horas</div></div>
+            <div class="wish-stat"><div class="wish-stat-val">${dna.totalGames}</div><div class="wish-stat-label">Jogos</div></div>
+            <div class="wish-stat"><div class="wish-stat-val" style="color:var(--green)">${dna.playedPercent}%</div><div class="wish-stat-label">% Jogados</div></div>
+            <div class="wish-stat"><div class="wish-stat-val" style="color:var(--gold)">${dna.recentHours2w}h</div><div class="wish-stat-label">Últ. 2 Semanas</div></div>
+            <div class="wish-stat" style="grid-column:span 2"><div class="wish-stat-val" style="color:var(--orange);font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(dna.topGameName)}</div><div class="wish-stat-label">Jogo Mais Jogado (${dna.topGameHours}h / ${dna.topGamePercent}% do tempo)</div></div>
+        </div>
+    `;
 }
-function fmtBRL(v) { return 'R$ ' + Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2}); }
-function fmtDate(ts) { return new Date(ts*1000).toLocaleDateString('pt-BR'); }
-function showError(msg) { document.getElementById('errorBox').innerHTML = `<div class="error-box">⚠ ${msg}</div>`; }
-function clearError() { document.getElementById('errorBox').innerHTML = ''; }
-function getRarityColor(r) {
-    r = r.toLowerCase();
-    if (r.includes('covert') || r.includes('classified')) return '#eb4b4b';
-    if (r.includes('restricted')) return '#8847ff';
-    if (r.includes('mil-spec') || r.includes('milspec')) return '#4b69ff';
-    if (r.includes('legendary') || r.includes('mythical')) return '#8847ff';
-    if (r.includes('immortal') || r.includes('arcana') || r.includes('ancient')) return '#e4ae39';
-    return 'var(--text2)';
+
+// ── Wishlist Analysis ─────────────────────────────────────────────────────
+function loadWishlistAnalysis() {
+    if (!currentFriendId) return;
+    connection.invoke('GetWishlistAnalysis', `https://steamcommunity.com/profiles/${currentFriendId}`);
 }
+
+function renderWishlistAnalysis(data) {
+    const c = document.getElementById('wishlist-content');
+    if (!data || data.totalItems === 0) {
+        c.innerHTML = '<div class="text-muted text-center" style="padding:30px">Wishlist vazia ou privada</div>';
+        return;
+    }
+    c.innerHTML = `
+        <div class="wishlist-summary">
+            <div class="wish-stat"><div class="wish-stat-val">${data.totalItems}</div><div class="wish-stat-label">Total na Wishlist</div></div>
+            <div class="wish-stat"><div class="wish-stat-val" style="color:var(--red)">R$ ${data.totalFullPrice.toFixed(2)}</div><div class="wish-stat-label">Valor Total</div></div>
+            <div class="wish-stat"><div class="wish-stat-val" style="color:var(--orange)">R$ ${data.totalPriorityPrice.toFixed(2)}</div><div class="wish-stat-label">Top Prioridades</div></div>
+        </div>
+        ${data.likelySaleItems && data.likelySaleItems.length > 0 ? `
+        <div class="sec-title">🔥 Provavelmente em Promoção em Breve</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+            ${data.likelySaleItems.map(i => `
+                <div style="display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid rgba(255,87,34,.3);border-radius:8px;padding:6px 10px">
+                    <img src="${i.imageUrl}" style="width:40px;height:23px;border-radius:3px;object-fit:cover" onerror="this.style.display='none'">
+                    <div>
+                        <div style="font-size:.78rem;font-weight:600;color:var(--text)">${escHtml(i.name)}</div>
+                        <div style="font-size:.7rem;color:var(--orange)">${i.saleProbability}% chance de desconto</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>` : ''}
+        <div class="sec-title">Lista Completa</div>
+        <div class="wishlist-grid">
+            ${(data.items||[]).map(i => {
+                const saleColor = i.saleProbability >= 60 ? 'var(--red)' : i.saleProbability >= 30 ? 'var(--orange)' : 'var(--text3)';
+                return `<div class="wish-card">
+                    <img src="${i.imageUrl}" alt="${escHtml(i.name)}" onerror="this.src='https://via.placeholder.com/150x70/111d2e/4a6480?text=N/A'">
+                    <div class="wish-card-body">
+                        <div class="wish-card-name" title="${escHtml(i.name)}">${escHtml(i.name)}</div>
+                        <div style="font-size:.72rem;font-weight:700;color:var(--gold)">${i.currentPrice > 0 ? 'R$'+i.currentPrice.toFixed(2) : 'Grátis'}</div>
+                        ${i.saleProbability > 0 ? `<div style="font-size:.67rem;color:${saleColor};margin-top:2px">🎯 ${i.saleProbability}% promoção</div>` : ''}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
+    `;
+}
+
+// ── Activity Patterns ─────────────────────────────────────────────────────
+function loadActivityPatterns() {
+    if (!myProfileUrl) return;
+    connection.invoke('GetFriendActivityPatterns', myProfileUrl);
+}
+
+function renderActivityPatterns(patterns) {
+    const c = document.getElementById('activity-content');
+    if (!patterns || patterns.length === 0) {
+        c.innerHTML = '<div class="text-muted text-center" style="padding:30px">Sem dados de atividade</div>';
+        return;
+    }
+
+    const slots = { 'Madrugador': [], 'Matutino': [], 'Vespertino': [], 'Noturno': [] };
+    patterns.forEach(p => { if (slots[p.activitySlot]) slots[p.activitySlot].push(p); });
+
+    const slotIcons = { 'Madrugador': '🌙', 'Matutino': '🌅', 'Vespertino': '☀️', 'Noturno': '🌆' };
+    const slotDesc = { 'Madrugador': '00h–06h', 'Matutino': '06h–12h', 'Vespertino': '12h–18h', 'Noturno': '18h–00h' };
+
+    const onlineNow = patterns.filter(p => p.isOnline);
+    const playingNow = patterns.filter(p => p.playingGame);
+
+    c.innerHTML = `
+        ${onlineNow.length ? `<div style="background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.2);border-radius:10px;padding:12px;margin-bottom:14px">
+            <div class="sec-title" style="border:none;margin:0 0 8px;color:var(--green)">🟢 Online Agora (${onlineNow.length})</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+                ${onlineNow.map(p => `
+                    <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:6px;padding:4px 8px">
+                        <img src="${p.avatar}" style="width:22px;height:22px;border-radius:3px">
+                        <span style="font-size:.78rem">${escHtml(p.name)}</span>
+                        ${p.playingGame ? `<span style="font-size:.68rem;color:var(--ingame)">🎮 ${escHtml(p.playingGame)}</span>` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        </div>` : ''}
+        <div class="slots-grid">
+            ${Object.entries(slots).map(([slot, friends]) => `
+                <div class="slot-card">
+                    <div class="flex items-center between" style="margin-bottom:6px">
+                        <div class="slot-title">${slotIcons[slot]} ${slot} <span style="font-size:.7rem;color:var(--text3)">${slotDesc[slot]}</span></div>
+                        <div class="slot-count">${friends.length}</div>
+                    </div>
+                    <div class="slot-friends">
+                        ${friends.slice(0,12).map(p => `
+                            <img class="slot-avatar" src="${p.avatar}" title="${escHtml(p.name)}" 
+                                onerror="this.src='https://avatars.cloudflare.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'">
+                        `).join('')}
+                        ${friends.length > 12 ? `<span style="font-size:.72rem;color:var(--text3);padding:4px">+${friends.length-12}</span>` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <div class="sec-title">Lista Detalhada</div>
+        <div style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto">
+            ${[...patterns].sort((a,b) => b.lastLogoffUnix-a.lastLogoffUnix).map(p => {
+                const dt = p.lastLogoffUnix ? new Date(p.lastLogoffUnix*1000).toLocaleString('pt-BR') : '';
+                return `<div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+                    <img src="${p.avatar}" style="width:30px;height:30px;border-radius:4px">
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:.82rem;font-weight:600">${escHtml(p.name)}</div>
+                        <div style="font-size:.72rem;color:var(--text3)">${slotIcons[p.activitySlot]} ${p.activitySlot} • ${dt}</div>
+                    </div>
+                    ${p.isOnline ? '<span class="profile-badge badge-online" style="flex-shrink:0">Online</span>' : ''}
+                </div>`;
+            }).join('')}
+        </div>
+    `;
+}
+
+// ── Comparison ────────────────────────────────────────────────────────────
+document.getElementById('btn-compare').addEventListener('click', () => {
+    switchTab('compare');
+    document.getElementById('compare-url').value = myProfileUrl;
+});
+
+document.getElementById('btn-do-compare').addEventListener('click', async () => {
+    const url2 = document.getElementById('compare-url').value.trim();
+    if (!url2 || !currentFriendId) return;
+    document.getElementById('profileLoading').style.display = 'flex';
+    document.getElementById('profileLoadingText').textContent = 'Comparando perfis...';
+    await connection.invoke('CompareProfiles', `https://steamcommunity.com/profiles/${currentFriendId}`, url2);
+});
+
+function renderComparison(d) {
+    const stats = [
+        { label: 'Nível Steam', v1: d.level1, v2: d.level2 },
+        { label: 'Jogos', v1: d.gamesCount1, v2: d.gamesCount2 },
+        { label: 'Horas Totais', v1: d.totalHours1, v2: d.totalHours2, suffix: 'h' },
+        { label: 'Medalhas', v1: d.badgeCount1, v2: d.badgeCount2 },
+        { label: 'XP Total', v1: d.totalXp1, v2: d.totalXp2 }
+    ];
+    const container = document.getElementById('compare-result');
+    container.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;text-align:center;margin-bottom:14px">
+            <div style="font-weight:700;color:var(--cyan)">${escHtml(d.name1 || 'Amigo')}</div>
+            <div style="font-family:'Orbitron',sans-serif;color:var(--text3);font-size:.9rem">VS</div>
+            <div style="font-weight:700;color:var(--orange)">${escHtml(d.name2 || 'Você')}</div>
+        </div>
+        ${stats.map(s => {
+            const suffix = s.suffix || '';
+            const win1 = s.v1 > s.v2 ? 'val-win' : s.v1 < s.v2 ? 'val-lose' : 'val-tie';
+            const win2 = s.v2 > s.v1 ? 'val-win' : s.v2 < s.v1 ? 'val-lose' : 'val-tie';
+            return `<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px">
+                <div class="compare-val ${win1}" style="text-align:left">${s.v1.toLocaleString()}${suffix}</div>
+                <div style="font-size:.72rem;color:var(--text3);text-align:center;min-width:80px">${s.label}</div>
+                <div class="compare-val ${win2}" style="text-align:right">${s.v2.toLocaleString()}${suffix}</div>
+            </div>`;
+        }).join('')}
+        ${d.commonGamesCount > 0 ? `<div class="sec-title" style="margin-top:12px">🎮 ${d.commonGamesCount} Jogos em Comum</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${(d.commonGames||[]).slice(0,12).map(g => `
+                <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:4px 8px">
+                    <img src="${g.imageUrl||''}" style="width:30px;height:17px;border-radius:2px;object-fit:cover">
+                    <span style="font-size:.73rem">${escHtml(g.name)}</span>
+                </div>
+            `).join('')}
+        </div>` : ''}
+    `;
+}
+
+// ── Tab handler for lazy-load tabs ────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => {
+        const tab = b.dataset.tab;
+        if (tab === 'wishlist' && currentFriendId) {
+            // already loaded on friend select
+        }
+        if (tab === 'dna' && currentFriendId) {
+            if (document.getElementById('dna-content').querySelector('.text-muted')) loadDna();
+        }
+    });
+});
+
+// ── Start connection — com reconexão automática ────────────────────────────
+async function startConnection() {
+    try {
+        await connection.start();
+        console.log('[SignalR] Conectado.');
+        document.getElementById('errBox').style.display = 'none';
+        if ('@initUrl' && '@initUrl' !== '') {
+            loadFriends();
+        }
+    } catch (err) {
+        console.error('[SignalR] Falha ao conectar:', err);
+        document.getElementById('errBox').textContent = '⚠ Conectando ao servidor... Tentando novamente em 5s.';
+        document.getElementById('errBox').style.display = 'block';
+        setTimeout(startConnection, 5000);
+    }
+}
+
+connection.onreconnecting(() => {
+    document.getElementById('errBox').textContent = '⟳ Reconectando ao servidor...';
+    document.getElementById('errBox').style.display = 'block';
+});
+
+connection.onreconnected(() => {
+    document.getElementById('errBox').style.display = 'none';
+});
+
+connection.onclose(() => {
+    document.getElementById('errBox').textContent = '✗ Conexão perdida. Recarregue a página.';
+    document.getElementById('errBox').style.display = 'block';
+});
+
+startConnection();
+
+document.getElementById('loadBtn').addEventListener('click', loadFriends);
+document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') loadFriends(); });
 </script>
 </body>
 </html>
