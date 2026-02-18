@@ -1,0 +1,27 @@
+@model SteamValue.Models.ErrorViewModel
+@{
+    ViewData["Title"] = "Erro";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Erro — SteamValue</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Exo+2:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { background:#060b14; color:#cdd9e5; font-family:'Exo 2',sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+        .err-box { text-align:center; padding:60px 40px; }
+        h1 { font-family:'Orbitron',sans-serif; font-size:3rem; color:#ff1744; margin-bottom:12px; }
+        p { color:#8fadc8; margin-bottom:24px; }
+        a { color:#00e5ff; text-decoration:none; padding:10px 24px; border:1px solid rgba(0,229,255,.3); border-radius:8px; }
+    </style>
+</head>
+<body>
+<div class="err-box">
+    <h1>⚠ Erro</h1>
+    <p>Algo deu errado. @Model?.RequestId</p>
+    <a href="/">← Voltar ao início</a>
+</div>
+</body>
+</html>

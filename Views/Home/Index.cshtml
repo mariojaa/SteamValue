@@ -8,507 +8,671 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Steam Value Calculator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <title>SteamValue — Calculadora de Conta</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@@latest/dist/browser/signalr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --primary: #ff6b35;
-            --secondary: #00d9ff;
-            --accent: #ffeb3b;
-            --dark-bg: #0a0e1a;
-            --card-bg: #111827;
-            --card-bg2: #1a2235;
-            --border: #1e3a5f;
-            --text: #ffffff;
-            --text-muted: #8b9dc3;
-            --success: #4ade80;
-            --danger: #f87171;
-            --warning: #fbbf24;
-            --online: #57c75b;
-            --offline: #6b7280;
+            --bg: #060b14;
+            --bg1: #0d1524;
+            --bg2: #111d2e;
+            --bg3: #162236;
+            --border: #1a3050;
+            --border2: #243f5e;
+            --cyan: #00e5ff;
+            --cyan2: #00b8d9;
+            --orange: #ff5722;
+            --orange2: #e64a19;
+            --gold: #ffd740;
+            --green: #00e676;
+            --red: #ff1744;
+            --purple: #e040fb;
+            --text: #cdd9e5;
+            --text2: #8fadc8;
+            --text3: #4a6480;
+            --online: #00e676;
+            --offline: #546e7a;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
         html { scroll-behavior: smooth; }
         body {
-            font-family: 'Rajdhani', sans-serif;
-            background: var(--dark-bg);
+            font-family: 'Exo 2', sans-serif;
+            background: var(--bg);
             color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
         }
+
+        /* ── Ambient background ── */
         body::before {
             content: '';
-            position: fixed; inset: 0;
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
             background:
-                radial-gradient(ellipse at 15% 50%, rgba(0,217,255,.08) 0%, transparent 55%),
-                radial-gradient(ellipse at 85% 80%, rgba(255,107,53,.08) 0%, transparent 55%);
-            z-index: 0; pointer-events: none;
+                radial-gradient(ellipse 60% 40% at 20% 30%, rgba(0,229,255,.05) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 50% at 80% 70%, rgba(255,87,34,.05) 0%, transparent 70%),
+                repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(255,255,255,.012) 60px),
+                repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(255,255,255,.012) 60px);
         }
 
-        /* ── Nav ── */
+        /* ── Navigation ── */
         .nav {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 14px 32px;
-            background: rgba(10,14,26,.85);
+            padding: 0 40px; height: 60px;
+            background: rgba(6,11,20,.92);
             border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(12px);
-            position: sticky; top: 0; z-index: 100;
+            backdrop-filter: blur(20px);
+            position: sticky; top: 0; z-index: 200;
         }
         .nav-brand {
-            font-family: 'Russo One', sans-serif;
-            font-size: 1.4rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem; font-weight: 900;
+            background: linear-gradient(90deg, var(--cyan), var(--orange));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
         }
-        .nav-links { display: flex; gap: 20px; }
-        .nav-links a {
-            color: var(--text-muted); text-decoration: none; font-size: .95rem;
-            font-weight: 500; letter-spacing: .5px; transition: color .2s;
+        .nav-links { display: flex; gap: 6px; }
+        .nav-link {
+            padding: 6px 16px; border-radius: 6px;
+            color: var(--text2); text-decoration: none;
+            font-size: .88rem; font-weight: 500; letter-spacing: .5px;
+            transition: all .2s; border: 1px solid transparent;
         }
-        .nav-links a:hover { color: var(--secondary); }
-        .nav-links a.active { color: var(--secondary); }
+        .nav-link:hover, .nav-link.active {
+            color: var(--cyan); border-color: rgba(0,229,255,.25);
+            background: rgba(0,229,255,.06);
+        }
 
-        /* ── Layout ── */
-        .page { max-width: 1280px; margin: 0 auto; padding: 28px 24px; position: relative; z-index: 1; }
+        /* ── Page ── */
+        .page { max-width: 1360px; margin: 0 auto; padding: 32px 24px; position: relative; z-index: 1; }
 
         /* ── Hero ── */
-        .hero { text-align: center; padding: 48px 0 36px; }
+        .hero { text-align: center; padding: 56px 0 40px; }
+        .hero-badge {
+            display: inline-block; margin-bottom: 18px;
+            padding: 5px 16px; border-radius: 99px;
+            background: rgba(0,229,255,.1); border: 1px solid rgba(0,229,255,.3);
+            font-size: .78rem; color: var(--cyan); text-transform: uppercase; letter-spacing: 2px;
+        }
         .hero h1 {
-            font-family: 'Russo One', sans-serif;
-            font-size: clamp(2rem, 5vw, 3.8rem);
-            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2.2rem, 5vw, 4rem); font-weight: 900;
+            line-height: 1.1; letter-spacing: 2px; text-transform: uppercase;
+            background: linear-gradient(135deg, #ffffff 0%, var(--cyan) 50%, var(--orange) 100%);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            text-transform: uppercase; letter-spacing: 3px;
-            animation: titleGlow 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 40px rgba(0,229,255,.25));
         }
-        @@keyframes titleGlow {
-            0%,100% { filter: drop-shadow(0 0 20px rgba(255,107,53,.4)); }
-            50% { filter: drop-shadow(0 0 40px rgba(0,217,255,.6)); }
-        }
-        .hero-sub { color: var(--text-muted); font-size: 1.15rem; margin-top: 8px; letter-spacing: 1.5px; }
+        .hero p { color: var(--text2); font-size: 1.1rem; margin-top: 12px; letter-spacing: .5px; }
 
         /* ── Cards ── */
         .card {
-            background: var(--card-bg);
+            background: var(--bg1);
             border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
+            border-radius: 14px;
             position: relative; overflow: hidden;
         }
         .card::before {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(135deg, transparent 0%, rgba(0,217,255,.03) 100%);
-            pointer-events: none;
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background: linear-gradient(135deg, rgba(0,229,255,.025) 0%, transparent 50%);
         }
+        .card-body { padding: 24px; }
 
-        /* ── Calculator form ── */
-        .calc-card { margin-bottom: 24px; }
-        .form-label {
-            display: block; font-weight: 600; font-size: 1rem;
-            text-transform: uppercase; letter-spacing: 1px;
-            color: var(--text); margin-bottom: 10px;
+        /* ── Input ── */
+        .form-section { margin-bottom: 28px; }
+        .field-label {
+            font-size: .78rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.5px; color: var(--text2); margin-bottom: 10px; display: block;
         }
-        .input-group { display: flex; gap: 12px; }
+        .input-row { display: flex; gap: 10px; }
         .steam-input {
             flex: 1; padding: 14px 18px;
-            background: rgba(10,14,26,.7);
-            border: 1.5px solid var(--border); border-radius: 10px;
-            color: var(--text); font-size: 1rem; font-family: 'Rajdhani', sans-serif;
+            background: rgba(0,0,0,.4); border: 1.5px solid var(--border);
+            border-radius: 10px; color: #fff;
+            font-size: .95rem; font-family: 'Exo 2', sans-serif;
             transition: border-color .25s, box-shadow .25s;
         }
-        .steam-input:focus {
-            outline: none; border-color: var(--secondary);
-            box-shadow: 0 0 0 3px rgba(0,217,255,.12);
-        }
-        .steam-input::placeholder { color: var(--text-muted); }
+        .steam-input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,229,255,.1); }
+        .steam-input::placeholder { color: var(--text3); }
 
+        /* ── Buttons ── */
         .btn {
             display: inline-flex; align-items: center; gap: 8px;
             padding: 12px 22px; border: none; border-radius: 10px;
-            font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 600;
-            cursor: pointer; transition: all .25s; letter-spacing: .5px;
+            font-family: 'Exo 2', sans-serif; font-size: .92rem; font-weight: 700;
+            cursor: pointer; transition: all .2s; white-space: nowrap; letter-spacing: .5px;
         }
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary), #e55a2b);
-            color: #fff;
+            background: linear-gradient(135deg, var(--cyan), var(--cyan2));
+            color: #000;
+            box-shadow: 0 4px 20px rgba(0,229,255,.3);
         }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .btn-secondary {
-            background: rgba(0,217,255,.12);
-            color: var(--secondary); border: 1px solid rgba(0,217,255,.25);
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 6px 28px rgba(0,229,255,.4); }
+        .btn-orange {
+            background: linear-gradient(135deg, var(--orange), var(--orange2));
+            color: #fff; box-shadow: 0 4px 18px rgba(255,87,34,.25);
         }
-        .btn-secondary:hover { background: rgba(0,217,255,.22); }
-        .btn-ghost { background: rgba(255,255,255,.06); color: var(--text-muted); border: 1px solid var(--border); }
-        .btn-ghost:hover { background: rgba(255,255,255,.1); color: var(--text); }
-        .btn:disabled { opacity: .5; pointer-events: none; }
+        .btn-orange:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-ghost {
+            background: rgba(255,255,255,.04); color: var(--text2);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,.09); color: var(--text); border-color: var(--border2); }
+        .btn-sm { padding: 8px 14px; font-size: .82rem; }
+        .btn:disabled { opacity: .45; pointer-events: none; }
 
-        .checkbox-row { display: flex; gap: 24px; margin: 18px 0; flex-wrap: wrap; }
+        /* ── Checkboxes ── */
+        .checkbox-row { display: flex; gap: 22px; flex-wrap: wrap; margin: 16px 0; }
         .check-item { display: flex; align-items: center; gap: 10px; cursor: pointer; }
-        .check-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--secondary); cursor: pointer; }
-        .check-item label { cursor: pointer; font-size: 1.05rem; font-weight: 500; }
+        .check-item input { width: 18px; height: 18px; accent-color: var(--cyan); cursor: pointer; }
+        .check-item span { font-size: .95rem; font-weight: 500; }
 
-        .action-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+        /* ── Action bar ── */
+        .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+
+        /* ── Tabs (feature tabs) ── */
+        .feature-tabs {
+            display: flex; gap: 4px; flex-wrap: wrap;
+            border-bottom: 1px solid var(--border); margin-bottom: 20px;
+        }
+        .ftab {
+            padding: 10px 18px; border-radius: 8px 8px 0 0;
+            background: transparent; border: 1px solid transparent;
+            border-bottom: none; color: var(--text2);
+            font-family: 'Exo 2', sans-serif; font-size: .88rem; font-weight: 600;
+            cursor: pointer; transition: all .2s; position: relative; bottom: -1px;
+        }
+        .ftab:hover { color: var(--text); background: rgba(255,255,255,.04); }
+        .ftab.active {
+            color: var(--cyan); background: var(--bg1);
+            border-color: var(--border); border-bottom-color: var(--bg1);
+        }
+        .ftab-panel { display: none; }
+        .ftab-panel.active { display: block; }
 
         /* ── Progress ── */
         .progress-wrap {
-            display: none; margin-top: 20px;
-            background: rgba(0,0,0,.3); border-radius: 10px; padding: 18px;
+            display: none; margin-top: 18px;
+            background: rgba(0,0,0,.4); border-radius: 10px; padding: 16px;
+            border: 1px solid var(--border);
         }
         .progress-wrap.active { display: block; }
         .progress-meta { display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .progress-label { font-size: .9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-        .progress-pct { font-size: .9rem; color: var(--secondary); font-weight: 700; }
-        .progress-bar-bg { height: 6px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; }
+        .progress-label { font-size: .78rem; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+        .progress-pct { font-size: .82rem; color: var(--cyan); font-weight: 700; }
+        .progress-bar-bg { height: 5px; background: rgba(255,255,255,.07); border-radius: 99px; overflow: hidden; }
         .progress-bar-fill {
             height: 100%; width: 0%;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            border-radius: 99px;
-            transition: width .4s ease;
+            background: linear-gradient(90deg, var(--orange), var(--cyan));
+            border-radius: 99px; transition: width .35s ease;
         }
-        .progress-msg { font-size: .88rem; color: var(--text-muted); margin-top: 8px; }
+        .progress-msg { font-size: .82rem; color: var(--text3); margin-top: 7px; font-style: italic; }
 
-        /* ── Stats strip ── */
-        .stats-strip {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px; margin-bottom: 24px;
+        /* ── Stats grid ── */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px; margin-bottom: 24px;
         }
-        .stat-item {
-            background: var(--card-bg2); border: 1px solid var(--border); border-radius: 12px;
-            padding: 18px 20px;
+        .stat-card {
+            background: var(--bg2); border: 1px solid var(--border);
+            border-radius: 12px; padding: 18px 20px;
+            position: relative; overflow: hidden;
         }
-        .stat-label { font-size: .82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-        .stat-value { font-family: 'Russo One', sans-serif; font-size: 1.6rem; color: var(--accent); }
-        .stat-value.green { color: var(--success); }
-        .stat-value.cyan { color: var(--secondary); }
+        .stat-card::after {
+            content: attr(data-icon);
+            position: absolute; right: 14px; bottom: 10px;
+            font-size: 2.2rem; opacity: .12; filter: grayscale(1);
+        }
+        .stat-label { font-size: .72rem; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .stat-value { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; font-weight: 700; line-height: 1; }
+        .stat-cyan { color: var(--cyan); }
+        .stat-green { color: var(--green); }
+        .stat-gold { color: var(--gold); }
+        .stat-orange { color: var(--orange); }
 
         /* ── Total box ── */
         .total-box {
-            background: linear-gradient(135deg, rgba(255,107,53,.15), rgba(0,217,255,.15));
-            border: 2px solid var(--accent);
-            border-radius: 16px; padding: 28px; text-align: center;
-            margin-bottom: 24px;
-            animation: pulse 2.5s ease-in-out infinite;
+            background: linear-gradient(135deg, rgba(0,229,255,.08), rgba(255,87,34,.08));
+            border: 2px solid var(--gold); border-radius: 14px;
+            padding: 30px; text-align: center; margin-bottom: 24px;
+            box-shadow: 0 0 40px rgba(255,215,64,.15);
+            animation: totalPulse 3s ease-in-out infinite;
         }
-        @@keyframes pulse {
-            0%,100% { box-shadow: 0 0 20px rgba(255,235,59,.3); }
-            50% { box-shadow: 0 0 50px rgba(255,235,59,.6); }
+        @@keyframes totalPulse {
+            0%,100% { box-shadow: 0 0 40px rgba(255,215,64,.15); }
+            50% { box-shadow: 0 0 60px rgba(255,215,64,.35); }
         }
-        .total-lbl { font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
-        .total-val { font-family: 'Russo One', sans-serif; font-size: clamp(2rem, 5vw, 3.5rem); color: var(--accent); }
+        .total-label { font-size: .8rem; color: var(--text2); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+        .total-value { font-family: 'Orbitron', sans-serif; font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; color: var(--gold); text-shadow: 0 0 30px rgba(255,215,64,.5); }
 
         /* ── Profile panel ── */
         .profile-panel {
-            display: none;
-            background: var(--card-bg2); border: 1px solid var(--border); border-radius: 16px;
-            padding: 24px; margin-bottom: 24px;
+            display: none; background: var(--bg2); border: 1px solid var(--border);
+            border-radius: 14px; padding: 24px; margin-bottom: 22px;
         }
-        .profile-panel.active { display: block; }
-        .profile-header { display: flex; gap: 18px; align-items: flex-start; margin-bottom: 16px; }
-        .profile-avatar { width: 84px; height: 84px; border-radius: 8px; border: 2px solid var(--secondary); }
-        .profile-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
-        .profile-status { font-size: .88rem; display: flex; align-items: center; gap: 6px; }
-        .online-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--online); display: inline-block; }
-        .offline-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--offline); display: inline-block; }
-        .profile-meta { display: flex; flex-wrap: wrap; gap: 12px; }
-        .meta-chip {
+        .profile-panel.visible { display: block; animation: fadeUp .3s ease; }
+        @@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .profile-header { display: flex; gap: 18px; align-items: flex-start; }
+        .profile-avatar { width: 88px; height: 88px; border-radius: 8px; border: 2px solid var(--cyan); flex-shrink: 0; }
+        .profile-name { font-family: 'Orbitron', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; color: #fff; }
+        .profile-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .chip {
+            padding: 4px 12px; border-radius: 6px; font-size: .78rem; font-weight: 600;
             background: rgba(255,255,255,.06); border: 1px solid var(--border);
-            border-radius: 8px; padding: 6px 12px; font-size: .85rem;
         }
-        .ban-chip { background: rgba(248,113,113,.15); border-color: var(--danger); color: var(--danger); }
-        .level-chip { background: rgba(0,217,255,.1); border-color: var(--secondary); color: var(--secondary); }
-        .recent-games-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-        .mini-game {
-            width: 120px; background: rgba(0,0,0,.3); border-radius: 8px;
-            overflow: hidden; font-size: .78rem;
-        }
-        .mini-game img { width: 100%; height: 56px; object-fit: cover; display: block; }
-        .mini-game-info { padding: 5px 7px; }
-        .mini-game-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .mini-game-time { color: var(--text-muted); }
+        .chip-cyan { background: rgba(0,229,255,.1); border-color: rgba(0,229,255,.3); color: var(--cyan); }
+        .chip-red { background: rgba(255,23,68,.12); border-color: rgba(255,23,68,.3); color: var(--red); }
+        .chip-green { background: rgba(0,230,118,.1); border-color: rgba(0,230,118,.3); color: var(--green); }
+        .chip-gold { background: rgba(255,215,64,.1); border-color: rgba(255,215,64,.3); color: var(--gold); }
+        .recent-games-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+        .mini-game { width: 100px; background: rgba(0,0,0,.3); border-radius: 6px; overflow: hidden; }
+        .mini-game img { width: 100%; height: 50px; object-fit: cover; display: block; }
+        .mini-info { padding: 5px 6px; font-size: .7rem; }
+        .mini-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+        .mini-time { color: var(--text3); }
 
-        /* ── Sections ── */
-        .section-header {
+        /* ── Section ── */
+        .section { margin-bottom: 22px; }
+        .section-head {
             display: flex; align-items: center; justify-content: space-between;
             margin-bottom: 16px;
         }
-        .section-title { font-size: 1.1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: .9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+            color: var(--text2);
+        }
         .section-badge {
-            background: rgba(0,217,255,.15); color: var(--secondary);
-            border-radius: 99px; padding: 3px 10px; font-size: .8rem; font-weight: 700;
+            background: rgba(0,229,255,.12); color: var(--cyan);
+            border-radius: 99px; padding: 3px 12px;
+            font-size: .75rem; font-weight: 700;
         }
 
         /* ── Games grid ── */
-        .filters-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
-        .select-input, .num-input {
-            padding: 8px 12px; background: rgba(10,14,26,.8);
+        .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+        .select-s, .num-s, .text-s {
+            padding: 8px 12px; background: rgba(0,0,0,.4);
             border: 1px solid var(--border); border-radius: 8px;
-            color: var(--text); font-family: 'Rajdhani', sans-serif; font-size: .9rem;
+            color: var(--text); font-family: 'Exo 2', sans-serif; font-size: .85rem;
         }
         .games-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 14px; max-height: 520px; overflow-y: auto;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 12px; max-height: 520px; overflow-y: auto; padding-right: 4px;
         }
-        .games-grid::-webkit-scrollbar { width: 6px; }
-        .games-grid::-webkit-scrollbar-thumb { background: rgba(0,217,255,.3); border-radius: 99px; }
+        .games-grid::-webkit-scrollbar { width: 5px; }
+        .games-grid::-webkit-scrollbar-thumb { background: rgba(0,229,255,.25); border-radius: 99px; }
         .game-card {
-            background: var(--card-bg2); border: 1px solid var(--border); border-radius: 10px;
-            overflow: hidden; transition: transform .2s, border-color .2s;
-            cursor: pointer;
+            background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 10px; overflow: hidden; cursor: pointer;
+            transition: transform .18s, border-color .18s;
         }
-        .game-card:hover { transform: translateY(-3px); border-color: rgba(0,217,255,.35); }
-        .game-card img { width: 100%; height: 90px; object-fit: cover; display: block; }
-        .game-card-body { padding: 10px; }
-        .game-name { font-size: .88rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .game-price { font-size: .82rem; color: var(--success); font-weight: 700; margin-top: 3px; }
-        .game-playtime { font-size: .78rem; color: var(--text-muted); margin-top: 2px; }
+        .game-card:hover { transform: translateY(-3px); border-color: rgba(0,229,255,.35); }
+        .game-card img { width: 100%; height: 88px; object-fit: cover; display: block; }
+        .game-card-info { padding: 10px; }
+        .game-name { font-size: .82rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+        .game-price { font-size: .78rem; color: var(--green); font-weight: 700; margin-top: 2px; }
+        .game-playtime { font-size: .72rem; color: var(--text3); }
+        .game-meta { font-size: .68rem; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .metacritic-badge {
+            display: inline-block; padding: 1px 5px; border-radius: 3px;
+            font-size: .7rem; font-weight: 700; margin-right: 4px;
+        }
+        .mc-good { background: #6c3; color: #000; }
+        .mc-ok { background: #fc3; color: #000; }
+        .mc-bad { background: #f33; color: #fff; }
 
         /* ── Inventory ── */
-        .inv-section { margin-top: 24px; }
-        .inv-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .inv-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
         .inv-tab {
-            padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border);
-            background: rgba(255,255,255,.04); cursor: pointer; font-size: .9rem; font-weight: 600;
-            transition: all .2s;
+            padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border);
+            background: rgba(255,255,255,.03); cursor: pointer;
+            font-size: .82rem; font-weight: 600; transition: all .18s;
+            font-family: 'Exo 2', sans-serif; color: var(--text2);
         }
-        .inv-tab.active { background: rgba(0,217,255,.15); border-color: var(--secondary); color: var(--secondary); }
+        .inv-tab.active { background: rgba(255,87,34,.15); border-color: var(--orange); color: var(--orange); }
         .inv-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 10px; max-height: 400px; overflow-y: auto;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px; max-height: 380px; overflow-y: auto; padding-right: 4px;
         }
-        .inv-grid::-webkit-scrollbar { width: 5px; }
-        .inv-grid::-webkit-scrollbar-thumb { background: rgba(0,217,255,.25); border-radius: 99px; }
+        .inv-grid::-webkit-scrollbar { width: 4px; }
+        .inv-grid::-webkit-scrollbar-thumb { background: rgba(255,87,34,.25); border-radius: 99px; }
         .inv-card {
-            background: rgba(0,0,0,.3); border: 1px solid var(--border); border-radius: 8px;
-            overflow: hidden; transition: border-color .2s;
+            background: rgba(0,0,0,.3); border: 1px solid var(--border);
+            border-radius: 8px; overflow: hidden; transition: border-color .18s;
         }
-        .inv-card:hover { border-color: rgba(255,235,59,.3); }
-        .inv-card img { width: 100%; height: 80px; object-fit: cover; display: block; }
-        .inv-card-body { padding: 8px; }
-        .inv-name { font-size: .78rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .inv-price { font-size: .78rem; color: var(--warning); font-weight: 700; margin-top: 2px; }
+        .inv-card:hover { border-color: rgba(255,215,64,.3); }
+        .inv-card img { width: 100%; height: 75px; object-fit: cover; display: block; background: #0d1524; }
+        .inv-card-info { padding: 7px; }
+        .inv-name { font-size: .72rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .inv-price { font-size: .75rem; color: var(--gold); font-weight: 700; }
+        .inv-count { font-size: .68rem; color: var(--text3); }
+        .inv-rarity { font-size: .65rem; }
 
         /* ── Wishlist ── */
-        .wish-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
+        .wish-list { display: flex; flex-direction: column; gap: 7px; max-height: 320px; overflow-y: auto; }
         .wish-item {
             display: flex; gap: 12px; align-items: center;
-            background: rgba(0,0,0,.25); border-radius: 8px; padding: 10px;
+            background: rgba(0,0,0,.25); border-radius: 8px; padding: 10px 12px;
             border: 1px solid var(--border);
         }
-        .wish-img { width: 80px; height: 40px; object-fit: cover; border-radius: 4px; }
-        .wish-name { font-size: .9rem; font-weight: 600; }
-        .wish-priority { font-size: .78rem; color: var(--text-muted); }
+        .wish-img { width: 80px; height: 40px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+        .wish-name { font-size: .88rem; font-weight: 600; color: var(--text); }
+        .wish-priority { font-size: .72rem; color: var(--text3); }
+
+        /* ── Badges ── */
+        .badge-stats { display: flex; gap: 14px; flex-wrap: wrap; }
+        .badge-stat { background: rgba(0,0,0,.3); border-radius: 8px; padding: 12px 18px; text-align: center; border: 1px solid var(--border); }
+        .badge-stat-val { font-family: 'Orbitron', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--purple); }
+        .badge-stat-lbl { font-size: .72rem; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
 
         /* ── Chart ── */
         .chart-wrap { position: relative; height: 220px; }
 
-        /* ── Two column layout ── */
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        /* ── Two column ── */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
         @@media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
-
-        /* ── Badges ── */
-        .badge-info {
-            display: flex; gap: 16px; flex-wrap: wrap;
-        }
-        .badge-stat { background: rgba(0,0,0,.3); border-radius: 8px; padding: 12px 18px; text-align: center; }
-        .badge-stat-val { font-family: 'Russo One', sans-serif; font-size: 1.5rem; color: var(--secondary); }
-        .badge-stat-lbl { font-size: .78rem; color: var(--text-muted); text-transform: uppercase; }
 
         /* ── Error ── */
         .error-box {
-            background: rgba(248,113,113,.12); border: 1px solid var(--danger);
-            border-radius: 10px; padding: 16px; color: var(--danger); margin-top: 16px;
-            animation: shake .4s ease;
+            background: rgba(255,23,68,.1); border: 1px solid rgba(255,23,68,.3);
+            border-radius: 10px; padding: 14px 18px; color: var(--red);
+            margin-top: 14px; font-size: .9rem;
+            animation: shake .35s ease;
         }
         @@keyframes shake {
             0%,100% { transform: translateX(0); }
-            25% { transform: translateX(-6px); }
-            75% { transform: translateX(6px); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
         }
 
-        /* ── Loading spinner ── */
-        .spinner { display: inline-block; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.2); border-top-color: var(--secondary); border-radius: 50%; animation: spin .7s linear infinite; }
+        /* ── Spinner / dots ── */
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,.3); border-top-color: #000; border-radius: 50%; animation: spin .7s linear infinite; }
         @@keyframes spin { to { transform: rotate(360deg); } }
-        .dots span { animation: blink 1.4s infinite both; }
-        .dots span:nth-child(2) { animation-delay: .2s; }
-        .dots span:nth-child(3) { animation-delay: .4s; }
-        @@keyframes blink { 0%,80%,100% { opacity: 0; } 40% { opacity: 1; } }
+
+        /* ── Playtime analytics ── */
+        .playtime-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
+        .pt-stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+        .pt-val { font-family: 'Orbitron', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--cyan); }
+        .pt-lbl { font-size: .7rem; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }
+        .pt-bar-wrap { height: 8px; background: rgba(255,255,255,.07); border-radius: 99px; overflow: hidden; margin: 10px 0; }
+        .pt-bar { height: 100%; background: linear-gradient(90deg, var(--orange), var(--cyan)); border-radius: 99px; transition: width .6s ease; }
+        .most-played-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+        .mp-item { display: flex; gap: 10px; align-items: center; padding: 8px 10px; background: rgba(0,0,0,.25); border-radius: 7px; border: 1px solid var(--border); }
+        .mp-item img { width: 60px; height: 34px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+        .mp-name { font-size: .85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mp-hours { font-size: .78rem; color: var(--gold); font-weight: 700; }
+
+        /* ── Comparison ── */
+        .compare-row { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+        .vs-label { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 900; color: var(--orange); padding: 0 6px; }
+        .compare-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: start; }
+        .compare-col { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+        .compare-col.winner { border-color: var(--gold); background: rgba(255,215,64,.05); }
+        .cmp-avatar { width: 64px; height: 64px; border-radius: 6px; border: 2px solid var(--border); }
+        .cmp-name { font-weight: 700; font-size: 1.05rem; margin: 8px 0 12px; color: #fff; }
+        .cmp-stat { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: .88rem; }
+        .cmp-stat:last-child { border-bottom: none; }
+        .cmp-val { font-weight: 700; color: var(--cyan); }
+        .cmp-val.better { color: var(--green); }
+        .compare-vs { display: flex; align-items: center; justify-content: center; }
+
+        /* ── Live players ── */
+        .live-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+        .live-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+        .live-game { font-size: .85rem; font-weight: 700; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .live-count { font-family: 'Orbitron', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--green); }
+        .live-lbl { font-size: .7rem; color: var(--text3); margin-top: 3px; }
 
         /* ── Hidden ── */
         .hidden { display: none !important; }
 
-        /* ── Responsive ── */
-        @@media (max-width: 600px) {
-            .nav { padding: 12px 16px; }
-            .page { padding: 18px 14px; }
-            .games-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-        }
+        /* ── Achievements ── */
+        .ach-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .ach-bar-wrap { height: 12px; background: rgba(255,255,255,.07); border-radius: 99px; overflow: hidden; margin: 12px 0; position: relative; }
+        .ach-bar { height: 100%; background: linear-gradient(90deg, var(--orange), var(--gold)); border-radius: 99px; transition: width .8s ease; }
+        .ach-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; max-height: 320px; overflow-y: auto; }
+        .ach-item { display: flex; gap: 10px; align-items: center; padding: 10px 12px; background: rgba(0,0,0,.25); border-radius: 8px; border: 1px solid var(--border); }
+        .ach-item.achieved { border-color: rgba(255,215,64,.3); background: rgba(255,215,64,.04); }
+        .ach-icon { font-size: 1.4rem; flex-shrink: 0; }
+        .ach-name { font-size: .82rem; font-weight: 700; color: var(--text); }
+        .ach-desc { font-size: .72rem; color: var(--text3); margin-top: 2px; }
+        .ach-date { font-size: .68rem; color: var(--gold); margin-top: 2px; }
+
+        @@media (max-width: 600px) { .nav { padding: 0 16px; } .page { padding: 18px 14px; } }
     </style>
 </head>
 <body>
 
 <nav class="nav">
-    <div class="nav-brand">⚡ SteamValue</div>
+    <div class="nav-brand">⚡ STEAMVALUE</div>
     <div class="nav-links">
-        <a href="/" class="active">Calculadora</a>
-        <a href="/Home/Friends" id="navFriendsLink">Amigos</a>
+        <a href="/" class="nav-link active">Calculadora</a>
+        <a href="/Home/Friends" class="nav-link" id="navFriendsLink">Amigos</a>
     </div>
 </nav>
 
 <div class="page">
+    <!-- Hero -->
     <div class="hero">
+        <div class="hero-badge">🔥 Calculadora de Conta Steam</div>
         <h1>Steam Value Calculator</h1>
-        <p class="hero-sub">Calcule o valor total da sua conta Steam em tempo real</p>
+        <p>Descubra o valor real da sua conta — jogos, inventários, conquistas e muito mais</p>
     </div>
 
-    <!-- Calculator Card -->
-    <div class="card calc-card">
-        <div class="form-label">🔗 URL do Perfil Steam</div>
-        <div class="input-group">
-            <input type="text" class="steam-input" id="profileUrl"
-                   placeholder="https://steamcommunity.com/id/seu-perfil ou /profiles/ID">
-            <button class="btn btn-primary" id="btnCalc">
-                <div class="spinner hidden" id="btnSpinner"></div>
-                <span id="btnText">Calcular</span>
-            </button>
-        </div>
-
-        <div class="checkbox-row">
-            <label class="check-item">
-                <input type="checkbox" id="calcGames" checked>
-                <span>🎮 Valor dos Jogos</span>
-            </label>
-            <label class="check-item">
-                <input type="checkbox" id="calcInventory" checked>
-                <span>📦 Inventários (CS2, Dota2, TF2…)</span>
-            </label>
-        </div>
-
-        <div class="action-bar">
-            <button class="btn btn-ghost" id="btnProfile">👤 Ver Perfil</button>
-            <button class="btn btn-ghost" id="btnWishlist">💜 Wishlist</button>
-            <button class="btn btn-ghost" id="btnBadges">🏆 Badges</button>
-            <button class="btn btn-ghost" id="btnHistory">📈 Histórico</button>
-            <button class="btn btn-ghost" id="btnExport">📥 Exportar CSV</button>
-            <a class="btn btn-secondary" id="btnFriends" href="#">👥 Ver Amigos</a>
-        </div>
-
-        <!-- Progress -->
-        <div class="progress-wrap" id="progressWrap">
-            <div class="progress-meta">
-                <span class="progress-label">Processando</span>
-                <span class="progress-pct" id="progressPct">0%</span>
+    <!-- Main Calculator Card -->
+    <div class="card" style="margin-bottom:24px">
+        <div class="card-body">
+            <div class="form-section">
+                <span class="field-label">🔗 URL do Perfil Steam</span>
+                <div class="input-row">
+                    <input type="text" class="steam-input" id="profileUrl"
+                           placeholder="steamcommunity.com/id/seu-perfil  ou  /profiles/76561198...">
+                    <button class="btn btn-primary" id="btnCalc">
+                        <div class="spinner hidden" id="btnSpinner"></div>
+                        <span id="btnText">Calcular</span>
+                    </button>
+                </div>
+                <div class="checkbox-row">
+                    <label class="check-item">
+                        <input type="checkbox" id="calcGames" checked>
+                        <span>🎮 Calcular jogos</span>
+                    </label>
+                    <label class="check-item">
+                        <input type="checkbox" id="calcInventory" checked>
+                        <span>📦 Calcular inventários</span>
+                    </label>
+                </div>
             </div>
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" id="progressBar"></div>
-            </div>
-            <div class="progress-msg" id="progressMsg">Iniciando<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
-        </div>
 
-        <div id="errorBox"></div>
+            <div class="action-bar">
+                <button class="btn btn-ghost btn-sm" id="btnProfile">👤 Perfil</button>
+                <button class="btn btn-ghost btn-sm" id="btnWishlist">💜 Wishlist</button>
+                <button class="btn btn-ghost btn-sm" id="btnBadges">🏆 Badges</button>
+                <button class="btn btn-ghost btn-sm" id="btnPlaytime">⏱ Analytics</button>
+                <button class="btn btn-ghost btn-sm" id="btnCompare">⚔️ Comparar</button>
+                <button class="btn btn-ghost btn-sm" id="btnLivePlayers">🌐 Jogadores Live</button>
+                <button class="btn btn-ghost btn-sm" id="btnFullInv">📦+ Inv. Completo</button>
+                <button class="btn btn-ghost btn-sm" id="btnHistory">📈 Histórico</button>
+                <button class="btn btn-ghost btn-sm" id="btnExport">⬇ CSV</button>
+                <a class="btn btn-orange btn-sm" id="btnFriends" href="#">👥 Amigos</a>
+            </div>
+
+            <div class="progress-wrap" id="progressWrap">
+                <div class="progress-meta">
+                    <span class="progress-label">Processando</span>
+                    <span class="progress-pct" id="progressPct">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+                <div class="progress-msg" id="progressMsg">Iniciando...</div>
+            </div>
+
+            <div id="errorBox"></div>
+        </div>
     </div>
 
     <!-- Profile Panel -->
     <div class="profile-panel" id="profilePanel">
-        <div class="section-header">
-            <span class="section-title">👤 Perfil</span>
+        <div class="section-head">
+            <span class="section-title">👤 Perfil Steam</span>
+            <a id="pSteamLink" href="#" target="_blank" style="font-size:.82rem;color:var(--cyan);text-decoration:none">↗ Ver no Steam</a>
         </div>
         <div class="profile-header">
             <img src="" alt="Avatar" class="profile-avatar" id="pAvatar">
-            <div>
-                <div class="profile-name" id="pName">—</div>
-                <div class="profile-status" id="pStatus"></div>
-                <div class="profile-meta" id="pMeta" style="margin-top:10px"></div>
+            <div style="flex:1">
+                <div class="profile-name" id="pName"></div>
+                <div id="pStatus" style="font-size:.85rem;color:var(--text2);margin-top:4px"></div>
+                <div class="profile-chips" id="pChips"></div>
             </div>
         </div>
-        <div class="recent-games-row" id="pRecentGames"></div>
+        <div class="recent-games-strip" id="pRecentGames"></div>
     </div>
 
-    <!-- Stats Strip (hidden until calculated) -->
-    <div class="stats-strip hidden" id="statsStrip">
-        <div class="stat-item">
-            <div class="stat-label">🎮 Total de Jogos</div>
-            <div class="stat-value cyan" id="statGamesCount">0</div>
+    <!-- Stats Strip -->
+    <div class="stats-grid hidden" id="statsGrid">
+        <div class="stat-card" data-icon="🎮">
+            <div class="stat-label">Total de Jogos</div>
+            <div class="stat-value stat-cyan" id="statGamesCount">0</div>
         </div>
-        <div class="stat-item">
-            <div class="stat-label">💰 Valor dos Jogos</div>
-            <div class="stat-value green" id="statGamesVal">R$ 0,00</div>
+        <div class="stat-card" data-icon="💰">
+            <div class="stat-label">Valor dos Jogos</div>
+            <div class="stat-value stat-green" id="statGamesVal">R$ 0</div>
         </div>
-        <div class="stat-item">
-            <div class="stat-label">📦 Itens Inventário</div>
-            <div class="stat-value cyan" id="statInvCount">0</div>
+        <div class="stat-card" data-icon="📦">
+            <div class="stat-label">Itens Inventário</div>
+            <div class="stat-value stat-cyan" id="statInvCount">0</div>
         </div>
-        <div class="stat-item">
-            <div class="stat-label">💎 Valor Inventário</div>
-            <div class="stat-value green" id="statInvVal">R$ 0,00</div>
+        <div class="stat-card" data-icon="💎">
+            <div class="stat-label">Valor Inventário</div>
+            <div class="stat-value stat-gold" id="statInvVal">R$ 0</div>
         </div>
-        <div class="stat-item">
-            <div class="stat-label">🕒 Tempo Total</div>
-            <div class="stat-value" id="statPlaytime">0 h</div>
+        <div class="stat-card" data-icon="⏱">
+            <div class="stat-label">Horas Jogadas</div>
+            <div class="stat-value stat-orange" id="statPlaytime">0h</div>
         </div>
     </div>
 
     <!-- Total Box -->
     <div class="total-box hidden" id="totalBox">
-        <div class="total-lbl">💰 Valor Total Estimado da Conta</div>
-        <div class="total-val" id="totalVal">R$ 0,00</div>
+        <div class="total-label">💰 Valor Total Estimado da Conta Steam</div>
+        <div class="total-value" id="totalVal">R$ 0,00</div>
     </div>
 
-    <!-- Games Section -->
-    <div class="card hidden" id="gamesSection" style="margin-bottom:24px">
-        <div class="section-header">
-            <span class="section-title">🎮 Biblioteca de Jogos</span>
-            <span class="section-badge" id="gamesBadge">0 jogos</span>
-        </div>
-        <div class="filters-bar">
-            <select class="select-input" id="sortGames">
-                <option value="price_desc">Valor (maior)</option>
-                <option value="price_asc">Valor (menor)</option>
-                <option value="playtime_desc">Mais jogado</option>
-                <option value="name_asc">Nome A-Z</option>
-            </select>
-            <input type="number" class="num-input" id="filterMaxVal" placeholder="Valor máx. R$" min="0" style="width:160px">
-            <button class="btn btn-ghost" onclick="applyGamesFilter()">Aplicar</button>
-        </div>
-        <div class="games-grid" id="gamesGrid"></div>
-    </div>
-
-    <!-- Inventory Section -->
-    <div class="card hidden" id="invSection" style="margin-bottom:24px">
-        <div class="section-header">
-            <span class="section-title">📦 Inventários</span>
-            <span class="section-badge" id="invBadge">0 itens</span>
-        </div>
-        <div class="inv-tabs" id="invTabs"></div>
-        <div class="inv-grid" id="invGrid"></div>
-    </div>
-
-    <!-- Two column: Wishlist + Badges -->
-    <div class="two-col">
-        <div class="card hidden" id="wishSection">
-            <div class="section-header">
-                <span class="section-title">💜 Wishlist</span>
-                <span class="section-badge" id="wishBadge">0</span>
+    <!-- Feature Tabs -->
+    <div class="card hidden" id="featurePanel" style="margin-bottom:22px">
+        <div class="card-body">
+            <div class="feature-tabs" id="featureTabs">
+                <button class="ftab active" data-tab="games">🎮 Jogos</button>
+                <button class="ftab" data-tab="inventory">📦 Inventário</button>
+                <button class="ftab" data-tab="wishlist">💜 Wishlist</button>
+                <button class="ftab" data-tab="badges">🏆 Badges</button>
+                <button class="ftab" data-tab="playtime">⏱ Analytics</button>
+                <button class="ftab" data-tab="compare">⚔️ Comparar</button>
+                <button class="ftab" data-tab="liveplayers">🌐 Live Players</button>
+                <button class="ftab" data-tab="achievements">🥇 Conquistas</button>
+                <button class="ftab" data-tab="history">📈 Histórico</button>
             </div>
-            <div class="wish-list" id="wishList"></div>
-        </div>
 
-        <div class="card hidden" id="badgesSection">
-            <div class="section-header">
-                <span class="section-title">🏆 Badges & Nível</span>
+            <!-- Games Tab -->
+            <div class="ftab-panel active" id="tab-games">
+                <div class="section-head">
+                    <span class="section-title">Biblioteca</span>
+                    <span class="section-badge" id="gamesBadge">0 jogos</span>
+                </div>
+                <div class="filter-row">
+                    <select class="select-s" id="sortGames">
+                        <option value="price_desc">💰 Maior valor</option>
+                        <option value="price_asc">💰 Menor valor</option>
+                        <option value="playtime_desc">⏱ Mais jogado</option>
+                        <option value="metacritic_desc">⭐ Metacritic</option>
+                        <option value="name_asc">🔤 Nome A-Z</option>
+                    </select>
+                    <input type="number" class="num-s" id="filterMaxVal" placeholder="Valor máx. R$" style="width:140px">
+                    <input type="text" class="text-s" id="filterSearch" placeholder="🔍 Buscar jogo..." style="width:180px">
+                    <button class="btn btn-ghost btn-sm" onclick="applyGamesFilter()">Aplicar</button>
+                </div>
+                <div class="games-grid" id="gamesGrid"></div>
             </div>
-            <div class="badge-info" id="badgeInfo"></div>
-        </div>
-    </div>
 
-    <!-- History Chart -->
-    <div class="card hidden" id="historySection" style="margin-top:24px">
-        <div class="section-header">
-            <span class="section-title">📈 Histórico de Valor</span>
-        </div>
-        <div class="chart-wrap">
-            <canvas id="histChart"></canvas>
+            <!-- Inventory Tab -->
+            <div class="ftab-panel" id="tab-inventory">
+                <div class="section-head">
+                    <span class="section-title">Inventários</span>
+                    <span class="section-badge" id="invBadge">0 itens</span>
+                </div>
+                <div class="inv-tabs" id="invTabs"></div>
+                <div class="inv-grid" id="invGrid"></div>
+                <div id="invEmpty" class="hidden" style="color:var(--text3);font-size:.9rem;padding:20px 0;text-align:center">
+                    Nenhum item encontrado ou inventário privado
+                </div>
+            </div>
+
+            <!-- Wishlist Tab -->
+            <div class="ftab-panel" id="tab-wishlist">
+                <div class="section-head">
+                    <span class="section-title">Wishlist</span>
+                    <span class="section-badge" id="wishBadge">0</span>
+                </div>
+                <div class="wish-list" id="wishList"></div>
+            </div>
+
+            <!-- Badges Tab -->
+            <div class="ftab-panel" id="tab-badges">
+                <div class="section-head"><span class="section-title">Badges & XP</span></div>
+                <div class="badge-stats" id="badgeStats"></div>
+            </div>
+
+            <!-- Playtime Analytics Tab -->
+            <div class="ftab-panel" id="tab-playtime">
+                <div class="section-head"><span class="section-title">Analytics de Jogatina</span></div>
+                <div class="playtime-stats" id="ptStats"></div>
+                <div id="ptBar" style="margin-bottom:14px">
+                    <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--text2);margin-bottom:4px">
+                        <span>Jogos jogados</span><span id="ptBarPct"></span>
+                    </div>
+                    <div class="pt-bar-wrap"><div class="pt-bar" id="ptBarFill" style="width:0%"></div></div>
+                </div>
+                <div class="section-head" style="margin-top:16px"><span class="section-title">🏆 Top 10 Mais Jogados</span></div>
+                <div class="most-played-list" id="mostPlayedList"></div>
+            </div>
+
+            <!-- Compare Tab -->
+            <div class="ftab-panel" id="tab-compare">
+                <div class="section-head"><span class="section-title">Comparar Perfis</span></div>
+                <div class="compare-row">
+                    <input type="text" class="steam-input" id="cmpUrl1" placeholder="Perfil 1 (já preenchido)" style="flex:1">
+                    <span class="vs-label">VS</span>
+                    <input type="text" class="steam-input" id="cmpUrl2" placeholder="URL do Perfil 2" style="flex:1">
+                    <button class="btn btn-primary" id="btnDoCompare">Comparar</button>
+                </div>
+                <div id="compareResult"></div>
+            </div>
+
+            <!-- Live Players Tab -->
+            <div class="ftab-panel" id="tab-liveplayers">
+                <div class="section-head">
+                    <span class="section-title">🌐 Jogadores Online Agora</span>
+                    <button class="btn btn-ghost btn-sm" id="btnRefreshLive">↺ Atualizar</button>
+                </div>
+                <div class="live-cards" id="liveCards"></div>
+            </div>
+
+            <!-- Achievements Tab -->
+            <div class="ftab-panel" id="tab-achievements">
+                <div class="section-head"><span class="section-title">Conquistas de um Jogo</span></div>
+                <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+                    <input type="number" class="num-s" id="achAppId" placeholder="App ID (ex: 730)" style="width:160px">
+                    <button class="btn btn-primary btn-sm" id="btnGetAch">Ver Conquistas</button>
+                </div>
+                <div id="achResult"></div>
+            </div>
+
+            <!-- History Tab -->
+            <div class="ftab-panel" id="tab-history">
+                <div class="section-head"><span class="section-title">📈 Histórico de Valor</span></div>
+                <div class="chart-wrap"><canvas id="histChart"></canvas></div>
+                <p style="font-size:.78rem;color:var(--text3);margin-top:8px">O histórico é gerado cada vez que você calcula. Calcule múltiplas vezes para ver a evolução.</p>
+            </div>
         </div>
     </div>
 </div>
@@ -517,17 +681,19 @@
 // ── State ──
 let connection = null;
 let allGames = [];
-let inventories = {}; // gameName => [{name, price, imageUrl}]
+let inventories = {};
 let activeInvTab = null;
 let histChart = null;
 let snapshotData = [];
-let totalGamesValue = 0, totalInvValue = 0, totalGamesCount = 0, totalInvCount = 0, totalPlaytime = 0;
+let totalGamesValue = 0, totalInvValue = 0;
+let totalGamesCount = 0, totalInvCount = 0, totalPlaytime = 0;
+const POPULAR_APPS = [730, 570, 440, 252490, 578080, 1172470, 304930, 1091500, 271590, 892970];
 
-// ── SignalR ──
+// ── SignalR Setup ──
 function buildConnection() {
     connection = new signalR.HubConnectionBuilder()
         .withUrl('/calculationHub')
-        .withAutomaticReconnect()
+        .withAutomaticReconnect([0, 1000, 2000, 5000])
         .build();
 
     connection.on('UpdateProgress', (pct, msg) => {
@@ -537,20 +703,18 @@ function buildConnection() {
         document.getElementById('progressMsg').textContent = msg;
     });
 
-    connection.on('ReceiveProfileInfo', (info) => renderProfileInfo(info));
-    connection.on('ReceiveProfileSummary', (data) => {
-        if (data?.summary) renderProfileSummary(data);
-    });
+    connection.on('ReceiveProfileInfo', renderProfileInfo);
+    connection.on('ReceiveProfileSummary', renderProfileSummaryData);
 
     connection.on('ReceiveGamesData', (games, total) => {
         allGames = games || [];
         totalGamesValue = total || 0;
         totalGamesCount = allGames.length;
         totalPlaytime = allGames.reduce((s, g) => s + (g.playtimeMinutes || 0), 0);
-        document.getElementById('gamesSection').classList.remove('hidden');
+        showFeaturePanel('games');
         applyGamesFilter();
-        updateStatsStrip();
-        saveCsvData();
+        updateStats();
+        resetBtn();
     });
 
     connection.on('ReceiveInventoryData', (gameName, items, total) => {
@@ -558,39 +722,62 @@ function buildConnection() {
         inventories[gameName] = { items, total };
         totalInvCount += items.length;
         totalInvValue += total;
-        renderInvSection();
-        updateStatsStrip();
-        document.getElementById('invSection').classList.remove('hidden');
+        renderInvTabs();
+        updateStats();
+        showFeaturePanel('inventory');
+        document.getElementById('invEmpty').classList.add('hidden');
+    });
+
+    connection.on('ReceiveInventoryTotal', (total) => {
+        // Total from GetFullInventory
+        if (Object.keys(inventories).length === 0) {
+            document.getElementById('invEmpty').classList.remove('hidden');
+        }
     });
 
     connection.on('ReceiveTotalValue', (total) => {
         document.getElementById('totalBox').classList.remove('hidden');
-        document.getElementById('totalVal').textContent = formatBRL(total);
+        document.getElementById('totalVal').textContent = fmtBRL(total);
         snapshotData.push({ time: new Date().toLocaleTimeString('pt-BR'), total });
         updateHistChart();
+        resetBtn();
     });
 
     connection.on('ReceiveWishlist', (items) => {
         renderWishlist(items);
+        showFeaturePanel('wishlist');
     });
 
-    connection.on('ReceiveBadges', (data) => {
-        renderBadges(data);
-    });
+    connection.on('ReceiveBadges', (data) => renderBadges(data));
 
     connection.on('ReceiveBadgesAndLevel', (data) => {
         renderBadgesDetailed(data);
+        showFeaturePanel('badges');
+    });
+
+    connection.on('ReceivePlaytimeAnalytics', (data) => {
+        renderPlaytimeAnalytics(data);
+        showFeaturePanel('playtime');
+    });
+
+    connection.on('ReceiveProfileComparison', (data) => {
+        renderComparison(data);
+    });
+
+    connection.on('ReceiveLivePlayerCounts', (results) => {
+        renderLivePlayers(results);
+        showFeaturePanel('liveplayers');
+    });
+
+    connection.on('ReceiveAchievements', (appId, total, unlocked, pct, list) => {
+        renderAchievements(appId, total, unlocked, pct, list || []);
     });
 
     connection.on('ReceiveSnapshots', (snaps) => {
         if (!snaps || snaps.length === 0) return;
         snapshotData = snaps.map(s => ({ time: s.time, total: s.total }));
         updateHistChart();
-        document.getElementById('historySection').classList.remove('hidden');
-    });
-
-    connection.on('ReceiveRecentGames', (games) => {
-        // already in profile info usually
+        showFeaturePanel('history');
     });
 
     connection.on('ReceiveError', (msg) => {
@@ -598,65 +785,129 @@ function buildConnection() {
         resetBtn();
     });
 
-    connection.start().catch(e => console.error('SignalR:', e));
+    connection.start().then(() => {
+        // Pre-load live players
+        connection.invoke('GetLivePlayerCounts', POPULAR_APPS).catch(() => {});
+    }).catch(e => console.error('SignalR:', e));
 }
 
-// ── Handlers ──
+// ── Feature tabs navigation ──
+document.querySelectorAll('.ftab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.ftab-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+});
+
+function showFeaturePanel(tab) {
+    document.getElementById('featurePanel').classList.remove('hidden');
+    document.querySelectorAll('.ftab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === tab);
+    });
+    document.querySelectorAll('.ftab-panel').forEach(p => p.classList.remove('active'));
+    const el = document.getElementById('tab-' + tab);
+    if (el) el.classList.add('active');
+}
+
+// ── Button handlers ──
 document.getElementById('btnCalc').addEventListener('click', startCalculation);
+
 document.getElementById('btnProfile').addEventListener('click', () => {
     const url = getUrl(); if (!url) return;
     ensureConnected(() => connection.invoke('GetProfileSummary', url).catch(console.error));
 });
+
 document.getElementById('btnWishlist').addEventListener('click', () => {
     const url = getUrl(); if (!url) return;
-    ensureConnected(() => connection.invoke('GetWishlist', url)
-        .then(() => document.getElementById('wishSection').classList.remove('hidden'))
-        .catch(console.error));
+    ensureConnected(() => connection.invoke('GetWishlist', url).catch(console.error));
 });
+
 document.getElementById('btnBadges').addEventListener('click', () => {
     const url = getUrl(); if (!url) return;
-    ensureConnected(() => connection.invoke('GetBadgesAndLevel', url)
-        .then(() => document.getElementById('badgesSection').classList.remove('hidden'))
-        .catch(console.error));
+    ensureConnected(() => connection.invoke('GetBadgesAndLevel', url).catch(console.error));
 });
+
+document.getElementById('btnPlaytime').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    ensureConnected(() => connection.invoke('GetPlaytimeAnalytics', url).catch(console.error));
+});
+
+document.getElementById('btnCompare').addEventListener('click', () => {
+    const url = getUrl();
+    if (url) document.getElementById('cmpUrl1').value = url;
+    showFeaturePanel('compare');
+});
+
+document.getElementById('btnDoCompare').addEventListener('click', () => {
+    const url1 = document.getElementById('cmpUrl1').value.trim();
+    const url2 = document.getElementById('cmpUrl2').value.trim();
+    if (!url1 || !url2) { showError('Insira as duas URLs para comparar'); return; }
+    document.getElementById('compareResult').innerHTML = '<p style="color:var(--text2);font-style:italic">Comparando perfis...</p>';
+    ensureConnected(() => connection.invoke('CompareProfiles', url1, url2).catch(e => showError(e.message)));
+});
+
+document.getElementById('btnLivePlayers').addEventListener('click', () => {
+    showFeaturePanel('liveplayers');
+    ensureConnected(() => connection.invoke('GetLivePlayerCounts', POPULAR_APPS).catch(console.error));
+});
+
+document.getElementById('btnRefreshLive').addEventListener('click', () => {
+    ensureConnected(() => connection.invoke('GetLivePlayerCounts', POPULAR_APPS).catch(console.error));
+});
+
+document.getElementById('btnFullInv').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    inventories = {}; totalInvCount = 0; totalInvValue = 0;
+    document.getElementById('invEmpty').classList.add('hidden');
+    showFeaturePanel('inventory');
+    document.getElementById('invGrid').innerHTML = '<p style="color:var(--text2);font-style:italic;padding:10px">Buscando todos os inventários...</p>';
+    document.getElementById('progressWrap').classList.add('active');
+    ensureConnected(() => connection.invoke('GetFullInventory', url).catch(e => showError(e.message)));
+});
+
+document.getElementById('btnGetAch').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    const appId = parseInt(document.getElementById('achAppId').value);
+    if (!appId) { showError('Insira um App ID válido'); return; }
+    document.getElementById('achResult').innerHTML = '<p style="color:var(--text2);font-style:italic">Buscando conquistas...</p>';
+    ensureConnected(() => connection.invoke('GetAchievements', url, appId).catch(e => showError(e.message)));
+});
+
 document.getElementById('btnHistory').addEventListener('click', () => {
     const url = getUrl(); if (!url) return;
-    ensureConnected(() => {
-        connection.invoke('GetSnapshots', url).catch(console.error);
-        document.getElementById('historySection').classList.remove('hidden');
-    });
+    ensureConnected(() => { connection.invoke('GetSnapshots', url).catch(console.error); showFeaturePanel('history'); });
 });
+
 document.getElementById('btnExport').addEventListener('click', exportCSV);
+
 document.getElementById('btnFriends').addEventListener('click', (e) => {
     e.preventDefault();
     const url = getUrl();
-    try { localStorage.setItem('steamProfileUrl', url); } catch {}
+    try { if (url) localStorage.setItem('steamProfileUrl', url); } catch {}
     window.location.href = '/Home/Friends' + (url ? '?profileUrl=' + encodeURIComponent(url) : '');
 });
+
 document.getElementById('navFriendsLink').addEventListener('click', (e) => {
     e.preventDefault();
     const url = getUrl();
-    try { localStorage.setItem('steamProfileUrl', url); } catch {}
+    try { if (url) localStorage.setItem('steamProfileUrl', url); } catch {}
     window.location.href = '/Home/Friends' + (url ? '?profileUrl=' + encodeURIComponent(url) : '');
 });
 
-// Enter key on input
-document.getElementById('profileUrl').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') startCalculation();
-});
+document.getElementById('profileUrl').addEventListener('keydown', e => { if (e.key === 'Enter') startCalculation(); });
 
+// ── Core Functions ──
 function getUrl() {
     const url = document.getElementById('profileUrl').value.trim();
-    if (!url) { showError('Insira a URL do seu perfil Steam.'); return null; }
+    if (!url) { showError('Insira a URL do perfil Steam'); return null; }
     return url;
 }
 
 function ensureConnected(fn) {
-    if (connection && connection.state === signalR.HubConnectionState.Connected) {
-        fn();
-    } else {
-        showError('Aguardando conexão com o servidor...');
-    }
+    if (connection && connection.state === signalR.HubConnectionState.Connected) fn();
+    else showError('Aguardando conexão com o servidor...');
 }
 
 function startCalculation() {
@@ -664,29 +915,28 @@ function startCalculation() {
     const calcGames = document.getElementById('calcGames').checked;
     const calcInv = document.getElementById('calcInventory').checked;
 
-    // Reset
-    allGames = []; inventories = {}; totalGamesValue = 0; totalInvValue = 0;
-    totalGamesCount = 0; totalInvCount = 0; totalPlaytime = 0;
-    document.getElementById('gamesSection').classList.add('hidden');
-    document.getElementById('invSection').classList.add('hidden');
+    allGames = []; inventories = {};
+    totalGamesValue = 0; totalInvValue = 0; totalGamesCount = 0; totalInvCount = 0; totalPlaytime = 0;
+
+    document.getElementById('featurePanel').classList.add('hidden');
     document.getElementById('totalBox').classList.add('hidden');
-    document.getElementById('statsStrip').classList.add('hidden');
+    document.getElementById('statsGrid').classList.add('hidden');
+    document.getElementById('profilePanel').classList.remove('visible');
     document.getElementById('errorBox').innerHTML = '';
+    document.getElementById('gamesGrid').innerHTML = '';
     document.getElementById('invGrid').innerHTML = '';
     document.getElementById('invTabs').innerHTML = '';
 
-    // Button state
     document.getElementById('btnSpinner').classList.remove('hidden');
     document.getElementById('btnText').textContent = 'Calculando...';
     document.getElementById('btnCalc').disabled = true;
     document.getElementById('progressWrap').classList.add('active');
     document.getElementById('progressBar').style.width = '0%';
 
-    ensureConnected(() => {
-        connection.invoke('StartCalculation', url, calcGames, calcInv)
-            .then(resetBtn)
-            .catch(e => { showError(e.message); resetBtn(); });
-    });
+    try { localStorage.setItem('steamProfileUrl', url); } catch {}
+
+    ensureConnected(() => connection.invoke('StartCalculation', url, calcGames, calcInv)
+        .catch(e => { showError(e.message); resetBtn(); }));
 }
 
 function resetBtn() {
@@ -699,284 +949,363 @@ function resetBtn() {
 function renderProfileInfo(info) {
     if (!info) return;
     const panel = document.getElementById('profilePanel');
-    panel.classList.add('active');
+    panel.classList.add('visible');
+
     document.getElementById('pAvatar').src = info.avatar || '';
     document.getElementById('pName').textContent = info.name || 'Perfil';
 
-    const state = info.personastate || 0;
-    const stateLbl = ['Offline','Online','Ocupado','Ausente','Cochilando','Quer jogar','Quer conversar'];
-    const stateColors = ['#6b7280','#57c75b','#4ade80','#fbbf24','#60a5fa','#a78bfa','#f472b6'];
+    const states = ['Offline','Online','Ocupado','Ausente','Cochilando','Quer jogar','Quer conversar'];
+    const stateColors = ['var(--offline)','var(--online)','var(--green)','var(--gold)','#60a5fa','#a78bfa','#f472b6'];
+    const s = info.personastate || 0;
     document.getElementById('pStatus').innerHTML =
-        `<span style="width:9px;height:9px;border-radius:50%;background:${stateColors[state]||'#6b7280'};display:inline-block"></span>
-         ${stateLbl[state]||'Offline'}
-         ${info.country ? ' · ' + info.country : ''}`;
+        `<span style="width:8px;height:8px;border-radius:50%;background:${stateColors[s]||'var(--offline)'};display:inline-block;margin-right:6px"></span>${states[s]||'Offline'}${info.country ? ' · '+info.country : ''}`;
 
-    const meta = document.getElementById('pMeta');
-    meta.innerHTML = '';
-    if (info.level > 0) meta.innerHTML += `<span class="meta-chip level-chip">Nível ${info.level}</span>`;
-    if (info.created) {
-        const yr = new Date(info.created * 1000).getFullYear();
-        meta.innerHTML += `<span class="meta-chip">Desde ${yr}</span>`;
-    }
+    const link = document.getElementById('pSteamLink');
+    if (info.profileUrl) link.href = info.profileUrl;
+
+    const chips = document.getElementById('pChips');
+    chips.innerHTML = '';
+    if (info.level > 0) chips.innerHTML += `<span class="chip chip-cyan">Nível ${info.level}</span>`;
+    if (info.created) chips.innerHTML += `<span class="chip">Desde ${new Date(info.created*1000).getFullYear()}</span>`;
     if (info.bans) {
-        if (info.bans.VacBanned) meta.innerHTML += `<span class="meta-chip ban-chip">⚠ VAC BANIDO (${info.bans.NumberOfVacBans}x, ${info.bans.DaysSinceLastBan} dias)</span>`;
-        if (info.bans.NumberOfGameBans > 0) meta.innerHTML += `<span class="meta-chip ban-chip">⚠ Game Ban (${info.bans.NumberOfGameBans}x)</span>`;
-        if (!info.bans.VacBanned && info.bans.NumberOfGameBans === 0) meta.innerHTML += `<span class="meta-chip" style="color:var(--success);border-color:var(--success)">✓ Sem bans</span>`;
+        if (info.bans.VacBanned) chips.innerHTML += `<span class="chip chip-red">⚠ VAC BAN (${info.bans.NumberOfVacBans}x, ${info.bans.DaysSinceLastBan}d)</span>`;
+        else if (!info.bans.VacBanned && info.bans.NumberOfGameBans === 0) chips.innerHTML += `<span class="chip chip-green">✓ Sem bans</span>`;
+        if (info.bans.NumberOfGameBans > 0) chips.innerHTML += `<span class="chip chip-red">⚠ Game Ban ${info.bans.NumberOfGameBans}x</span>`;
     }
-    if (info.profileUrl) meta.innerHTML += `<a class="meta-chip" href="${info.profileUrl}" target="_blank" style="color:var(--secondary);text-decoration:none">↗ Ver no Steam</a>`;
 
-    // Recent games
     const rg = document.getElementById('pRecentGames');
     rg.innerHTML = '';
     if (info.recentGames && info.recentGames.length > 0) {
-        rg.innerHTML = '<div style="font-size:.8rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;width:100%">Jogados recentemente</div>';
+        rg.innerHTML = '<div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-right:4px;align-self:center">Jogados:</div>';
         info.recentGames.forEach(g => {
-            rg.innerHTML += `
-            <div class="mini-game">
+            rg.innerHTML += `<div class="mini-game">
                 <img src="${g.imageUrl}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
-                <div class="mini-game-info">
-                    <div class="mini-game-name" title="${g.name}">${g.name}</div>
-                    <div class="mini-game-time">${Math.round(g.playtime2weeks/60)} h (2 sem)</div>
+                <div class="mini-info">
+                    <div class="mini-name" title="${g.name}">${g.name}</div>
+                    <div class="mini-time">${Math.round(g.playtime2weeks/60)}h (2sem)</div>
                 </div>
             </div>`;
         });
     }
 }
 
-function renderProfileSummary(data) {
-    if (!data?.summary) return;
-    // data.summary is the full JSON element, navigate to player
-    const summary = data.summary;
-    // Try to extract player from response.players[0]
-    const player = summary?.response?.players?.[0];
-    if (!player) return;
-    renderProfileInfo({
-        avatar: player.avatarfull,
-        name: player.personaname,
-        personastate: player.personastate || 0,
-        country: player.loccountrycode,
-        created: player.timecreated,
-        profileUrl: player.profileurl,
-        level: data.level || 0,
-        bans: data.bans,
-        recentGames: (data.recentGames || [])
-    });
+function renderProfileSummaryData(data) {
+    if (!data) return;
+    try {
+        const player = data.summary?.response?.players?.[0];
+        if (player) {
+            renderProfileInfo({
+                avatar: player.avatarfull, name: player.personaname,
+                personastate: player.personastate || 0, country: player.loccountrycode,
+                created: player.timecreated, profileUrl: player.profileurl,
+                level: data.level || 0, bans: data.bans,
+                recentGames: data.recentGames || []
+            });
+        }
+        if (data.badgeCount) {
+            renderBadges({ count: data.badgeCount, totalXp: data.totalXp || 0 });
+        }
+    } catch(e) { console.error('renderProfileSummaryData', e); }
 }
 
 // ── Stats ──
-function updateStatsStrip() {
-    document.getElementById('statsStrip').classList.remove('hidden');
+function updateStats() {
+    document.getElementById('statsGrid').classList.remove('hidden');
     document.getElementById('statGamesCount').textContent = totalGamesCount.toLocaleString('pt-BR');
-    document.getElementById('statGamesVal').textContent = formatBRL(totalGamesValue);
+    document.getElementById('statGamesVal').textContent = fmtBRL(totalGamesValue);
     document.getElementById('statInvCount').textContent = totalInvCount.toLocaleString('pt-BR');
-    document.getElementById('statInvVal').textContent = formatBRL(totalInvValue);
-    const h = Math.round(totalPlaytime / 60);
-    document.getElementById('statPlaytime').textContent = h.toLocaleString('pt-BR') + ' h';
+    document.getElementById('statInvVal').textContent = fmtBRL(totalInvValue);
+    document.getElementById('statPlaytime').textContent = Math.round(totalPlaytime/60).toLocaleString('pt-BR') + 'h';
 }
 
 // ── Games ──
 function applyGamesFilter() {
     const maxVal = parseFloat(document.getElementById('filterMaxVal').value) || Infinity;
     const sort = document.getElementById('sortGames').value;
+    const search = (document.getElementById('filterSearch').value || '').toLowerCase();
 
-    let list = [...allGames].filter(g => g.price <= maxVal || !isFinite(maxVal));
+    let list = [...allGames]
+        .filter(g => g.price <= maxVal || !isFinite(maxVal))
+        .filter(g => !search || g.name.toLowerCase().includes(search));
 
     if (sort === 'price_desc') list.sort((a,b) => b.price - a.price);
     else if (sort === 'price_asc') list.sort((a,b) => a.price - b.price);
     else if (sort === 'playtime_desc') list.sort((a,b) => b.playtimeMinutes - a.playtimeMinutes);
+    else if (sort === 'metacritic_desc') list.sort((a,b) => (b.metacritic||0) - (a.metacritic||0));
     else list.sort((a,b) => a.name.localeCompare(b.name));
 
     document.getElementById('gamesBadge').textContent = list.length + ' jogos';
     const grid = document.getElementById('gamesGrid');
-    grid.innerHTML = list.map(g => `
-        <div class="game-card" onclick="window.open('https://store.steampowered.com/app/${g.appId}','_blank')">
-            <img src="${g.imageUrl}" alt="${g.name}"
-                 onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
-            <div class="game-card-body">
+    grid.innerHTML = list.map(g => {
+        let mcBadge = '';
+        if (g.metacritic > 0) {
+            const cls = g.metacritic >= 75 ? 'mc-good' : g.metacritic >= 50 ? 'mc-ok' : 'mc-bad';
+            mcBadge = `<span class="metacritic-badge ${cls}">${g.metacritic}</span>`;
+        }
+        return `<div class="game-card" onclick="window.open('https://store.steampowered.com/app/${g.appId}','_blank')">
+            <img src="${g.imageUrl}" alt="${g.name}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
+            <div class="game-card-info">
                 <div class="game-name" title="${g.name}">${g.name}</div>
-                <div class="game-price">${g.price > 0 ? formatBRL(g.price) : 'Grátis'}</div>
-                <div class="game-playtime">${formatTime(g.playtimeMinutes)}</div>
+                <div class="game-price">${g.price > 0 ? fmtBRL(g.price) : 'Grátis'}</div>
+                <div class="game-playtime">${fmtTime(g.playtimeMinutes)}</div>
+                <div class="game-meta">${mcBadge}${g.genre || ''}</div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // ── Inventory ──
-function renderInvSection() {
+function renderInvTabs() {
     const tabs = document.getElementById('invTabs');
     const names = Object.keys(inventories);
-    tabs.innerHTML = '';
+    if (!activeInvTab || !inventories[activeInvTab]) activeInvTab = names[0] || null;
+    tabs.innerHTML = names.map(name =>
+        `<button class="inv-tab ${name===activeInvTab?'active':''}" onclick="setInvTab('${name}')">${name} (${inventories[name].items.length}) ${fmtBRL(inventories[name].total)}</button>`
+    ).join('');
+    renderInvGrid();
+}
 
-    if (!activeInvTab || !inventories[activeInvTab]) {
-        activeInvTab = names[0] || null;
-    }
+function setInvTab(name) { activeInvTab = name; renderInvTabs(); }
 
-    let totalItems = 0;
-    names.forEach(name => {
-        totalItems += inventories[name].items.length;
-        const btn = document.createElement('button');
-        btn.className = 'inv-tab' + (name === activeInvTab ? ' active' : '');
-        btn.textContent = `${name} (${inventories[name].items.length}) — ${formatBRL(inventories[name].total)}`;
-        btn.onclick = () => { activeInvTab = name; renderInvSection(); };
-        tabs.appendChild(btn);
-    });
-
-    document.getElementById('invBadge').textContent = totalItems + ' itens';
-
+function renderInvGrid() {
     const grid = document.getElementById('invGrid');
     if (!activeInvTab || !inventories[activeInvTab]) { grid.innerHTML = ''; return; }
-
     const items = [...inventories[activeInvTab].items].sort((a,b) => b.price - a.price);
-    grid.innerHTML = items.map(it => `
-        <div class="inv-card">
-            <img src="${it.imageUrl || 'https://via.placeholder.com/130x80?text=Item'}" alt="${it.name}"
-                 onerror="this.src='https://via.placeholder.com/130x80?text=Item'">
-            <div class="inv-card-body">
-                <div class="inv-name" title="${it.name}">${it.name}</div>
-                <div class="inv-price">${formatBRL(it.price)}</div>
+    grid.innerHTML = items.map(it => {
+        const rarityColor = getRarityColor(it.rarity);
+        return `<div class="inv-card" title="${it.name}">
+            <img src="${it.imageUrl || 'https://placehold.co/120x75/0d1524/00e5ff?text=Item'}" alt="${it.name}"
+                 onerror="this.src='https://placehold.co/120x75/0d1524/00e5ff?text=?'">
+            <div class="inv-card-info">
+                <div class="inv-name">${it.name}</div>
+                <div class="inv-price">${fmtBRL(it.price)}</div>
+                ${it.count > 1 ? `<div class="inv-count">x${it.count} (unit: ${fmtBRL(it.unitPrice||0)})</div>` : ''}
+                ${it.rarity ? `<div class="inv-rarity" style="color:${rarityColor}">${it.rarity}</div>` : ''}
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
+}
+
+function getRarityColor(rarity) {
+    if (!rarity) return 'var(--text3)';
+    const r = rarity.toLowerCase();
+    if (r.includes('covert') || r.includes('consumer')) return '#ff4444';
+    if (r.includes('classified')) return '#eb4b4b';
+    if (r.includes('restricted')) return '#8847ff';
+    if (r.includes('mil-spec') || r.includes('milspec')) return '#4b69ff';
+    if (r.includes('industrial')) return '#5e98d9';
+    if (r.includes('contraband')) return '#e4ae39';
+    if (r.includes('rare')) return '#8847ff';
+    if (r.includes('mythical')) return '#8847ff';
+    if (r.includes('legendary')) return '#d32ce6';
+    if (r.includes('immortal')) return '#e4ae39';
+    if (r.includes('arcana') || r.includes('ancient')) return '#eb4b4b';
+    return 'var(--text2)';
 }
 
 // ── Wishlist ──
 function renderWishlist(items) {
-    if (!items || items.length === 0) return;
-    document.getElementById('wishSection').classList.remove('hidden');
+    if (!items || !items.length) return;
     document.getElementById('wishBadge').textContent = items.length;
-    document.getElementById('wishList').innerHTML = items.map(w => `
-        <div class="wish-item">
-            <img class="wish-img" src="${w.imageUrl}"
-                 onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${w.appId}/header.jpg'">
-            <div>
+    document.getElementById('wishList').innerHTML = items.map(w =>
+        `<div class="wish-item">
+            <img class="wish-img" src="${w.imageUrl}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${w.appId}/header.jpg'">
+            <div style="flex:1">
                 <div class="wish-name">${w.name}</div>
-                <div class="wish-priority">Prioridade: ${w.priority === 0 ? 'Alta' : w.priority}</div>
+                <div class="wish-priority">Prioridade: ${w.priority === 0 ? '⭐ Alta' : w.priority}${w.added ? ' · Adicionado: '+new Date(w.added*1000).toLocaleDateString('pt-BR') : ''}</div>
             </div>
-            <a href="https://store.steampowered.com/app/${w.appId}" target="_blank" class="btn btn-ghost" style="margin-left:auto;padding:6px 10px;font-size:.8rem">↗</a>
-        </div>
-    `).join('');
+            <a href="https://store.steampowered.com/app/${w.appId}" target="_blank" class="btn btn-ghost btn-sm">↗</a>
+        </div>`
+    ).join('');
 }
 
 // ── Badges ──
 function renderBadges(data) {
-    document.getElementById('badgesSection').classList.remove('hidden');
-    document.getElementById('badgeInfo').innerHTML = `
-        <div class="badge-stat">
-            <div class="badge-stat-val">${data.count}</div>
-            <div class="badge-stat-lbl">Badges</div>
-        </div>
-        <div class="badge-stat">
-            <div class="badge-stat-val">${(data.totalXp || 0).toLocaleString('pt-BR')}</div>
-            <div class="badge-stat-lbl">XP Total</div>
-        </div>
-    `;
+    document.getElementById('badgeStats').innerHTML = `
+        <div class="badge-stat"><div class="badge-stat-val">${data.count}</div><div class="badge-stat-lbl">Badges</div></div>
+        <div class="badge-stat"><div class="badge-stat-val">${(data.totalXp||0).toLocaleString('pt-BR')}</div><div class="badge-stat-lbl">XP Total</div></div>`;
+}
+function renderBadgesDetailed(data) {
+    document.getElementById('badgeStats').innerHTML = `
+        <div class="badge-stat"><div class="badge-stat-val">${data.level}</div><div class="badge-stat-lbl">Nível Steam</div></div>
+        <div class="badge-stat"><div class="badge-stat-val">${data.badgeCount}</div><div class="badge-stat-lbl">Badges</div></div>
+        <div class="badge-stat"><div class="badge-stat-val">${(data.totalXp||0).toLocaleString('pt-BR')}</div><div class="badge-stat-lbl">XP Total</div></div>`;
 }
 
-function renderBadgesDetailed(data) {
-    document.getElementById('badgesSection').classList.remove('hidden');
-    document.getElementById('badgeInfo').innerHTML = `
-        <div class="badge-stat">
-            <div class="badge-stat-val">${data.level}</div>
-            <div class="badge-stat-lbl">Nível Steam</div>
+// ── Playtime Analytics ──
+function renderPlaytimeAnalytics(data) {
+    const stats = document.getElementById('ptStats');
+    stats.innerHTML = `
+        <div class="pt-stat"><div class="pt-val">${data.totalGames}</div><div class="pt-lbl">Total Jogos</div></div>
+        <div class="pt-stat"><div class="pt-val">${data.playedGames}</div><div class="pt-lbl">Jogados</div></div>
+        <div class="pt-stat"><div class="pt-val">${data.neverPlayedGames}</div><div class="pt-lbl">Nunca Jogados</div></div>
+        <div class="pt-stat"><div class="pt-val">${data.totalHours?.toLocaleString('pt-BR')}h</div><div class="pt-lbl">Total de Horas</div></div>
+        <div class="pt-stat"><div class="pt-val">${data.averageHours}h</div><div class="pt-lbl">Média por Jogo</div></div>`;
+
+    document.getElementById('ptBarPct').textContent = data.playedPercent + '%';
+    document.getElementById('ptBarFill').style.width = data.playedPercent + '%';
+
+    const list = document.getElementById('mostPlayedList');
+    list.innerHTML = (data.mostPlayed || []).map((g, i) =>
+        `<div class="mp-item">
+            <span style="font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--text3);width:18px;flex-shrink:0">#${i+1}</span>
+            <img src="${g.imageUrl||'https://cdn.akamai.steamstatic.com/steam/apps/'+g.AppId+'/header.jpg'}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.AppId}/header.jpg'">
+            <div style="flex:1;min-width:0">
+                <div class="mp-name" title="${g.Name||g.name}">${g.Name||g.name}</div>
+                <div style="height:4px;background:rgba(255,255,255,.07);border-radius:99px;margin-top:4px;overflow:hidden">
+                    <div style="height:100%;width:${Math.min(100,(g.hours/(data.mostPlayed[0]?.hours||1))*100)}%;background:linear-gradient(90deg,var(--orange),var(--cyan));border-radius:99px"></div>
+                </div>
+            </div>
+            <div class="mp-hours">${g.hours}h</div>
+        </div>`
+    ).join('');
+}
+
+// ── Profile Comparison ──
+function renderComparison(data) {
+    const el = document.getElementById('compareResult');
+    const stats = [
+        { label: 'Jogos', v1: data.gamesCount1, v2: data.gamesCount2 },
+        { label: 'Nível Steam', v1: data.level1, v2: data.level2 },
+        { label: 'Badges', v1: data.badgeCount1, v2: data.badgeCount2 },
+        { label: 'XP Total', v1: (data.totalXp1||0).toLocaleString('pt-BR'), v2: (data.totalXp2||0).toLocaleString('pt-BR'), raw1: data.totalXp1, raw2: data.totalXp2 },
+        { label: 'Horas Jogadas', v1: data.totalHours1+'h', v2: data.totalHours2+'h', raw1: data.totalHours1, raw2: data.totalHours2 },
+        { label: 'Jogos em Comum', v1: data.commonGamesCount, v2: data.commonGamesCount },
+    ];
+
+    const buildStats = (data, num) => stats.map(s => {
+        const v = num === 1 ? s.v1 : s.v2;
+        const r1 = s.raw1 !== undefined ? s.raw1 : (typeof s.v1 === 'number' ? s.v1 : 0);
+        const r2 = s.raw2 !== undefined ? s.raw2 : (typeof s.v2 === 'number' ? s.v2 : 0);
+        const isBetter = num === 1 ? r1 > r2 : r2 > r1;
+        return `<div class="cmp-stat"><span>${s.label}</span><span class="cmp-val ${isBetter ? 'better' : ''}">${v}</span></div>`;
+    }).join('');
+
+    el.innerHTML = `
+        <div class="compare-grid">
+            <div class="compare-col ${data.gamesCount1 > data.gamesCount2 ? 'winner' : ''}">
+                <img class="cmp-avatar" src="${data.avatar1 || 'https://via.placeholder.com/64'}" onerror="this.style.display='none'">
+                <div class="cmp-name">${data.name1 || 'Perfil 1'}</div>
+                ${buildStats(data, 1)}
+            </div>
+            <div class="compare-vs">
+                <div style="font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:900;color:var(--orange)">VS</div>
+            </div>
+            <div class="compare-col ${data.gamesCount2 > data.gamesCount1 ? 'winner' : ''}">
+                <img class="cmp-avatar" src="${data.avatar2 || 'https://via.placeholder.com/64'}" onerror="this.style.display='none'">
+                <div class="cmp-name">${data.name2 || 'Perfil 2'}</div>
+                ${buildStats(data, 2)}
+            </div>
         </div>
-        <div class="badge-stat">
-            <div class="badge-stat-val">${data.badgeCount}</div>
-            <div class="badge-stat-lbl">Badges</div>
+        ${data.commonGames && data.commonGames.length > 0 ? `
+        <div style="margin-top:20px">
+            <div class="section-head"><span class="section-title">🎮 Jogos em comum (${data.commonGamesCount})</span></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                ${data.commonGames.slice(0,12).map(g => `
+                    <div title="${g.Name||g.name}" style="width:80px;cursor:pointer" onclick="window.open('https://store.steampowered.com/app/${g.AppId||g.appId}','_blank')">
+                        <img src="${g.ImageUrl||g.imageUrl||'https://cdn.akamai.steamstatic.com/steam/apps/'+(g.AppId||g.appId)+'/header.jpg'}" style="width:80px;height:40px;object-fit:cover;border-radius:4px;display:block" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/'+(${g.AppId||g.appId})+'/header.jpg'">
+                        <div style="font-size:.65rem;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px">${g.Name||g.name}</div>
+                    </div>`).join('')}
+            </div>
+        </div>` : ''}`;
+}
+
+// ── Live Players ──
+const GAME_NAMES = {
+    730: 'CS2', 570: 'Dota 2', 440: 'TF2', 252490: 'Rust',
+    578080: 'PUBG', 1172470: 'Apex Legends', 304930: 'Unturned',
+    1091500: 'Cyberpunk 2077', 271590: 'GTA V', 892970: 'Valheim'
+};
+
+function renderLivePlayers(results) {
+    const sorted = [...results].sort((a,b) => b.count - a.count);
+    document.getElementById('liveCards').innerHTML = sorted.map(r =>
+        `<div class="live-card">
+            <div class="live-game">${GAME_NAMES[r.appId] || 'App ' + r.appId}</div>
+            <div class="live-count">${r.count.toLocaleString('pt-BR')}</div>
+            <div class="live-lbl">jogadores online</div>
+        </div>`
+    ).join('');
+}
+
+// ── Achievements ──
+function renderAchievements(appId, total, unlocked, pct, list) {
+    const pctRound = Math.round(pct);
+    document.getElementById('achResult').innerHTML = `
+        <div style="display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap">
+            <div class="badge-stat"><div class="badge-stat-val">${unlocked}</div><div class="badge-stat-lbl">Desbloqueadas</div></div>
+            <div class="badge-stat"><div class="badge-stat-val">${total}</div><div class="badge-stat-lbl">Total</div></div>
+            <div class="badge-stat"><div class="badge-stat-val" style="color:var(--gold)">${pctRound}%</div><div class="badge-stat-lbl">Completo</div></div>
         </div>
-        <div class="badge-stat">
-            <div class="badge-stat-val">${(data.totalXp || 0).toLocaleString('pt-BR')}</div>
-            <div class="badge-stat-lbl">XP Total</div>
-        </div>
-    `;
+        <div class="ach-bar-wrap"><div class="ach-bar" style="width:${pctRound}%"></div></div>
+        <div class="ach-list">
+            ${list.map(a => `
+                <div class="ach-item ${a.Achieved || a.achieved ? 'achieved' : ''}">
+                    <div class="ach-icon">${a.Achieved || a.achieved ? '🥇' : '🔒'}</div>
+                    <div>
+                        <div class="ach-name">${a.Name || a.name || a.ApiName || a.apiName}</div>
+                        ${a.Description || a.description ? `<div class="ach-desc">${a.Description||a.description}</div>` : ''}
+                        ${(a.Achieved || a.achieved) && (a.UnlockTime || a.unlockTime) ? `<div class="ach-date">🗓 ${new Date((a.UnlockTime||a.unlockTime)*1000).toLocaleDateString('pt-BR')}</div>` : ''}
+                    </div>
+                </div>`
+            ).join('')}
+        </div>`;
+    showFeaturePanel('achievements');
 }
 
 // ── History Chart ──
 function updateHistChart() {
-    if (snapshotData.length === 0) return;
-    document.getElementById('historySection').classList.remove('hidden');
+    if (!snapshotData.length) return;
+    showFeaturePanel('history');
     const ctx = document.getElementById('histChart').getContext('2d');
-
     const labels = snapshotData.map(s => s.time);
     const values = snapshotData.map(s => s.total);
 
-    if (histChart) {
-        histChart.data.labels = labels;
-        histChart.data.datasets[0].data = values;
-        histChart.update();
-        return;
-    }
+    if (histChart) { histChart.data.labels = labels; histChart.data.datasets[0].data = values; histChart.update(); return; }
 
     histChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels,
             datasets: [{
-                label: 'Valor total (R$)',
-                data: values,
-                borderColor: '#00d9ff',
-                backgroundColor: 'rgba(0,217,255,.1)',
-                tension: .4,
-                pointBackgroundColor: '#ff6b35',
-                pointRadius: 5,
-                fill: true
+                label: 'Valor total (R$)', data: values,
+                borderColor: '#00e5ff', backgroundColor: 'rgba(0,229,255,.08)',
+                tension: .4, fill: true,
+                pointBackgroundColor: '#ff5722', pointRadius: 5, pointHoverRadius: 8
             }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#8b9dc3' } } },
+            plugins: { legend: { labels: { color: '#8fadc8', font: { family: 'Exo 2' } } } },
             scales: {
-                x: { ticks: { color: '#8b9dc3' }, grid: { color: 'rgba(255,255,255,.05)' } },
-                y: {
-                    ticks: { color: '#8b9dc3', callback: v => 'R$ ' + v.toLocaleString('pt-BR') },
-                    grid: { color: 'rgba(255,255,255,.05)' }
-                }
+                x: { ticks: { color: '#8fadc8' }, grid: { color: 'rgba(255,255,255,.04)' } },
+                y: { ticks: { color: '#8fadc8', callback: v => 'R$ ' + v.toLocaleString('pt-BR') }, grid: { color: 'rgba(255,255,255,.04)' } }
             }
         }
     });
 }
 
 // ── CSV Export ──
-let csvData = [];
-function saveCsvData() {
-    csvData = allGames.map(g => ({
-        type: 'Jogo', name: g.name, price: g.price,
-        extra: `${Math.round(g.playtimeMinutes/60)} h jogadas`
-    }));
-    Object.entries(inventories).forEach(([game, {items}]) => {
-        items.forEach(it => csvData.push({ type: `Inventário ${game}`, name: it.name, price: it.price, extra: '' }));
-    });
-}
 function exportCSV() {
-    if (csvData.length === 0 && allGames.length === 0) { showError('Nenhum dado para exportar. Calcule primeiro.'); return; }
-    saveCsvData();
-    const rows = ['Tipo,Nome,Preço (R$),Extra', ...csvData.map(r =>
-        `"${r.type}","${r.name.replace(/"/g,'""')}","${r.price.toFixed(2)}","${r.extra}"`)];
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const rows = ['Tipo,Nome,Preço (R$),Horas,Gênero,Metacritic'];
+    allGames.forEach(g => rows.push(`"Jogo","${g.name?.replace(/"/g,'""')}","${g.price.toFixed(2)}","${Math.round(g.playtimeMinutes/60)}","${g.genre||''}","${g.metacritic||''}"`));
+    Object.entries(inventories).forEach(([game, {items}]) =>
+        items.forEach(it => rows.push(`"Inventário ${game}","${it.name?.replace(/"/g,'""')}","${it.price.toFixed(2)}","","",""`)));
+
+    const blob = new Blob(['\ufeff' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = 'steam_value.csv'; a.click();
+    a.download = `steam_value_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
 }
 
 // ── Helpers ──
-function formatBRL(v) {
-    return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-}
-function formatTime(minutes) {
-    if (!minutes) return '0 min';
-    if (minutes < 60) return minutes + ' min';
-    return Math.round(minutes / 60) + ' h';
-}
-function showError(msg) {
-    document.getElementById('errorBox').innerHTML = `<div class="error-box">⚠ ${msg}</div>`;
-}
+function fmtBRL(v) { return 'R$ ' + Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }); }
+function fmtTime(m) { if (!m) return '0min'; return m < 60 ? m+'min' : Math.round(m/60)+'h'; }
+function showError(msg) { document.getElementById('errorBox').innerHTML = `<div class="error-box">⚠ ${msg}</div>`; }
 
 // ── Init ──
 buildConnection();
-
-// Restore URL from localStorage
-try {
-    const saved = localStorage.getItem('steamProfileUrl');
-    if (saved) document.getElementById('profileUrl').value = saved;
-} catch {}
+try { const s = localStorage.getItem('steamProfileUrl'); if (s) document.getElementById('profileUrl').value = s; } catch {}
 </script>
 </body>
 </html>

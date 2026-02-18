@@ -6,12 +6,11 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<SteamService>();
 builder.Services.AddSignalR(options =>
 {
-    options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
-    options.ClientTimeoutInterval = TimeSpan.FromMinutes(5);
+    options.MaximumReceiveMessageSize = 20 * 1024 * 1024; // 20 MB
+    options.ClientTimeoutInterval = TimeSpan.FromMinutes(10);
     options.KeepAliveInterval = TimeSpan.FromSeconds(15);
 });
 
-// CORS para SignalR (produção deve restringir origens)
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>

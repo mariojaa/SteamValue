@@ -9,224 +9,227 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SteamValue – Amigos</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@@latest/dist/browser/signalr.min.js"></script>
     <style>
         :root {
-            --primary: #ff6b35;
-            --secondary: #00d9ff;
-            --accent: #ffeb3b;
-            --dark-bg: #0a0e1a;
-            --card-bg: #111827;
-            --card-bg2: #1a2235;
-            --border: #1e3a5f;
-            --text: #c7d5e0;
-            --text-strong: #ffffff;
-            --text-muted: #7a9bbf;
-            --success: #4ade80;
-            --danger: #f87171;
-            --warning: #fbbf24;
-            --online: #57c75b;
-            --offline: #6b7280;
-            --in-game: #90d070;
+            --bg: #060b14; --bg1: #0d1524; --bg2: #111d2e; --bg3: #162236;
+            --border: #1a3050; --border2: #243f5e;
+            --cyan: #00e5ff; --cyan2: #00b8d9; --orange: #ff5722; --orange2: #e64a19;
+            --gold: #ffd740; --green: #00e676; --red: #ff1744; --purple: #e040fb;
+            --text: #cdd9e5; --text2: #8fadc8; --text3: #4a6480;
+            --online: #00e676; --offline: #546e7a; --ingame: #69ff47;
         }
-        * { margin:0; padding:0; box-sizing:border-box; }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
         body {
-            font-family: 'Rajdhani', sans-serif;
-            background: var(--dark-bg); color: var(--text);
-            min-height: 100vh;
+            font-family: 'Exo 2', sans-serif;
+            background: var(--bg); color: var(--text); min-height: 100vh;
         }
         body::before {
-            content:''; position:fixed; inset:0;
+            content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
             background:
-                radial-gradient(ellipse at 10% 40%, rgba(0,217,255,.07) 0%, transparent 55%),
-                radial-gradient(ellipse at 90% 70%, rgba(255,107,53,.07) 0%, transparent 55%);
-            z-index:0; pointer-events:none;
+                radial-gradient(ellipse 60% 40% at 15% 30%, rgba(0,229,255,.05) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 50% at 85% 70%, rgba(255,87,34,.05) 0%, transparent 70%),
+                repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(255,255,255,.01) 60px),
+                repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(255,255,255,.01) 60px);
         }
-
-        /* ── Nav ── */
         .nav {
-            display:flex; align-items:center; justify-content:space-between;
-            padding:14px 32px;
-            background:rgba(10,14,26,.9);
-            border-bottom:1px solid var(--border);
-            backdrop-filter:blur(12px);
-            position:sticky; top:0; z-index:100;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 40px; height: 60px;
+            background: rgba(6,11,20,.92); border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 200;
         }
-        .nav-brand { font-family:'Russo One',sans-serif; font-size:1.3rem;
-            background:linear-gradient(135deg,var(--primary),var(--secondary));
-            -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-        .nav-links { display:flex; gap:18px; }
-        .nav-links a { color:var(--text-muted); text-decoration:none; font-size:.95rem; font-weight:500; transition:color .2s; }
-        .nav-links a:hover,.nav-links a.active { color:var(--secondary); }
+        .nav-brand {
+            font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 900;
+            background: linear-gradient(90deg, var(--cyan), var(--orange));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px;
+        }
+        .nav-links { display: flex; gap: 6px; }
+        .nav-link {
+            padding: 6px 16px; border-radius: 6px; color: var(--text2); text-decoration: none;
+            font-size: .88rem; font-weight: 500; transition: all .2s; border: 1px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active { color: var(--cyan); border-color: rgba(0,229,255,.25); background: rgba(0,229,255,.06); }
 
-        /* ── Layout ── */
-        .page { max-width:1440px; margin:0 auto; padding:24px 20px; position:relative; z-index:1; }
+        .page { max-width: 1440px; margin: 0 auto; padding: 24px 20px; position: relative; z-index: 1; }
 
-        /* ── Header bar ── */
+        /* ── Top bar ── */
         .top-bar {
-            background:var(--card-bg); border:1px solid var(--border);
-            border-radius:16px; padding:20px 24px; margin-bottom:20px;
+            background: var(--bg1); border: 1px solid var(--border);
+            border-radius: 14px; padding: 22px 26px; margin-bottom: 20px;
         }
-        .top-bar h1 { font-family:'Russo One',sans-serif; font-size:1.6rem; color:var(--text-strong); margin-bottom:14px; }
-        .search-row { display:flex; gap:10px; flex-wrap:wrap; }
+        .top-bar h1 {
+            font-family: 'Orbitron', sans-serif; font-size: 1.4rem; font-weight: 900;
+            color: #fff; margin-bottom: 16px; letter-spacing: 1px;
+        }
+        .search-row { display: flex; gap: 10px; flex-wrap: wrap; }
         .url-input {
-            flex:1; min-width:280px; padding:12px 16px;
-            background:rgba(10,14,26,.7); border:1.5px solid var(--border);
-            border-radius:10px; color:var(--text-strong);
-            font-size:.95rem; font-family:'Rajdhani',sans-serif;
-            transition:border-color .25s, box-shadow .25s;
+            flex: 1; min-width: 280px; padding: 12px 16px;
+            background: rgba(0,0,0,.4); border: 1.5px solid var(--border);
+            border-radius: 10px; color: #fff; font-size: .95rem; font-family: 'Exo 2', sans-serif;
+            transition: border-color .25s, box-shadow .25s;
         }
-        .url-input:focus { outline:none; border-color:var(--secondary); box-shadow:0 0 0 3px rgba(0,217,255,.1); }
-        .url-input::placeholder { color:var(--text-muted); }
+        .url-input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,229,255,.1); }
+        .url-input::placeholder { color: var(--text3); }
 
         /* ── Buttons ── */
         .btn {
-            display:inline-flex; align-items:center; gap:7px;
-            padding:10px 18px; border:none; border-radius:10px;
-            font-family:'Rajdhani',sans-serif; font-size:.95rem; font-weight:600;
-            cursor:pointer; transition:all .2s; white-space:nowrap;
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 10px 18px; border: none; border-radius: 10px;
+            font-family: 'Exo 2', sans-serif; font-size: .9rem; font-weight: 700;
+            cursor: pointer; transition: all .2s; white-space: nowrap;
         }
-        .btn-primary { background:linear-gradient(135deg,var(--secondary),#0099bb); color:#000; }
-        .btn-primary:hover { filter:brightness(1.1); transform:translateY(-1px); }
-        .btn-orange { background:linear-gradient(135deg,var(--primary),#d45a25); color:#fff; }
-        .btn-orange:hover { filter:brightness(1.1); transform:translateY(-1px); }
-        .btn-ghost { background:rgba(255,255,255,.05); color:var(--text); border:1px solid var(--border); }
-        .btn-ghost:hover { background:rgba(255,255,255,.1); }
-        .btn:disabled { opacity:.45; pointer-events:none; }
+        .btn-primary { background: linear-gradient(135deg, var(--cyan), var(--cyan2)); color: #000; }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-orange { background: linear-gradient(135deg, var(--orange), var(--orange2)); color: #fff; box-shadow: 0 4px 16px rgba(255,87,34,.2); }
+        .btn-orange:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-ghost { background: rgba(255,255,255,.04); color: var(--text2); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: rgba(255,255,255,.08); color: var(--text); }
+        .btn-sm { padding: 7px 13px; font-size: .82rem; }
+        .btn:disabled { opacity: .45; pointer-events: none; }
 
-        /* ── Controls ── */
-        .controls-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
-        .select-s { padding:8px 12px; background:rgba(10,14,26,.8); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Rajdhani',sans-serif; font-size:.88rem; }
-        .text-s { padding:8px 12px; background:rgba(10,14,26,.8); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Rajdhani',sans-serif; font-size:.88rem; }
-        .lbl-s { font-size:.82rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.8px; }
+        .controls-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+        .select-s, .text-s { padding: 8px 12px; background: rgba(0,0,0,.4); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Exo 2', sans-serif; font-size: .85rem; }
+        .lbl-s { font-size: .75rem; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; }
 
-        /* ── Main 2-col ── */
-        .main-grid { display:grid; grid-template-columns:300px 1fr; gap:20px; }
-        @@media (max-width:960px) { .main-grid { grid-template-columns:1fr; } }
+        /* ── Main grid ── */
+        .main-grid { display: grid; grid-template-columns: 290px 1fr; gap: 18px; }
+        @@media (max-width: 960px) { .main-grid { grid-template-columns: 1fr; } }
 
         /* ── Profile card ── */
-        .profile-card { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:20px; height:fit-content; }
-        .pf-header { display:flex; gap:14px; align-items:center; margin-bottom:16px; }
-        .pf-avatar { width:76px; height:76px; border-radius:6px; border:2px solid var(--secondary); }
-        .pf-name { font-size:1.15rem; font-weight:700; color:var(--text-strong); margin-bottom:4px; }
-        .pf-status { font-size:.85rem; display:flex; align-items:center; gap:6px; }
-        .status-dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
-        .pf-details { background:rgba(0,0,0,.25); border-radius:8px; padding:14px; }
-        .pf-row { display:flex; justify-content:space-between; font-size:.88rem; margin-bottom:8px; }
-        .pf-row:last-child { margin-bottom:0; }
-        .pf-row strong { color:var(--secondary); }
-        .pf-val { color:var(--text-strong); font-weight:600; }
-        .pf-loading { color:var(--text-muted); font-style:italic; }
-        .recent-title { font-size:.78rem; text-transform:uppercase; color:var(--text-muted); margin:12px 0 6px; letter-spacing:1px; }
-        .recent-row { display:flex; gap:8px; flex-wrap:wrap; }
-        .mini-thumb { width:80px; }
-        .mini-thumb img { width:100%; height:40px; object-fit:cover; border-radius:4px; display:block; }
-        .mini-thumb-name { font-size:.72rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:3px; }
+        .profile-card { background: var(--bg1); border: 1px solid var(--border); border-radius: 14px; padding: 20px; height: fit-content; }
+        .pf-header { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
+        .pf-avatar { width: 74px; height: 74px; border-radius: 6px; border: 2px solid var(--cyan); flex-shrink: 0; }
+        .pf-name { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+        .pf-status { font-size: .82rem; display: flex; align-items: center; gap: 6px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+        .pf-details { background: rgba(0,0,0,.25); border-radius: 8px; padding: 12px; }
+        .pf-row { display: flex; justify-content: space-between; font-size: .84rem; margin-bottom: 7px; }
+        .pf-row:last-child { margin-bottom: 0; }
+        .pf-row strong { color: var(--cyan); }
+        .pf-val { color: #fff; font-weight: 600; }
+        .pf-loading { color: var(--text3); font-style: italic; }
+        .recent-title { font-size: .72rem; text-transform: uppercase; color: var(--text3); margin: 12px 0 6px; letter-spacing: 1px; }
+        .recent-row { display: flex; gap: 7px; flex-wrap: wrap; }
+        .mini-thumb { width: 76px; }
+        .mini-thumb img { width: 100%; height: 38px; object-fit: cover; border-radius: 4px; display: block; }
+        .mini-thumb-name { font-size: .65rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; color: var(--text2); }
 
-        /* ── Friends section ── */
-        .friends-card { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:20px; }
-        .friends-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-        .friends-title { font-size:1.05rem; font-weight:700; color:var(--text-strong); text-transform:uppercase; letter-spacing:1px; }
-        .friends-count { font-size:.82rem; color:var(--text-muted); }
-        #friendsList { max-height:680px; overflow-y:auto; }
-        #friendsList::-webkit-scrollbar { width:5px; }
-        #friendsList::-webkit-scrollbar-thumb { background:rgba(0,217,255,.25); border-radius:99px; }
+        /* ── Friends card ── */
+        .friends-card { background: var(--bg1); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+        .friends-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .friends-title { font-family: 'Orbitron', sans-serif; font-size: .9rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
+        .friends-count { font-size: .78rem; color: var(--text3); margin-top: 3px; }
+        #friendsList { max-height: 700px; overflow-y: auto; }
+        #friendsList::-webkit-scrollbar { width: 4px; }
+        #friendsList::-webkit-scrollbar-thumb { background: rgba(0,229,255,.2); border-radius: 99px; }
 
         /* ── Friend card ── */
         .friend-card {
-            background:var(--card-bg2); border:1px solid var(--border); border-radius:10px;
-            padding:13px 15px; display:flex; gap:12px; align-items:center;
-            margin-bottom:8px; transition:transform .2s, border-color .2s;
+            background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
+            padding: 13px 15px; display: flex; gap: 12px; align-items: center;
+            margin-bottom: 7px; transition: transform .18s, border-color .18s;
         }
-        .friend-card:hover { transform:translateX(4px); border-color:rgba(0,217,255,.2); }
-        .friend-card.online-card { border-left:3px solid var(--online); }
-        .friend-card.ingame-card { border-left:3px solid var(--in-game); }
-        .f-avatar { width:52px; height:52px; border-radius:5px; border:1px solid var(--border); position:relative; flex-shrink:0; }
-        .f-avatar img { width:100%; height:100%; border-radius:5px; }
-        .f-status-badge {
-            position:absolute; bottom:-3px; right:-3px;
-            width:12px; height:12px; border-radius:50%; border:2px solid var(--card-bg2);
-        }
-        .f-info { flex:1; min-width:0; }
-        .f-name-row { display:flex; align-items:center; gap:8px; margin-bottom:3px; }
-        .f-name { font-size:.95rem; font-weight:700; color:var(--text-strong); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .f-state-lbl { font-size:.72rem; font-weight:700; border-radius:4px; padding:2px 6px; }
-        .lbl-online { background:rgba(87,199,91,.15); color:var(--online); }
-        .lbl-ingame { background:rgba(144,208,112,.15); color:var(--in-game); }
-        .lbl-offline { background:rgba(107,114,128,.1); color:var(--offline); }
-        .f-sub { font-size:.78rem; color:var(--text-muted); margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .f-game { font-size:.78rem; color:var(--in-game); margin-bottom:3px; }
-        .f-links { display:flex; gap:8px; flex-wrap:wrap; margin-top:3px; }
-        .f-link { font-size:.76rem; color:var(--secondary); cursor:pointer; text-decoration:underline; }
-        .f-value { text-align:right; flex-shrink:0; margin-right:4px; }
-        .f-val-amount { font-size:1rem; font-weight:700; color:var(--text-strong); }
-        .f-val-sub { font-size:.72rem; color:var(--text-muted); }
+        .friend-card:hover { transform: translateX(4px); border-color: rgba(0,229,255,.2); }
+        .friend-card.online-card { border-left: 3px solid var(--online); }
+        .friend-card.ingame-card { border-left: 3px solid var(--ingame); }
+        .f-avatar { width: 50px; height: 50px; border-radius: 5px; border: 1px solid var(--border); position: relative; flex-shrink: 0; }
+        .f-avatar img { width: 100%; height: 100%; border-radius: 5px; object-fit: cover; }
+        .f-status-badge { position: absolute; bottom: -3px; right: -3px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--bg3); }
+        .f-info { flex: 1; min-width: 0; }
+        .f-name-row { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; }
+        .f-name { font-size: .92rem; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .f-state-lbl { font-size: .68rem; font-weight: 700; border-radius: 4px; padding: 2px 6px; flex-shrink: 0; }
+        .lbl-online { background: rgba(0,230,118,.12); color: var(--online); }
+        .lbl-ingame { background: rgba(105,255,71,.12); color: var(--ingame); }
+        .lbl-offline { background: rgba(84,110,122,.12); color: var(--offline); }
+        .f-sub { font-size: .75rem; color: var(--text2); margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .f-game { font-size: .75rem; color: var(--ingame); margin-bottom: 3px; }
+        .f-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 3px; }
+        .f-link { font-size: .73rem; color: var(--cyan); cursor: pointer; }
+        .f-link:hover { text-decoration: underline; }
+        .f-value { text-align: right; flex-shrink: 0; margin-right: 4px; }
+        .f-val-amount { font-family: 'Orbitron', sans-serif; font-size: .9rem; font-weight: 700; color: #fff; }
+        .f-val-sub { font-size: .68rem; color: var(--text3); }
         .f-calc-btn {
-            background:linear-gradient(135deg,var(--primary),#d45a25);
-            color:#fff; border:none; border-radius:7px; padding:7px 14px;
-            font-family:'Rajdhani',sans-serif; font-weight:700; font-size:.82rem;
-            cursor:pointer; transition:all .2s; white-space:nowrap; flex-shrink:0;
+            background: linear-gradient(135deg, var(--orange), var(--orange2)); color: #fff;
+            border: none; border-radius: 7px; padding: 7px 12px;
+            font-family: 'Exo 2', sans-serif; font-weight: 700; font-size: .78rem;
+            cursor: pointer; transition: all .2s; white-space: nowrap; flex-shrink: 0;
         }
-        .f-calc-btn:hover { filter:brightness(1.1); }
-        .f-calc-btn:disabled { opacity:.5; pointer-events:none; }
-        .f-progress { font-size:.75rem; color:var(--secondary); margin-top:2px; }
+        .f-calc-btn:hover { filter: brightness(1.1); }
+        .f-calc-btn:disabled { opacity: .5; pointer-events: none; }
+        .f-progress { font-size: .72rem; color: var(--cyan); margin-top: 2px; }
+
+        /* ── Section separator ── */
+        .section-sep {
+            font-size: .72rem; text-transform: uppercase; letter-spacing: 1.5px;
+            color: var(--text3); padding: 8px 4px 4px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .section-sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
         /* ── Pagination ── */
-        .pagination { display:flex; justify-content:center; align-items:center; gap:12px; margin-top:12px; }
-        .page-info { color:var(--text-muted); font-size:.85rem; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 12px; }
+        .page-info { color: var(--text2); font-size: .82rem; }
 
-        /* ── Error / loading ── */
-        .error-box { background:rgba(248,113,113,.1); border:1px solid var(--danger); border-radius:8px; padding:12px 16px; color:var(--danger); margin-top:10px; }
-        .loading-msg { color:var(--text-muted); font-style:italic; padding:20px; text-align:center; }
-        .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.2); border-top-color:var(--secondary); border-radius:50%; animation:spin .7s linear infinite; }
-        @@keyframes spin { to { transform:rotate(360deg); } }
-        .dots span { animation:blink 1.4s infinite both; }
-        .dots span:nth-child(2) { animation-delay:.2s; }
-        .dots span:nth-child(3) { animation-delay:.4s; }
+        /* ── Error / Loading ── */
+        .error-box { background: rgba(255,23,68,.1); border: 1px solid rgba(255,23,68,.3); border-radius: 8px; padding: 12px 16px; color: var(--red); margin-top: 10px; font-size: .88rem; }
+        .loading-msg { color: var(--text3); font-style: italic; padding: 24px; text-align: center; }
+        .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(0,229,255,.2); border-top-color: var(--cyan); border-radius: 50%; animation: spin .7s linear infinite; }
+        @@keyframes spin { to { transform: rotate(360deg); } }
+        .dots span { animation: blink 1.4s infinite both; }
+        .dots span:nth-child(2) { animation-delay: .2s; }
+        .dots span:nth-child(3) { animation-delay: .4s; }
         @@keyframes blink { 0%,80%,100% { opacity:0; } 40% { opacity:1; } }
 
         /* ── Modal ── */
         .modal-overlay {
-            position:fixed; inset:0; background:rgba(0,0,0,.7);
-            display:flex; align-items:center; justify-content:center; z-index:9999;
+            position: fixed; inset: 0; background: rgba(0,0,0,.8);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
         }
         .modal-box {
-            background:var(--card-bg); border:1px solid var(--border); border-radius:16px;
-            padding:22px; width:92%; max-width:960px; max-height:84vh; overflow-y:auto;
+            background: var(--bg1); border: 1px solid var(--border); border-radius: 16px;
+            padding: 24px; width: 94%; max-width: 980px; max-height: 86vh; overflow-y: auto;
         }
-        .modal-box::-webkit-scrollbar { width:5px; }
-        .modal-box::-webkit-scrollbar-thumb { background:rgba(0,217,255,.3); border-radius:99px; }
-        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-        .modal-title { font-size:1.1rem; font-weight:700; color:var(--text-strong); }
-        .modal-games-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:12px; }
-        .modal-game { background:rgba(0,0,0,.3); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-        .modal-game img { width:100%; height:82px; object-fit:cover; display:block; }
-        .modal-game-body { padding:8px; }
-        .modal-game-name { font-size:.82rem; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .modal-game-price { font-size:.78rem; color:var(--success); font-weight:700; margin-top:2px; }
-        .modal-game-time { font-size:.75rem; color:var(--text-muted); }
-        .modal-inv-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; }
-        .modal-inv-item { background:rgba(0,0,0,.3); border:1px solid var(--border); border-radius:7px; overflow:hidden; }
-        .modal-inv-item img { width:100%; height:78px; object-fit:cover; display:block; }
-        .modal-inv-body { padding:7px; }
-        .modal-inv-name { font-size:.75rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .modal-inv-price { font-size:.75rem; color:var(--warning); font-weight:700; }
-        .inv-section-title { font-size:.88rem; font-weight:700; color:var(--secondary); margin:14px 0 8px; text-transform:uppercase; }
-        .inv-total { font-size:.85rem; color:var(--text-muted); margin-left:8px; }
+        .modal-box::-webkit-scrollbar { width: 4px; }
+        .modal-box::-webkit-scrollbar-thumb { background: rgba(0,229,255,.25); border-radius: 99px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .modal-title { font-family: 'Orbitron', sans-serif; font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: .5px; }
+        .modal-games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+        .modal-game { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform .18s, border-color .18s; }
+        .modal-game:hover { transform: translateY(-2px); border-color: rgba(0,229,255,.3); }
+        .modal-game img { width: 100%; height: 80px; object-fit: cover; display: block; }
+        .modal-game-body { padding: 8px; }
+        .modal-game-name { font-size: .8rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+        .modal-game-price { font-size: .76rem; color: var(--green); font-weight: 700; margin-top: 2px; }
+        .modal-game-meta { font-size: .68rem; color: var(--text3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .modal-inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 8px; }
+        .modal-inv-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; overflow: hidden; transition: border-color .15s; }
+        .modal-inv-item:hover { border-color: rgba(255,215,64,.3); }
+        .modal-inv-item img { width: 100%; height: 74px; object-fit: cover; display: block; background: #0d1524; }
+        .modal-inv-body { padding: 7px; }
+        .modal-inv-name { font-size: .72rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .modal-inv-price { font-size: .75rem; color: var(--gold); font-weight: 700; }
+        .modal-inv-count { font-size: .65rem; color: var(--text3); }
+        .modal-inv-rarity { font-size: .65rem; }
+        .inv-section-title {
+            font-family: 'Orbitron', sans-serif; font-size: .82rem; font-weight: 700;
+            color: var(--cyan); margin: 18px 0 10px; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .inv-empty { color: var(--text3); font-size: .82rem; padding: 12px 0; font-style: italic; }
 
-        /* ── Online section separator ── */
-        .section-sep { font-size:.78rem; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-muted); padding:8px 4px 4px; display:flex; align-items:center; gap:8px; }
-        .section-sep::after { content:''; flex:1; height:1px; background:var(--border); }
+        /* ── Inv loading ── */
+        .inv-loading { display: flex; align-items: center; gap: 8px; padding: 10px 0; color: var(--text3); font-style: italic; font-size: .82rem; }
     </style>
 </head>
 <body>
 
 <nav class="nav">
-    <div class="nav-brand">⚡ SteamValue</div>
+    <div class="nav-brand">⚡ STEAMVALUE</div>
     <div class="nav-links">
-        <a href="/">Calculadora</a>
-        <a href="/Home/Friends" class="active">Amigos</a>
+        <a href="/" class="nav-link">Calculadora</a>
+        <a href="/Home/Friends" class="nav-link active">Amigos</a>
     </div>
 </nav>
 
@@ -250,21 +253,21 @@
                 <option value="name_asc">Nome A-Z</option>
             </select>
             <span class="lbl-s">Filtrar:</span>
-            <input type="text" class="text-s" id="filterValue" placeholder="Valor max R$" style="width:130px" oninput="renderFriendsList()">
-            <input type="text" class="text-s" id="friendSearch" placeholder="Buscar amigo..." style="width:175px" oninput="applySearch()">
-            <button class="btn btn-orange" onclick="compareAll()" id="btnCalcAll">⚡ Calcular Todos (públicos)</button>
-            <button class="btn btn-ghost" onclick="exportCSV()">📥 Exportar CSV</button>
+            <input type="text" class="text-s" id="filterValue" placeholder="Valor máx R$" style="width:130px" oninput="renderFriendsList()">
+            <input type="text" class="text-s" id="friendSearch" placeholder="🔍 Buscar amigo..." style="width:175px" oninput="applySearch()">
+            <button class="btn btn-orange btn-sm" onclick="compareAll()" id="btnCalcAll">⚡ Calcular Todos</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ CSV</button>
         </div>
         <div id="errorBox"></div>
     </div>
 
     <div class="main-grid">
-        <!-- Profile left panel -->
+        <!-- Left: profile card -->
         <div>
             <div class="profile-card">
                 <div class="pf-header">
                     <img src="https://avatars.cloudflare.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
-                         alt="Avatar" class="pf-avatar" id="pfAvatar">
+                         alt="" class="pf-avatar" id="pfAvatar">
                     <div>
                         <div class="pf-name" id="pfName">Aguardando...</div>
                         <div class="pf-status" id="pfStatus">
@@ -276,6 +279,7 @@
                 <div class="pf-details">
                     <div class="pf-row"><span>País</span><span class="pf-val" id="pfCountry">—</span></div>
                     <div class="pf-row"><span>Nível Steam</span><span class="pf-val" id="pfLevel">—</span></div>
+                    <div class="pf-row"><span>Badges</span><span class="pf-val" id="pfBadges">—</span></div>
                     <div class="pf-row"><span>Último login</span><span class="pf-val" id="pfLastLogin">—</span></div>
                     <div class="pf-row"><span>Jogos</span><span class="pf-val" id="pfGames">—</span></div>
                     <div class="pf-row"><span>Valor estimado</span><span class="pf-val pf-loading" id="pfValue">—</span></div>
@@ -285,77 +289,67 @@
             </div>
         </div>
 
-        <!-- Friends right panel -->
+        <!-- Right: friends -->
         <div class="friends-card">
             <div class="friends-header">
                 <div>
-                    <div class="friends-title">🎮 Lista de Amigos</div>
-                    <div class="friends-count" id="friendsCount">Carregando...</div>
+                    <div class="friends-title">Lista de Amigos</div>
+                    <div class="friends-count" id="friendsCount">Carregue um perfil para ver amigos</div>
                 </div>
             </div>
-
             <div id="friendsList">
-                <p class="loading-msg">Carregue um perfil para ver os amigos</p>
+                <p class="loading-msg">Insira uma URL de perfil acima e clique em carregar</p>
             </div>
-
             <div class="pagination">
-                <button class="btn btn-ghost" id="prevBtn" onclick="changePage(-1)">‹ Anterior</button>
+                <button class="btn btn-ghost btn-sm" id="prevBtn" onclick="changePage(-1)">‹ Anterior</button>
                 <span class="page-info" id="pageInfo">Página 1</span>
-                <button class="btn btn-ghost" id="nextBtn" onclick="changePage(1)">Próxima ›</button>
+                <button class="btn btn-ghost btn-sm" id="nextBtn" onclick="changePage(1)">Próxima ›</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal global -->
+<!-- Modal -->
 <div id="globalModal" style="display:none" class="modal-overlay">
     <div class="modal-box">
         <div class="modal-header">
-            <div class="modal-title" id="modalTitle">Carregando...</div>
-            <button class="btn btn-ghost" onclick="closeModal()">✕ Fechar</button>
+            <div class="modal-title" id="modalTitle"></div>
+            <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕ Fechar</button>
         </div>
-        <div id="modalContent"><p class="loading-msg">Aguarde<span class="dots"><span>.</span><span>.</span><span>.</span></span></p></div>
+        <div id="modalContent"></div>
     </div>
 </div>
 
 <script>
-// ── State ──
 let connection = null;
 let latestFriends = [];
 let filteredFriends = [];
 let currentPage = 1;
 const pageSize = 8;
-const pendingModals = {}; // steamId => 'games' | 'inventory'
 
 // ── SignalR ──
 (function init() {
     connection = new signalR.HubConnectionBuilder()
         .withUrl('/calculationHub')
-        .withAutomaticReconnect()
+        .withAutomaticReconnect([0, 1000, 2000, 5000])
         .build();
 
-    connection.on('ReceiveProfileSummary', (data) => renderProfileSummary(data));
-    connection.on('ReceiveProfileTotalsDetailed', (data) => renderProfileTotals(data));
+    connection.on('ReceiveProfileSummary', renderProfileSummary);
+    connection.on('ReceiveProfileTotalsDetailed', renderProfileTotals);
     connection.on('ReceiveProfileTotal', (total) => {
         const el = document.getElementById('pfValue');
-        el.textContent = 'R$ ' + Number(total).toLocaleString('pt-BR', {minimumFractionDigits:2});
+        el.textContent = fmtBRL(total);
         el.classList.remove('pf-loading');
     });
 
     connection.on('ReceiveFriends', (friends) => {
         document.getElementById('loadSpinner').style.display = 'none';
         latestFriends = (friends || []).map(f => ({
-            id: f.id,
-            name: f.name || '',
-            avatar: f.avatar || '',
-            visibility: f.visibility || 1,
-            personastate: f.personastate ?? 0,
-            isOnline: f.isOnline || false,
-            lastLogoff: f.lastLogoff || 0,
-            country: f.country || '',
-            friendSince: f.friendSince || 0,
-            gameId: f.gameId || '',
-            gameExtra: f.gameExtra || '',
+            id: f.id, name: f.name || '', avatar: f.avatar || '',
+            visibility: f.visibility || 1, personastate: f.personastate ?? 0,
+            isOnline: f.isOnline || false, lastLogoff: f.lastLogoff || 0,
+            country: f.country || '', friendSince: f.friendSince || 0,
+            gameId: f.gameId || '', gameExtra: f.gameExtra || '',
             total: null, gamesCount: null, gamesValue: null,
             inventoryCount: null, inventoryValue: null,
             isCalculating: false, progress: 0
@@ -377,23 +371,19 @@ const pendingModals = {}; // steamId => 'games' | 'inventory'
 
     connection.on('ReceiveFriendTotal', (steamId, total) => {
         const f = latestFriends.find(x => x.id === steamId);
-        if (!f) return;
-        f.total = Number(total);
-        f.isCalculating = false; f.progress = 100;
-        renderFriendsList();
+        if (f) { f.total = Number(total); f.isCalculating = false; f.progress = 100; renderFriendsList(); }
     });
 
     connection.on('UpdateFriendProgress', (steamId, pct, msg) => {
         const f = latestFriends.find(x => x.id === steamId);
         if (!f) return;
         f.progress = pct; f.isCalculating = true;
-        // Re-render card only for that friend (light update)
         const card = document.querySelector(`.friend-card[data-id="${steamId}"]`);
         if (card) {
             const btn = card.querySelector('.f-calc-btn');
             const prog = card.querySelector('.f-progress');
             if (btn) btn.textContent = Math.round(pct) + '%';
-            if (prog) prog.textContent = msg;
+            if (prog) prog.textContent = msg || '';
         }
     });
 
@@ -401,21 +391,28 @@ const pendingModals = {}; // steamId => 'games' | 'inventory'
         const modal = document.getElementById('globalModal');
         if (modal.style.display === 'none') return;
         const content = document.getElementById('modalContent');
-        if (!games || games.length === 0) { content.innerHTML = '<p class="loading-msg">Nenhum jogo encontrado</p>'; return; }
+        if (!games || games.length === 0) {
+            content.innerHTML = '<p class="loading-msg">Nenhum jogo encontrado ou perfil privado</p>';
+            return;
+        }
         const sorted = [...games].sort((a,b) => b.price - a.price);
+        const totalVal = sorted.reduce((s,g) => s+g.price, 0);
         content.innerHTML = `
-            <p style="margin-bottom:12px;color:var(--text-muted)">${sorted.length} jogos — Total: <strong style="color:var(--success)">R$ ${sorted.reduce((s,g)=>s+g.price,0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></p>
+            <div style="margin-bottom:14px;font-size:.88rem;color:var(--text2)">
+                ${sorted.length} jogos · Total: <strong style="color:var(--green)">${fmtBRL(totalVal)}</strong>
+            </div>
             <div class="modal-games-grid">
-            ${sorted.map(g => `
-                <div class="modal-game" onclick="window.open('https://store.steampowered.com/app/${g.appId}','_blank')" style="cursor:pointer">
+            ${sorted.map(g => {
+                let mc = g.metacritic > 0 ? `<span style="background:${g.metacritic>=75?'#6c3':g.metacritic>=50?'#fc3':'#f33'};color:#000;padding:1px 4px;border-radius:3px;font-size:.65rem;font-weight:700;margin-right:3px">${g.metacritic}</span>` : '';
+                return `<div class="modal-game" onclick="window.open('https://store.steampowered.com/app/${g.appId}','_blank')">
                     <img src="${g.imageUrl}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
                     <div class="modal-game-body">
                         <div class="modal-game-name" title="${g.name}">${g.name}</div>
-                        <div class="modal-game-price">${g.price > 0 ? 'R$ ' + Number(g.price).toLocaleString('pt-BR',{minimumFractionDigits:2}) : 'Grátis'}</div>
-                        <div class="modal-game-time">${Math.round((g.playtimeMinutes||0)/60)} h</div>
+                        <div class="modal-game-price">${g.price > 0 ? fmtBRL(g.price) : 'Grátis'}</div>
+                        <div class="modal-game-meta">${mc}${Math.round((g.playtimeMinutes||0)/60)}h${g.genre ? ' · '+g.genre : ''}</div>
                     </div>
-                </div>
-            `).join('')}
+                </div>`;
+            }).join('')}
             </div>`;
     });
 
@@ -423,34 +420,37 @@ const pendingModals = {}; // steamId => 'games' | 'inventory'
         const modal = document.getElementById('globalModal');
         if (modal.style.display === 'none') return;
         const content = document.getElementById('modalContent');
-        const appName = {730:'CS2', 570:'Dota 2', 440:'TF2', 252490:'Rust'}[appId] || 'App '+appId;
+        const appName = {730:'CS2', 570:'Dota 2', 440:'TF2', 252490:'Rust', 1172470:'Apex Legends', 578080:'PUBG'}[appId] || ('App ' + appId);
 
-        let existingSection = content.querySelector(`[data-appid="${appId}"]`);
-        if (!existingSection) {
-            existingSection = document.createElement('div');
-            existingSection.setAttribute('data-appid', appId);
-            content.appendChild(existingSection);
+        // Replace loading placeholder for this appId
+        let section = content.querySelector(`[data-appid="${appId}"]`);
+        if (!section) {
+            section = document.createElement('div');
+            section.setAttribute('data-appid', appId);
+            content.appendChild(section);
         }
 
         if (!items || items.length === 0) {
-            existingSection.innerHTML = `<div class="inv-section-title">${appName} <span class="inv-total">– Inventário vazio ou privado</span></div>`;
+            section.innerHTML = `<div class="inv-section-title">${appName}</div><div class="inv-empty">Inventário vazio, privado ou sem itens negociáveis</div>`;
             return;
         }
 
         const sorted = [...items].sort((a,b) => b.price - a.price);
-        existingSection.innerHTML = `
-            <div class="inv-section-title">${appName} <span class="inv-total">– ${sorted.length} itens — R$ ${Number(total).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
+        section.innerHTML = `
+            <div class="inv-section-title">${appName} <span style="color:var(--text2);font-family:'Exo 2';font-weight:400;font-size:.78rem">— ${sorted.length} itens · ${fmtBRL(total)}</span></div>
             <div class="modal-inv-grid">
-            ${sorted.map(it => `
-                <div class="modal-inv-item">
-                    <img src="${it.imageUrl||'https://via.placeholder.com/130x78?text=Item'}"
-                         onerror="this.src='https://via.placeholder.com/130x78?text=Item'">
+            ${sorted.slice(0, 100).map(it => {
+                const rc = getRarityColor(it.rarity||'');
+                return `<div class="modal-inv-item" title="${it.name}">
+                    <img src="${it.imageUrl || 'https://placehold.co/125x74/0d1524/00e5ff?text=Item'}" onerror="this.src='https://placehold.co/125x74/0d1524/00e5ff?text=?'">
                     <div class="modal-inv-body">
-                        <div class="modal-inv-name" title="${it.name}">${it.name}</div>
-                        <div class="modal-inv-price">R$ ${Number(it.price).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+                        <div class="modal-inv-name">${it.name}</div>
+                        <div class="modal-inv-price">${fmtBRL(it.price)}</div>
+                        ${it.count > 1 ? `<div class="modal-inv-count">x${it.count} (un: ${fmtBRL(it.unitPrice||0)})</div>` : ''}
+                        ${it.rarity ? `<div class="modal-inv-rarity" style="color:${rc}">${it.rarity}</div>` : ''}
                     </div>
-                </div>
-            `).join('')}
+                </div>`;
+            }).join('')}
             </div>`;
     });
 
@@ -459,26 +459,18 @@ const pendingModals = {}; // steamId => 'games' | 'inventory'
         document.getElementById('loadSpinner').style.display = 'none';
     });
 
-    connection.start()
-        .then(() => {
-            const url = document.getElementById('profileUrl').value.trim()
-                || (() => { try { return localStorage.getItem('steamProfileUrl') || ''; } catch { return ''; }})();
-            if (url) {
-                document.getElementById('profileUrl').value = url;
-                loadProfile();
-            }
-        })
-        .catch(e => showError('Erro de conexão SignalR: ' + e.message));
+    connection.start().then(() => {
+        const url = document.getElementById('profileUrl').value.trim()
+            || (() => { try { return localStorage.getItem('steamProfileUrl') || ''; } catch { return ''; } })();
+        if (url) { document.getElementById('profileUrl').value = url; loadProfile(); }
+    }).catch(e => showError('Erro de conexão: ' + e.message));
 })();
 
-// ── Load profile ──
+// ── Load ──
 function loadProfile() {
     const url = document.getElementById('profileUrl').value.trim();
     if (!url) { showError('Insira a URL do perfil Steam.'); return; }
-    if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
-        showError('Aguardando conexão...');
-        return;
-    }
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected) { showError('Aguardando conexão...'); return; }
 
     document.getElementById('loadSpinner').style.display = 'inline-block';
     document.getElementById('pfName').textContent = 'Carregando...';
@@ -487,7 +479,6 @@ function loadProfile() {
     latestFriends = []; filteredFriends = []; currentPage = 1;
     document.getElementById('friendsList').innerHTML = '<p class="loading-msg">Buscando amigos<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>';
     clearError();
-
     try { localStorage.setItem('steamProfileUrl', url); } catch {}
 
     connection.invoke('GetProfileSummary', url).catch(e => showError(e.message));
@@ -495,56 +486,46 @@ function loadProfile() {
     connection.invoke('GetProfileTotals', url).catch(e => showError(e.message));
 }
 
-// Enter key
 document.getElementById('profileUrl').addEventListener('keydown', e => { if (e.key === 'Enter') loadProfile(); });
 
-// ── Render profile ──
+// ── Profile rendering ──
 function renderProfileSummary(data) {
-    const summary = data?.summary;
-    if (!summary) return;
-    // Navigate JSON
+    if (!data) return;
     let player;
-    try {
-        player = summary?.response?.players?.[0];
-    } catch { return; }
+    try { player = data?.summary?.response?.players?.[0]; } catch { return; }
     if (!player) return;
 
     document.getElementById('pfAvatar').src = player.avatarfull || '';
     document.getElementById('pfName').textContent = player.personaname || '';
 
-    const state = player.personastate || 0;
-    const stateColors = ['#6b7280','#57c75b','#4ade80','#fbbf24','#60a5fa','#a78bfa','#f472b6'];
+    const s = player.personastate || 0;
+    const stateColors = ['var(--offline)','var(--online)','var(--green)','var(--gold)','#60a5fa','#a78bfa','#f472b6'];
     const stateNames = ['Offline','Online','Ocupado','Ausente','Cochilando','Quer jogar','Quer conversar'];
     document.getElementById('pfStatus').innerHTML =
-        `<span class="status-dot" style="background:${stateColors[state]||'#6b7280'}"></span>
-         ${stateNames[state]||'Offline'}`;
-
+        `<span class="status-dot" style="background:${stateColors[s]||'var(--offline)'}"></span> ${stateNames[s]||'Offline'}`;
     document.getElementById('pfCountry').textContent = player.loccountrycode || '—';
-    document.getElementById('pfLevel').textContent = data.level > 0 ? `Nível ${data.level}` : '—';
+    document.getElementById('pfLevel').textContent = data.level > 0 ? 'Nível ' + data.level : '—';
+    document.getElementById('pfBadges').textContent = data.badgeCount > 0 ? data.badgeCount + ' badges' : '—';
 
-    if (player.lastlogoff) {
-        document.getElementById('pfLastLogin').textContent =
-            new Date(player.lastlogoff * 1000).toLocaleString('pt-BR');
-    }
+    if (player.lastlogoff) document.getElementById('pfLastLogin').textContent = new Date(player.lastlogoff*1000).toLocaleDateString('pt-BR');
 
-    // Recent games
     const rg = data.recentGames;
     if (rg && rg.length > 0) {
         document.getElementById('recentTitle').style.display = 'block';
-        document.getElementById('pfRecentGames').innerHTML = rg.map(g => `
-            <div class="mini-thumb">
+        document.getElementById('pfRecentGames').innerHTML = rg.map(g =>
+            `<div class="mini-thumb">
                 <img src="${g.imageUrl}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
                 <div class="mini-thumb-name" title="${g.name}">${g.name}</div>
-            </div>
-        `).join('');
+            </div>`
+        ).join('');
     }
 }
 
 function renderProfileTotals(data) {
     if (!data) return;
-    if (data.gamesCount != null) document.getElementById('pfGames').textContent = data.gamesCount.toLocaleString('pt-BR');
+    if (data.gamesCount != null) document.getElementById('pfGames').textContent = data.gamesCount.toLocaleString('pt-BR') + ' jogos';
     if (data.total != null) {
-        document.getElementById('pfValue').textContent = 'R$ ' + Number(data.total).toLocaleString('pt-BR',{minimumFractionDigits:2});
+        document.getElementById('pfValue').textContent = fmtBRL(data.total);
         document.getElementById('pfValue').classList.remove('pf-loading');
     }
 }
@@ -552,8 +533,7 @@ function renderProfileTotals(data) {
 // ── Friends list ──
 function applySearch() {
     const q = document.getElementById('friendSearch').value.trim().toLowerCase();
-    filteredFriends = !q ? [...latestFriends]
-        : latestFriends.filter(f => (f.name||'').toLowerCase().includes(q) || f.id.includes(q));
+    filteredFriends = !q ? [...latestFriends] : latestFriends.filter(f => (f.name||'').toLowerCase().includes(q) || f.id.includes(q));
     currentPage = 1;
     renderFriendsList();
 }
@@ -566,111 +546,79 @@ function renderFriendsList() {
         return;
     }
 
-    let list = [...(filteredFriends.length ? filteredFriends : latestFriends)];
+    let list = [...(filteredFriends.length || document.getElementById('friendSearch').value ? filteredFriends : latestFriends)];
 
-    // Filter by max value
     const maxVal = parseFloat(document.getElementById('filterValue').value);
-    if (!isNaN(maxVal) && maxVal > 0)
-        list = list.filter(f => f.total === null || f.total <= maxVal);
+    if (!isNaN(maxVal) && maxVal > 0) list = list.filter(f => f.total === null || f.total <= maxVal);
 
-    // Sort
     const sort = document.getElementById('sortSelect').value;
     if (sort === 'value_desc') list.sort((a,b) => (b.total ?? -1) - (a.total ?? -1));
-    else if (sort === 'name_asc') list.sort((a,b) => a.name.localeCompare(b.name));
-    else {
-        // online first: ingame (state>1 with gameid), then online, then offline
-        list.sort((a,b) => {
-            const sa = friendScore(a), sb = friendScore(b);
-            if (sa !== sb) return sb - sa;
-            return b.lastLogoff - a.lastLogoff;
-        });
-    }
+    else if (sort === 'name_asc') list.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+    else list.sort((a,b) => { const sa = fScore(a), sb = fScore(b); return sa !== sb ? sb - sa : b.lastLogoff - a.lastLogoff; });
 
-    document.getElementById('friendsCount').textContent =
-        `${list.length} amigo(s) ${list.length !== latestFriends.length ? `(de ${latestFriends.length})` : ''} — Online: ${latestFriends.filter(f=>f.isOnline).length}`;
+    const onlineCount = latestFriends.filter(f => f.isOnline).length;
+    document.getElementById('friendsCount').textContent = `${list.length} amigo(s) • Online: ${onlineCount}`;
 
     const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
     if (currentPage > totalPages) currentPage = totalPages;
-    const start = (currentPage-1) * pageSize;
-    const page = list.slice(start, start+pageSize);
+    const start = (currentPage - 1) * pageSize;
+    const page = list.slice(start, start + pageSize);
     document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
 
-    // Separate online/ingame/offline
-    const online = page.filter(f => f.isOnline && f.gameExtra);
-    const justOnline = page.filter(f => f.isOnline && !f.gameExtra);
+    const inGame = page.filter(f => f.isOnline && f.gameExtra);
+    const online = page.filter(f => f.isOnline && !f.gameExtra);
     const offline = page.filter(f => !f.isOnline);
 
     let html = '';
-    if (online.length) html += `<div class="section-sep">🎮 Em jogo (${online.length})</div>` + online.map(renderFriendCard).join('');
-    if (justOnline.length) html += `<div class="section-sep">🟢 Online (${justOnline.length})</div>` + justOnline.map(renderFriendCard).join('');
+    if (inGame.length) html += `<div class="section-sep">🎮 Em jogo (${inGame.length})</div>` + inGame.map(renderFriendCard).join('');
+    if (online.length) html += `<div class="section-sep">🟢 Online (${online.length})</div>` + online.map(renderFriendCard).join('');
     if (offline.length) html += `<div class="section-sep">⚫ Offline (${offline.length})</div>` + offline.map(renderFriendCard).join('');
-
     listEl.innerHTML = html;
 }
 
-function friendScore(f) {
-    if (f.isOnline && f.gameExtra) return 3;
-    if (f.isOnline) return 2;
-    return 0;
-}
+function fScore(f) { return f.isOnline && f.gameExtra ? 3 : f.isOnline ? 2 : 0; }
 
 function renderFriendCard(f) {
     const isInGame = f.isOnline && f.gameExtra;
-    const cardClass = isInGame ? 'ingame-card' : (f.isOnline ? 'online-card' : '');
-    const stateLbl = isInGame ? 'lbl-ingame' : (f.isOnline ? 'lbl-online' : 'lbl-offline');
-    const stateName = isInGame ? '🎮 Em jogo' : (f.isOnline ? '🟢 Online' : '⚫ Offline');
-    const dotColor = isInGame ? 'var(--in-game)' : (f.isOnline ? 'var(--online)' : 'var(--offline)');
+    const cardClass = isInGame ? 'ingame-card' : f.isOnline ? 'online-card' : '';
+    const stateLbl = isInGame ? 'lbl-ingame' : f.isOnline ? 'lbl-online' : 'lbl-offline';
+    const stateName = isInGame ? '🎮 Em jogo' : f.isOnline ? '🟢 Online' : '⚫ Offline';
+    const dotColor = isInGame ? 'var(--ingame)' : f.isOnline ? 'var(--online)' : 'var(--offline)';
     const isPublic = f.visibility === 3;
 
-    return `
-    <div class="friend-card ${cardClass}" data-id="${f.id}">
+    return `<div class="friend-card ${cardClass}" data-id="${f.id}">
         <div class="f-avatar">
-            <img src="${f.avatar||'https://avatars.cloudflare.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"
-                 onerror="this.src='https://via.placeholder.com/52?text=?'" alt="${f.name}">
+            <img src="${f.avatar || 'https://avatars.cloudflare.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"
+                 onerror="this.src='https://via.placeholder.com/50?text=?'" alt="${f.name}">
             <span class="f-status-badge" style="background:${dotColor}"></span>
         </div>
         <div class="f-info">
             <div class="f-name-row">
-                <span class="f-name">
-                    <a href="https://steamcommunity.com/profiles/${f.id}" target="_blank"
-                       style="color:inherit;text-decoration:none">${f.name}</a>
-                </span>
+                <span class="f-name"><a href="https://steamcommunity.com/profiles/${f.id}" target="_blank" style="color:inherit;text-decoration:none">${f.name}</a></span>
                 <span class="f-state-lbl ${stateLbl}">${stateName}</span>
-                ${!isPublic ? '<span class="f-state-lbl" style="background:rgba(255,235,59,.1);color:var(--accent)">🔒 Privado</span>' : ''}
+                ${!isPublic ? '<span class="f-state-lbl" style="background:rgba(255,215,64,.1);color:var(--gold)">🔒 Privado</span>' : ''}
             </div>
             ${f.gameExtra ? `<div class="f-game">🕹 ${f.gameExtra}</div>` : ''}
-            ${f.country ? `<div class="f-sub">📍 ${f.country}${f.lastLogoff && !f.isOnline ? ' · Visto: ' + fmtDate(f.lastLogoff) : ''}</div>` : (f.lastLogoff && !f.isOnline ? `<div class="f-sub">Visto: ${fmtDate(f.lastLogoff)}</div>` : '')}
+            ${f.country ? `<div class="f-sub">📍 ${f.country}${f.lastLogoff && !f.isOnline ? ' · Visto: '+fmtDate(f.lastLogoff) : ''}</div>` : (f.lastLogoff && !f.isOnline ? `<div class="f-sub">Visto: ${fmtDate(f.lastLogoff)}</div>` : '')}
             <div class="f-links">
-                ${isPublic ? `<span class="f-link" onclick="openGamesModal('${f.id}','${f.name.replace(/'/g,"\\'")}')">🎮 Ver Jogos</span>` : ''}
-                ${isPublic ? `<span class="f-link" onclick="openInvModal('${f.id}','${f.name.replace(/'/g,"\\'")}')">📦 Ver Inventário</span>` : ''}
+                ${isPublic ? `<span class="f-link" onclick="openGamesModal('${f.id}','${(f.name||'').replace(/'/g,"\\'")}')">🎮 Jogos</span>` : ''}
+                ${isPublic ? `<span class="f-link" onclick="openInvModal('${f.id}','${(f.name||'').replace(/'/g,"\\'")}')">📦 Inventário</span>` : ''}
                 <a class="f-link" href="https://steamcommunity.com/profiles/${f.id}" target="_blank">↗ Perfil</a>
             </div>
-            ${f.gamesCount != null ? `<div class="f-sub">🎮 ${f.gamesCount} jogos (${fmtBRL(f.gamesValue)}) &nbsp;|&nbsp; 📦 ${f.inventoryCount} itens (${fmtBRL(f.inventoryValue)})</div>` : ''}
+            ${f.gamesCount != null ? `<div class="f-sub" style="font-size:.72rem;color:var(--text3)">🎮 ${f.gamesCount} jogos (${fmtBRL(f.gamesValue||0)}) · 📦 ${f.inventoryCount||0} itens (${fmtBRL(f.inventoryValue||0)})</div>` : ''}
             ${f.isCalculating ? `<div class="f-progress">Calculando: ${Math.round(f.progress)}%</div>` : ''}
         </div>
         <div class="f-value">
             <div class="f-val-amount">${f.total != null ? fmtBRL(f.total) : '—'}</div>
             <div class="f-val-sub">total</div>
         </div>
-        ${isPublic ? `
-        <button class="f-calc-btn" data-steamid="${f.id}" onclick="calcFriend('${f.id}',this)"
-                ${f.isCalculating ? 'disabled' : ''}>
-            ${f.isCalculating ? Math.round(f.progress)+'%' : 'CALCULAR'}
-        </button>` : ''}
+        ${isPublic ? `<button class="f-calc-btn" data-steamid="${f.id}" onclick="calcFriend('${f.id}',this)" ${f.isCalculating ? 'disabled' : ''}>${f.isCalculating ? Math.round(f.progress)+'%' : 'CALCULAR'}</button>` : ''}
     </div>`;
-}
-
-function fmtDate(ts) {
-    return new Date(ts*1000).toLocaleDateString('pt-BR');
-}
-function fmtBRL(v) {
-    if (v == null) return '—';
-    return 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
 }
 
 // ── Pagination ──
 function changePage(d) {
-    const list = filteredFriends.length ? filteredFriends : latestFriends;
+    const list = (filteredFriends.length || document.getElementById('friendSearch').value) ? filteredFriends : latestFriends;
     const total = Math.max(1, Math.ceil(list.length / pageSize));
     currentPage = Math.min(total, Math.max(1, currentPage + d));
     renderFriendsList();
@@ -690,22 +638,19 @@ function compareAll() {
     if (!ensureConn()) return;
     const pub = latestFriends.filter(f => f.visibility === 3);
     if (!pub.length) { showError('Nenhum amigo com perfil público'); return; }
-    if (!confirm(`Calcular ${pub.length} amigos públicos? Pode demorar alguns minutos.`)) return;
-
+    if (!confirm(`Calcular ${pub.length} amigos públicos? Pode demorar.`)) return;
     let i = 0;
     const next = () => {
         if (i >= pub.length) return;
         const f = pub[i++];
         const found = latestFriends.find(x => x.id === f.id);
         if (found) { found.isCalculating = true; found.progress = 0; renderFriendsList(); }
-        connection.invoke('ComputeTotalsForSteamId', f.id, true, true)
-            .catch(() => {})
-            .finally(() => setTimeout(next, 800));
+        connection.invoke('ComputeTotalsForSteamId', f.id, true, true).catch(() => {}).finally(() => setTimeout(next, 800));
     };
     next();
 }
 
-// ── Modal: games ──
+// ── Modal: Games ──
 function openGamesModal(steamId, name) {
     if (!ensureConn()) return;
     document.getElementById('globalModal').style.display = 'flex';
@@ -716,58 +661,65 @@ function openGamesModal(steamId, name) {
     });
 }
 
-// ── Modal: inventory ──
+// ── Modal: Inventory ──
 function openInvModal(steamId, name) {
     if (!ensureConn()) return;
     document.getElementById('globalModal').style.display = 'flex';
     document.getElementById('modalTitle').textContent = `📦 Inventário de ${name}`;
-    document.getElementById('modalContent').innerHTML = '<p class="loading-msg">Carregando inventários<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>';
 
-    // Clear then show loading placeholder per app
-    document.getElementById('modalContent').innerHTML = '';
-    const apps = [{id:730,name:'CS2'},{id:570,name:'Dota 2'},{id:440,name:'TF2'},{id:252490,name:'Rust'}];
+    const apps = [{id:730,name:'CS2'},{id:570,name:'Dota 2'},{id:440,name:'TF2'},{id:252490,name:'Rust'},{id:1172470,name:'Apex'},{id:578080,name:'PUBG'}];
+    const content = document.getElementById('modalContent');
+    content.innerHTML = apps.map(app =>
+        `<div data-appid="${app.id}">
+            <div class="inv-section-title">${app.name}</div>
+            <div class="inv-loading"><div class="spinner"></div> Buscando itens de ${app.name}...</div>
+        </div>`
+    ).join('');
+
     apps.forEach(app => {
-        const el = document.createElement('div');
-        el.setAttribute('data-appid', app.id);
-        el.innerHTML = `<div class="inv-section-title">${app.name} <span class="inv-total">– Carregando...</span></div>`;
-        document.getElementById('modalContent').appendChild(el);
         connection.invoke('GetFriendInventory', steamId, app.id).catch(() => {
-            const s = document.querySelector(`[data-appid="${app.id}"]`);
-            if (s) s.innerHTML = `<div class="inv-section-title">${app.name} <span class="inv-total" style="color:var(--danger)">– Privado ou erro</span></div>`;
+            const s = content.querySelector(`[data-appid="${app.id}"]`);
+            if (s) s.innerHTML = `<div class="inv-section-title">${app.name}</div><div class="inv-empty">Inventário privado ou erro</div>`;
         });
     });
 }
 
-function closeModal() {
-    document.getElementById('globalModal').style.display = 'none';
-}
+function closeModal() { document.getElementById('globalModal').style.display = 'none'; }
 document.getElementById('globalModal').addEventListener('click', e => {
     if (e.target === document.getElementById('globalModal')) closeModal();
 });
 
-// ── Export CSV ──
+// ── CSV ──
 function exportCSV() {
-    if (!latestFriends.length) { showError('Carregue uma lista de amigos primeiro.'); return; }
-    const rows = ['Nome,SteamID,Status,Jogos,Valor Jogos,Itens Inventário,Valor Inventário,Total'];
+    if (!latestFriends.length) { showError('Carregue amigos primeiro.'); return; }
+    const rows = ['Nome,SteamID,Status,País,Jogos,Valor Jogos,Itens Inv,Valor Inv,Total'];
     latestFriends.forEach(f => {
         const stat = f.isOnline ? (f.gameExtra ? 'Em jogo' : 'Online') : 'Offline';
-        rows.push(`"${f.name}","${f.id}","${stat}","${f.gamesCount??''}","${f.gamesValue??''}","${f.inventoryCount??''}","${f.inventoryValue??''}","${f.total??''}"`);
+        rows.push(`"${(f.name||'').replace(/"/g,'""')}","${f.id}","${stat}","${f.country||''}","${f.gamesCount||''}","${f.gamesValue||''}","${f.inventoryCount||''}","${f.inventoryValue||''}","${f.total||''}"`);
     });
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\ufeff' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = 'amigos_steam.csv'; a.click();
+    a.download = `amigos_steam_${new Date().toISOString().slice(0,10)}.csv`; a.click();
 }
 
 // ── Helpers ──
 function ensureConn() {
     if (connection && connection.state === signalR.HubConnectionState.Connected) return true;
-    showError('Aguardando conexão com o servidor...');
-    return false;
+    showError('Aguardando conexão...'); return false;
 }
-function showError(msg) {
-    document.getElementById('errorBox').innerHTML = `<div class="error-box">⚠ ${msg}</div>`;
-}
+function fmtBRL(v) { return 'R$ ' + Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2}); }
+function fmtDate(ts) { return new Date(ts*1000).toLocaleDateString('pt-BR'); }
+function showError(msg) { document.getElementById('errorBox').innerHTML = `<div class="error-box">⚠ ${msg}</div>`; }
 function clearError() { document.getElementById('errorBox').innerHTML = ''; }
+function getRarityColor(r) {
+    r = r.toLowerCase();
+    if (r.includes('covert') || r.includes('classified')) return '#eb4b4b';
+    if (r.includes('restricted')) return '#8847ff';
+    if (r.includes('mil-spec') || r.includes('milspec')) return '#4b69ff';
+    if (r.includes('legendary') || r.includes('mythical')) return '#8847ff';
+    if (r.includes('immortal') || r.includes('arcana') || r.includes('ancient')) return '#e4ae39';
+    return 'var(--text2)';
+}
 </script>
 </body>
 </html>
