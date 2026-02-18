@@ -1,125 +1,173 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using SteamValue.Models;
+using Microsoft.AspNetCore.SignalR;
 using System.Text.Json;
 
 namespace SteamValue.Services
 {
-    /// <summary>
-    /// Hub SignalR para comunicação em tempo real com o cliente
-    /// Alternativa mais robusta ao Server-Sent Events (SSE)
-    /// </summary>
     public class CalculationHub : Hub
     {
-        private readonly SteamService _steamService;
+        private readonly SteamService _steam;
 
-        public CalculationHub(SteamService steamService)
+        public CalculationHub(SteamService steam)
         {
-            _steamService = steamService;
+            _steam = steam;
         }
 
-        /// <summary>
-        /// Inicia o cálculo do valor da conta Steam
-        /// </summary>
+        // ─────────────────────────────────────────────────────────────
+        //  Cálculo principal (Index)
+        // ─────────────────────────────────────────────────────────────
         public async Task StartCalculation(string profileUrl, bool calculateGames, bool calculateInventory)
         {
-            Func<int, string, Task> progressCallback = async (p, m) =>
+            Func<int, string, Task> progress = async (p, m) =>
             {
-                try
-                {
-                    await Clients.Caller.SendAsync("UpdateProgress", p, m);
-                }
-                catch
-                {
-                    // Client disconnected, ignore
-                }
+                try { await Clients.Caller.SendAsync("UpdateProgress", p, m); } catch { }
             };
 
             try
             {
-                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl, progressCallback);
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl, progress);
                 double totalValue = 0;
 
-                // Passo 2: Calcular jogos (20% - 40%)
+                // Buscar info do perfil em paralelo
+                var summaryTask = _steam.GetPlayerSummariesAsync(steamId);
+                var levelTask = _steam.GetSteamLevelAsync(steamId);
+                var bansTask = _steam.GetPlayerBansAsync(steamId);
+                var recentTask = _steam.GetRecentlyPlayedGamesAsync(steamId, 5);
+
+                await Task.WhenAll(summaryTask, levelTask, bansTask, recentTask);
+
+                var summary = await summaryTask;
+                var level = await levelTask;
+                var bans = await bansTask;
+                var recentGames = await recentTask;
+
+                // Enviar perfil detalhado ao cliente
+                if (summary != null)
+                {
+                    var player = summary.Value
+                        .GetProperty("response")
+                        .GetProperty("players")
+                        .EnumerateArray()
+                        .FirstOrDefault();
+
+                    if (player.ValueKind != JsonValueKind.Undefined)
+                    {
+                        await Clients.Caller.SendAsync("ReceiveProfileInfo", new
+                        {
+                            steamId,
+                            name = player.TryGetProperty("personaname", out var pn) ? pn.GetString() : "",
+                            avatar = player.TryGetProperty("avatarfull", out var af) ? af.GetString() : "",
+                            personastate = player.TryGetProperty("personastate", out var ps) ? ps.GetInt32() : 0,
+                            country = player.TryGetProperty("loccountrycode", out var cc) ? cc.GetString() : "",
+                            lastLogoff = player.TryGetProperty("lastlogoff", out var ll) ? ll.GetInt64() : 0,
+                            profileUrl = player.TryGetProperty("profileurl", out var pu) ? pu.GetString() : "",
+                            created = player.TryGetProperty("timecreated", out var tc) ? tc.GetInt64() : 0,
+                            level,
+                            bans = bans != null ? new
+                            {
+                                bans.VacBanned,
+                                bans.NumberOfVacBans,
+                                bans.DaysSinceLastBan,
+                                bans.NumberOfGameBans,
+                                bans.CommunityBanned,
+                                bans.EconomyBan
+                            } : null,
+                            recentGames = recentGames.Select(g => new
+                            {
+                                appId = g.AppId,
+                                name = g.Name,
+                                playtime2weeks = g.Playtime2WeeksMinutes,
+                                playtimeForever = g.PlaytimeMinutes,
+                                imageUrl = g.ImageUrl
+                            })
+                        });
+                    }
+                }
+
+                // Jogos
                 if (calculateGames)
                 {
-                    await Clients.Caller.SendAsync("UpdateProgress", 20, "Buscando jogos da biblioteca...");
-
-                    var (gamesTotal, gamesList) = await _steamService.CalculateGamesValueAsync(steamId, progressCallback);
+                    await progress(20, "Calculando valor dos jogos...");
+                    var (gamesTotal, gamesList) = await _steam.CalculateGamesValueAsync(steamId, progress);
                     totalValue += gamesTotal;
 
-                    // Enviar dados dos jogos (com imagem) — usar propriedade `price` para consistência
-                    var gamesData = gamesList
-                        .Select(g => new
-                        {
-                            name = g.Name,
-                            price = g.Price,
-                            imageUrl = string.IsNullOrWhiteSpace(g.ImageUrl) ? $"https://cdn.akamai.steamstatic.com/steam/apps/{g.AppId}/header.jpg" : g.ImageUrl,
-                            appId = g.AppId,
-                            playtimeMinutes = g.PlaytimeMinutes
-                        }).ToList();
+                    var gamesData = gamesList.Select(g => new
+                    {
+                        name = g.Name,
+                        price = g.Price,
+                        imageUrl = g.ImageUrl,
+                        appId = g.AppId,
+                        playtimeMinutes = g.PlaytimeMinutes,
+                        playtime2weeks = g.Playtime2WeeksMinutes
+                    }).ToList();
 
                     await Clients.Caller.SendAsync("ReceiveGamesData", gamesData, gamesTotal);
                 }
 
-                // Passo 3: Calcular inventários (40% - 90%)
+                // Inventários
                 if (calculateInventory)
                 {
-                    // CS2
-                    await Clients.Caller.SendAsync("UpdateProgress", 50, "Analisando inventário CS2...");
-                    var (cs2Total, cs2List) = await _steamService.CalculateInventoryValueAsync(steamId, 730, "CS2", progressCallback);
-                    totalValue += cs2Total;
+                    var inventories = new[]
+                    {
+                        (730, "CS2"),
+                        (570, "Dota 2"),
+                        (440, "TF2"),
+                        (252490, "Rust"),
+                        (1172470, "Apex Legends"),
+                    };
 
-                    var cs2Data = cs2List
-                        .Select(item => new
+                    int startPct = 50;
+                    int step = 8;
+
+                    foreach (var (appId, gameName) in inventories)
+                    {
+                        await progress(startPct, $"Analisando inventário {gameName}...");
+                        var (invTotal, invList) = await _steam.CalculateInventoryValueAsync(
+                            steamId, appId, gameName, progress);
+                        totalValue += invTotal;
+
+                        if (invList.Count > 0)
                         {
-                            name = item.Name,
-                            price = item.Price,
-                            imageUrl = string.IsNullOrWhiteSpace(item.ImageUrl) ? string.Empty : item.ImageUrl,
-                            appId = 730
-                        }).ToList();
-
-                    await Clients.Caller.SendAsync("ReceiveInventoryData", "CS2", cs2Data, cs2Total);
-
-                    // Dota 2
-                    await Clients.Caller.SendAsync("UpdateProgress", 65, "Analisando inventário Dota 2...");
-                    var (dota2Total, dota2List) = await _steamService.CalculateInventoryValueAsync(steamId, 570, "Dota 2", progressCallback);
-                    totalValue += dota2Total;
-
-                    var dota2Data = dota2List
-                        .Select(item => new
-                        {
-                            name = item.Name,
-                            price = item.Price,
-                            imageUrl = string.IsNullOrWhiteSpace(item.ImageUrl) ? string.Empty : item.ImageUrl,
-                            appId = 570
-                        }).ToList();
-
-                    await Clients.Caller.SendAsync("ReceiveInventoryData", "Dota 2", dota2Data, dota2Total);
-
-                    // TF2
-                    await Clients.Caller.SendAsync("UpdateProgress", 80, "Analisando inventário TF2...");
-                    var (tf2Total, tf2List) = await _steamService.CalculateInventoryValueAsync(steamId, 440, "TF2", progressCallback);
-                    totalValue += tf2Total;
-
-                    var tf2Data = tf2List
-                        .Select(item => new
-                        {
-                            name = item.Name,
-                            price = item.Price,
-                            imageUrl = string.IsNullOrWhiteSpace(item.ImageUrl) ? string.Empty : item.ImageUrl,
-                            appId = 440
-                        }).ToList();
-
-                    await Clients.Caller.SendAsync("ReceiveInventoryData", "TF2", tf2Data, tf2Total);
+                            var invData = invList.Select(it => new
+                            {
+                                name = it.Name,
+                                price = it.Price,
+                                imageUrl = it.ImageUrl,
+                                appId
+                            }).ToList();
+                            await Clients.Caller.SendAsync("ReceiveInventoryData", gameName, invData, invTotal);
+                        }
+                        startPct = Math.Min(startPct + step, 90);
+                    }
                 }
 
-                // Passo 4: Finalizar (90% - 100%)
-                await Clients.Caller.SendAsync("UpdateProgress", 90, "Calculando valor total...");
+                // Wishlist (bônus)
+                var wishlist = await _steam.GetWishlistAsync(steamId);
+                if (wishlist.Count > 0)
+                {
+                    await Clients.Caller.SendAsync("ReceiveWishlist", wishlist.Take(20).Select(w => new
+                    {
+                        appId = w.AppId,
+                        name = w.Name,
+                        imageUrl = w.ImageUrl,
+                        priority = w.Priority
+                    }));
+                }
+
+                // Badges
+                var badges = await _steam.GetBadgesAsync(steamId);
+                if (badges.Count > 0)
+                {
+                    await Clients.Caller.SendAsync("ReceiveBadges", new
+                    {
+                        count = badges.Count,
+                        totalXp = badges.Sum(b => b.Xp)
+                    });
+                }
+
+                _steam.RecordAccountSnapshot(steamId, totalValue);
+                await progress(95, "Finalizando...");
                 await Clients.Caller.SendAsync("ReceiveTotalValue", totalValue);
-                await Clients.Caller.SendAsync("UpdateProgress", 100, "Cálculo concluído!");
-
-                // Record snapshot for history
-                _steamService.RecordAccountSnapshot(steamId, totalValue);
+                await progress(100, "Concluído!");
             }
             catch (Exception ex)
             {
@@ -127,219 +175,63 @@ namespace SteamValue.Services
             }
         }
 
-        // Compute totals for a given steamId (used for friends comparison)
-        public async Task ComputeTotalsForSteamId(string steamId, bool calculateGames, bool calculateInventory)
-        {
-            // progress callback that sends friend-specific progress events to the caller
-            Func<int, string, Task> progressCallback = async (p, m) =>
-            {
-                try
-                {
-                    await Clients.Caller.SendAsync("UpdateFriendProgress", steamId, p, m);
-                }
-                catch { }
-            };
-
-            try
-            {
-                int gamesCount = 0;
-                double gamesValue = 0;
-                int inventoryCount = 0;
-                double inventoryValue = 0;
-
-                if (calculateGames)
-                {
-                    var owned = await _steamService.GetOwnedGamesAsync(steamId);
-                    gamesCount = owned?.Count ?? 0;
-                    // Use fast total calculator to avoid long per-item delays when computing many friends
-                    gamesValue = await _steamService.CalculateGamesTotalFastAsync(steamId);
-                }
-
-                if (calculateInventory)
-                {
-                    var (invTotal, items) = await _steamService.CalculateInventoryValueAsync(steamId, 730, "CS2", progressCallback);
-                    inventoryCount = items?.Count ?? 0;
-                    inventoryValue = invTotal;
-                }
-
-                var total = gamesValue + inventoryValue;
-
-                // Send a detailed payload so client can show games/inventory breakdown
-                await Clients.Caller.SendAsync("ReceiveFriendTotalsDetailed", steamId, new
-                {
-                    gamesCount,
-                    gamesValue,
-                    inventoryCount,
-                    inventoryValue,
-                    total
-                });
-
-                // also send the simple total for backwards compatibility
-                await Clients.Caller.SendAsync("ReceiveFriendTotal", steamId, total);
-            }
-            catch (Exception ex)
-            {
-                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
-            }
-        }
-
-
-        // Compute totals for a given steamId (used for friends comparison)
-        public async Task ComputeFriendDetails(string steamId)
-        {
-            try
-            {
-                // 1️⃣ Buscar summary do amigo
-                var summaryJson = await _steamService.GetPlayerSummariesAsync(steamId);
-                if (summaryJson == null) return;
-
-                var player = summaryJson.Value
-                    .GetProperty("response")
-                    .GetProperty("players")
-                    .EnumerateArray()
-                    .FirstOrDefault();
-
-                if (player.ValueKind == JsonValueKind.Undefined) return;
-
-                string name = player.GetProperty("personaname").GetString()!;
-                string avatar =
-                    player.TryGetProperty("avatarfull", out var af) && !string.IsNullOrWhiteSpace(af.GetString())
-                        ? af.GetString()!
-                        : player.GetProperty("avatarmedium").GetString()!;
-
-                string country =
-                    player.TryGetProperty("loccountrycode", out var cc)
-                        ? cc.GetString() ?? "-"
-                        : "-";
-
-                string lastLogin =
-                    player.TryGetProperty("lastlogoff", out var lo)
-                        ? DateTimeOffset.FromUnixTimeSeconds(lo.GetInt64()).LocalDateTime.ToString("dd/MM/yyyy HH:mm")
-                        : "-";
-
-                // 2️⃣ Jogos
-                var games = await _steamService.GetOwnedGamesAsync(steamId);
-                double gamesValue = 0;
-
-                foreach (var g in games)
-                {
-                    var (price, _) = await _steamService.GetAppDetailsAsync(g.AppId);
-                    gamesValue += price;
-                }
-
-                // 3️⃣ Inventário (CS2 como padrão)
-                var (invValue, invItems) =
-                    await _steamService.CalculateInventoryValueAsync(steamId, 730, "CS2");
-
-                // 4️⃣ Resultado final
-                var result = new
-                {
-                    steamId,
-                    name,
-                    avatar,
-                    country,
-                    lastLogin,
-                    gamesCount = games.Count,
-                    gamesValue,
-                    inventoryCount = invItems.Count,
-                    inventoryValue = invValue,
-                    totalValue = gamesValue + invValue
-                };
-
-                await Clients.Caller.SendAsync("ReceiveFriendDetails", result);
-            }
-            catch (Exception ex)
-            {
-                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
-            }
-        }
-
-
-        // Métodos auxiliares para extrair nome e valor
-        private string ExtractGameName(string gameString)
-        {
-            var parts = gameString.Split(": R$ ");
-            return parts.Length > 0 ? parts[0].Trim() : gameString;
-        }
-
-        private double ExtractGameValue(string gameString)
-        {
-            var parts = gameString.Split(": R$ ");
-            if (parts.Length > 1)
-            {
-                return double.Parse(parts[1].Trim());
-            }
-            return 0;
-        }
-
-        private string ExtractItemName(string itemString)
-        {
-            var parts = itemString.Split(": R$ ");
-            return parts.Length > 0 ? parts[0].Trim() : itemString;
-        }
-
-        private double ExtractItemValue(string itemString)
-        {
-            var parts = itemString.Split(": R$ ");
-            if (parts.Length > 1)
-            {
-                return double.Parse(parts[1].Trim());
-            }
-            return 0;
-        }
-
-        // Novos métodos para recursos adicionais
-        public async Task GetProfileSummary(string profileUrl)
-        {
-            try
-            {
-                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
-                var summary = await _steamService.GetPlayerSummariesAsync(steamId);
-                await Clients.Caller.SendAsync("ReceiveProfileSummary", summary);
-            }
-            catch (Exception ex)
-            {
-                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
-            }
-        }
-
+        // ─────────────────────────────────────────────────────────────
+        //  Amigos — buscar lista com status online/offline
+        // ─────────────────────────────────────────────────────────────
         public async Task GetFriends(string profileUrl)
         {
             try
             {
-                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
+                var friendList = await _steam.GetFriendListAsync(steamId);
 
-                // 1️⃣ Buscar lista de SteamIDs dos amigos
-                var friendSteamIds = await _steamService.GetFriendListAsync(steamId);
-
-                if (friendSteamIds == null || !friendSteamIds.Any())
+                if (!friendList.Any())
                 {
                     await Clients.Caller.SendAsync("ReceiveFriends", new List<object>());
                     return;
                 }
 
-                // 2️⃣ Buscar summaries em lote (API Steam aceita CSV)
-                var summariesJson = await _steamService.GetPlayerSummariesAsync(string.Join(",", friendSteamIds));
+                var friendIds = friendList.Select(f => f.steamId).ToList();
 
-                if (summariesJson == null ||
-                    !summariesJson.Value.TryGetProperty("response", out var response) ||
-                    !response.TryGetProperty("players", out var players))
+                // Buscar summaries em batch (chunks de 100)
+                var summaryJson = await _steam.GetPlayerSummariesAsync(string.Join(",", friendIds));
+                if (summaryJson == null)
                 {
                     await Clients.Caller.SendAsync("ReceiveFriends", new List<object>());
                     return;
                 }
 
-                // 3️⃣ Mapear corretamente nome + avatar
-                var friends = players.EnumerateArray()
-                    .Select(p => new
+                var friendSinceLookup = friendList.ToDictionary(f => f.steamId, f => f.friendSince);
+
+                var friends = summaryJson.Value
+                    .GetProperty("response")
+                    .GetProperty("players")
+                    .EnumerateArray()
+                    .Select(p =>
                     {
-                        id = p.GetProperty("steamid").GetString(),
-                        name = p.GetProperty("personaname").GetString(),
-                        avatar = p.TryGetProperty("avatarfull", out var af) && !string.IsNullOrWhiteSpace(af.GetString())
-                                    ? af.GetString()
-                                    : p.GetProperty("avatarmedium").GetString(),
-                        visibility = p.GetProperty("communityvisibilitystate").GetInt32()
+                        var sid = p.GetProperty("steamid").GetString()!;
+                        int state = p.TryGetProperty("personastate", out var ps) ? ps.GetInt32() : 0;
+                        long since = friendSinceLookup.TryGetValue(sid, out var s) ? s : 0;
+                        return new
+                        {
+                            id = sid,
+                            name = p.TryGetProperty("personaname", out var pn) ? pn.GetString() : "",
+                            avatar = p.TryGetProperty("avatarfull", out var af) && !string.IsNullOrEmpty(af.GetString())
+                                ? af.GetString()
+                                : (p.TryGetProperty("avatarmedium", out var am) ? am.GetString() : ""),
+                            visibility = p.TryGetProperty("communityvisibilitystate", out var cv) ? cv.GetInt32() : 1,
+                            personastate = state,
+                            isOnline = state >= 1,
+                            lastLogoff = p.TryGetProperty("lastlogoff", out var ll) ? ll.GetInt64() : 0,
+                            country = p.TryGetProperty("loccountrycode", out var cc) ? cc.GetString() : "",
+                            friendSince = since,
+                            gameId = p.TryGetProperty("gameid", out var gid) ? gid.GetString() : "",
+                            gameExtra = p.TryGetProperty("gameextrainfo", out var ge) ? ge.GetString() : ""
+                        };
                     })
+                    // Online primeiro, depois offline por último online
+                    .OrderByDescending(f => f.isOnline)
+                    .ThenByDescending(f => f.lastLogoff)
                     .ToList();
 
                 await Clients.Caller.SendAsync("ReceiveFriends", friends);
@@ -350,14 +242,59 @@ namespace SteamValue.Services
             }
         }
 
-
-        public async Task GetSnapshots(string profileUrl)
+        // ─────────────────────────────────────────────────────────────
+        //  Totais de amigo — rápido e paralelo
+        // ─────────────────────────────────────────────────────────────
+        public async Task ComputeTotalsForSteamId(string steamId, bool calculateGames, bool calculateInventory)
         {
+            Func<int, string, Task> progress = async (p, m) =>
+            {
+                try { await Clients.Caller.SendAsync("UpdateFriendProgress", steamId, p, m); } catch { }
+            };
+
             try
             {
-                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
-                var snaps = _steamService.GetAccountSnapshots(steamId);
-                await Clients.Caller.SendAsync("ReceiveSnapshots", snaps);
+                int gamesCount = 0;
+                double gamesValue = 0;
+                int inventoryCount = 0;
+                double inventoryValue = 0;
+
+                var tasks = new List<Task>();
+
+                if (calculateGames)
+                {
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        var (count, total) = await _steam.CalculateGamesFastAsync(steamId);
+                        gamesCount = count;
+                        gamesValue = total;
+                    }));
+                }
+
+                if (calculateInventory)
+                {
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        var (total, items) = await _steam.CalculateInventoryValueAsync(steamId, 730, "CS2", progress);
+                        inventoryCount = items.Count;
+                        inventoryValue = total;
+                    }));
+                }
+
+                await Task.WhenAll(tasks);
+
+                var totalValue = gamesValue + inventoryValue;
+
+                await Clients.Caller.SendAsync("ReceiveFriendTotalsDetailed", steamId, new
+                {
+                    gamesCount,
+                    gamesValue,
+                    inventoryCount,
+                    inventoryValue,
+                    total = totalValue
+                });
+
+                await Clients.Caller.SendAsync("ReceiveFriendTotal", steamId, totalValue);
             }
             catch (Exception ex)
             {
@@ -365,13 +302,39 @@ namespace SteamValue.Services
             }
         }
 
-        public async Task GetAchievements(string profileUrl, int appId)
+        // ─────────────────────────────────────────────────────────────
+        //  Jogos de um amigo
+        // ─────────────────────────────────────────────────────────────
+        public async Task GetFriendGames(string steamId)
         {
             try
             {
-                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
-                var percent = await _steamService.GetPlayerAchievementPercentageAsync(steamId, appId);
-                await Clients.Caller.SendAsync("ReceiveAchievements", appId, percent);
+                var games = await _steam.GetOwnedGamesAsync(steamId);
+                var sem = new SemaphoreSlim(15);
+                var tasks = games.Select(async g =>
+                {
+                    await sem.WaitAsync();
+                    try
+                    {
+                        var (price, image) = await _steam.GetAppDetailsAsync(g.AppId);
+                        return new
+                        {
+                            appId = g.AppId,
+                            name = g.Name,
+                            playtimeMinutes = g.PlaytimeMinutes,
+                            playtime2weeks = g.Playtime2WeeksMinutes,
+                            price,
+                            imageUrl = string.IsNullOrEmpty(image)
+                                ? $"https://cdn.akamai.steamstatic.com/steam/apps/{g.AppId}/header.jpg"
+                                : image
+                        };
+                    }
+                    finally { sem.Release(); }
+                }).ToList();
+
+                var results = await Task.WhenAll(tasks);
+                await Clients.Caller.SendAsync("ReceiveFriendGames", steamId, results
+                    .OrderByDescending(g => g.price).ToList());
             }
             catch (Exception ex)
             {
@@ -379,12 +342,22 @@ namespace SteamValue.Services
             }
         }
 
-        public async Task GetMarketOverview(int appId, string marketHashName)
+        // ─────────────────────────────────────────────────────────────
+        //  Inventário de um amigo
+        // ─────────────────────────────────────────────────────────────
+        public async Task GetFriendInventory(string steamId, int appId)
         {
             try
             {
-                var price = await _steamService.GetMarketPriceOverviewAsync(marketHashName, appId);
-                await Clients.Caller.SendAsync("ReceiveMarketOverview", appId, marketHashName, price);
+                var (total, items) = await _steam.CalculateInventoryValueAsync(steamId, appId, "");
+                var list = items.Select(it => new
+                {
+                    name = it.Name,
+                    price = it.Price,
+                    imageUrl = it.ImageUrl
+                }).OrderByDescending(it => it.price).ToList();
+
+                await Clients.Caller.SendAsync("ReceiveFriendInventory", steamId, appId, list, total);
             }
             catch (Exception ex)
             {
@@ -392,35 +365,270 @@ namespace SteamValue.Services
             }
         }
 
+        // ─────────────────────────────────────────────────────────────
+        //  Resumo do perfil (usado no Index e Friends)
+        // ─────────────────────────────────────────────────────────────
+        public async Task GetProfileSummary(string profileUrl)
+        {
+            try
+            {
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
+
+                var summaryTask = _steam.GetPlayerSummariesAsync(steamId);
+                var levelTask = _steam.GetSteamLevelAsync(steamId);
+                var bansTask = _steam.GetPlayerBansAsync(steamId);
+                var recentTask = _steam.GetRecentlyPlayedGamesAsync(steamId, 5);
+
+                await Task.WhenAll(summaryTask, levelTask, bansTask, recentTask);
+
+                var summary = await summaryTask;
+                var level = await levelTask;
+                var bans = await bansTask;
+                var recent = await recentTask;
+
+                await Clients.Caller.SendAsync("ReceiveProfileSummary", new
+                {
+                    summary,
+                    level,
+                    bans,
+                    recentGames = recent.Select(g => new
+                    {
+                        appId = g.AppId,
+                        name = g.Name,
+                        playtime2weeks = g.Playtime2WeeksMinutes,
+                        imageUrl = g.ImageUrl
+                    })
+                });
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  Totais rápidos do perfil (para painel lateral do Friends)
+        // ─────────────────────────────────────────────────────────────
         public async Task GetProfileTotals(string profileUrl)
         {
             try
             {
-                var steamId = await _steamService.ResolveSteamIdAsync(profileUrl);
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
 
-                // fast games total
-                double gamesValue = await _steamService.CalculateGamesTotalFastAsync(steamId);
-                var owned = await _steamService.GetOwnedGamesAsync(steamId);
-                int gamesCount = owned?.Count ?? 0;
+                var gamesTask = _steam.CalculateGamesFastAsync(steamId);
+                var invTask = _steam.CalculateInventoryValueAsync(steamId, 730, "CS2");
 
-                // inventory (CS2 only for speed)
-                var invResult = await _steamService.CalculateInventoryValueAsync(steamId, 730, "CS2");
-                double invValue = invResult.total;
-                var invItems = invResult.items;
-                int inventoryCount = invItems?.Count ?? 0;
+                await Task.WhenAll(gamesTask, invTask);
 
-                var total = gamesValue + invValue;
+                var (gamesCount, gamesValue) = await gamesTask;
+                var (invValue, invItems) = await invTask;
 
                 await Clients.Caller.SendAsync("ReceiveProfileTotalsDetailed", new
                 {
                     gamesCount,
                     gamesValue,
-                    inventoryCount,
+                    inventoryCount = invItems.Count,
                     inventoryValue = invValue,
-                    total
+                    total = gamesValue + invValue
                 });
 
-                await Clients.Caller.SendAsync("ReceiveProfileTotal", total);
+                await Clients.Caller.SendAsync("ReceiveProfileTotal", gamesValue + invValue);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  Snapshots históricos
+        // ─────────────────────────────────────────────────────────────
+        public async Task GetSnapshots(string profileUrl)
+        {
+            try
+            {
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
+                var snaps = _steam.GetAccountSnapshots(steamId);
+                await Clients.Caller.SendAsync("ReceiveSnapshots", snaps.Select(s => new
+                {
+                    time = s.time.ToString("dd/MM/yyyy HH:mm"),
+                    total = s.total
+                }));
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  Conquistas
+        // ─────────────────────────────────────────────────────────────
+        public async Task GetAchievements(string profileUrl, int appId)
+        {
+            try
+            {
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
+                var (total, unlocked, pct) = await _steam.GetPlayerAchievementsAsync(steamId, appId);
+                await Clients.Caller.SendAsync("ReceiveAchievements", appId, total, unlocked, pct);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  Wishlist
+        // ─────────────────────────────────────────────────────────────
+        public async Task GetWishlist(string profileUrl)
+        {
+            try
+            {
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
+                var wishlist = await _steam.GetWishlistAsync(steamId);
+                await Clients.Caller.SendAsync("ReceiveWishlist", wishlist.Take(30).Select(w => new
+                {
+                    appId = w.AppId,
+                    name = w.Name,
+                    imageUrl = w.ImageUrl,
+                    priority = w.Priority
+                }));
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  Badges e nível
+        // ─────────────────────────────────────────────────────────────
+        public async Task GetBadgesAndLevel(string profileUrl)
+        {
+            try
+            {
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
+                var levelTask = _steam.GetSteamLevelAsync(steamId);
+                var badgesTask = _steam.GetBadgesAsync(steamId);
+                await Task.WhenAll(levelTask, badgesTask);
+                var level = await levelTask;
+                var badges = await badgesTask;
+                await Clients.Caller.SendAsync("ReceiveBadgesAndLevel", new
+                {
+                    level,
+                    badgeCount = badges.Count,
+                    totalXp = badges.Sum(b => b.Xp),
+                    badges = badges.Take(12).Select(b => new { b.BadgeId, b.Level, b.Xp, b.AppId })
+                });
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  Jogos recentes
+        // ─────────────────────────────────────────────────────────────
+        public async Task GetRecentGames(string profileUrl)
+        {
+            try
+            {
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
+                var recent = await _steam.GetRecentlyPlayedGamesAsync(steamId, 10);
+                await Clients.Caller.SendAsync("ReceiveRecentGames", recent.Select(g => new
+                {
+                    appId = g.AppId,
+                    name = g.Name,
+                    playtime2weeks = g.Playtime2WeeksMinutes,
+                    playtimeForever = g.PlaytimeMinutes,
+                    imageUrl = g.ImageUrl
+                }));
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  Bans
+        // ─────────────────────────────────────────────────────────────
+        public async Task GetPlayerBans(string profileUrl)
+        {
+            try
+            {
+                var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
+                var bans = await _steam.GetPlayerBansAsync(steamId);
+                await Clients.Caller.SendAsync("ReceivePlayerBans", bans);
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", ex.Message);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  Detalhes completos de um amigo
+        // ─────────────────────────────────────────────────────────────
+        public async Task ComputeFriendDetails(string steamId)
+        {
+            try
+            {
+                var summaryTask = _steam.GetPlayerSummariesAsync(steamId);
+                var levelTask = _steam.GetSteamLevelAsync(steamId);
+                var bansTask = _steam.GetPlayerBansAsync(steamId);
+                var recentTask = _steam.GetRecentlyPlayedGamesAsync(steamId, 3);
+                var gamesTask = _steam.CalculateGamesFastAsync(steamId);
+
+                await Task.WhenAll(summaryTask, levelTask, bansTask, recentTask, gamesTask);
+
+                var summary = await summaryTask;
+                var level = await levelTask;
+                var bans = await bansTask;
+                var recent = await recentTask;
+                var (gamesCount, gamesValue) = await gamesTask;
+
+                JsonElement player = default;
+                if (summary != null)
+                {
+                    player = summary.Value.GetProperty("response").GetProperty("players")
+                        .EnumerateArray().FirstOrDefault();
+                }
+
+                await Clients.Caller.SendAsync("ReceiveFriendDetails", new
+                {
+                    steamId,
+                    name = player.ValueKind != JsonValueKind.Undefined
+                        ? player.TryGetProperty("personaname", out var pn) ? pn.GetString() : ""
+                        : "",
+                    avatar = player.ValueKind != JsonValueKind.Undefined
+                        ? (player.TryGetProperty("avatarfull", out var af) ? af.GetString() : "")
+                        : "",
+                    level,
+                    personastate = player.ValueKind != JsonValueKind.Undefined
+                        ? (player.TryGetProperty("personastate", out var ps) ? ps.GetInt32() : 0)
+                        : 0,
+                    country = player.ValueKind != JsonValueKind.Undefined
+                        ? (player.TryGetProperty("loccountrycode", out var cc) ? cc.GetString() : "")
+                        : "",
+                    gamesCount,
+                    gamesValue,
+                    bans = bans != null ? new
+                    {
+                        bans.VacBanned,
+                        bans.NumberOfVacBans,
+                        bans.NumberOfGameBans
+                    } : null,
+                    recentGames = recent.Select(g => new
+                    {
+                        appId = g.AppId,
+                        name = g.Name,
+                        playtime2weeks = g.Playtime2WeeksMinutes,
+                        imageUrl = g.ImageUrl
+                    })
+                });
             }
             catch (Exception ex)
             {

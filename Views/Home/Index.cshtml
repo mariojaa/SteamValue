@@ -1,13 +1,14 @@
-﻿@model CalculateViewModel
+@model CalculateViewModel
 @{
     ViewData["Title"] = "Steam Value Calculator";
+    Layout = null;
 }
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Value Calculator</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Russo+One&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@@latest/dist/browser/signalr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@@4.4.0/dist/chart.umd.min.js"></script>
@@ -16,654 +17,966 @@
             --primary: #ff6b35;
             --secondary: #00d9ff;
             --accent: #ffeb3b;
-            --dark-bg: #0a0e27;
-            --card-bg: #141b2d;
-            --border-color: #1e3a5f;
-            --text-primary: #ffffff;
-            --text-secondary: #8b9dc3;
-            --success: #4caf50;
-            --warning: #ff9800;
+            --dark-bg: #0a0e1a;
+            --card-bg: #111827;
+            --card-bg2: #1a2235;
+            --border: #1e3a5f;
+            --text: #ffffff;
+            --text-muted: #8b9dc3;
+            --success: #4ade80;
+            --danger: #f87171;
+            --warning: #fbbf24;
+            --online: #57c75b;
+            --offline: #6b7280;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
         body {
             font-family: 'Rajdhani', sans-serif;
             background: var(--dark-bg);
-            color: var(--text-primary);
+            color: var(--text);
             min-height: 100vh;
-            position: relative;
             overflow-x: hidden;
         }
-
-        /* Animated background */
         body::before {
             content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                radial-gradient(circle at 20% 50%, rgba(0, 217, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(255, 107, 53, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(255, 235, 59, 0.05) 0%, transparent 40%);
-            z-index: 0;
-            animation: backgroundShift 15s ease-in-out infinite;
+            position: fixed; inset: 0;
+            background:
+                radial-gradient(ellipse at 15% 50%, rgba(0,217,255,.08) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 80%, rgba(255,107,53,.08) 0%, transparent 55%);
+            z-index: 0; pointer-events: none;
         }
 
-        @@keyframes backgroundShift {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+        /* ── Nav ── */
+        .nav {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 32px;
+            background: rgba(10,14,26,.85);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 100;
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 3rem;
-            position: relative;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
-            opacity: 0.1;
-            filter: blur(60px);
-            z-index: -1;
-        }
-
-        h1 {
+        .nav-brand {
             font-family: 'Russo One', sans-serif;
-            font-size: 3.5rem;
+            font-size: 1.4rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-links a {
+            color: var(--text-muted); text-decoration: none; font-size: .95rem;
+            font-weight: 500; letter-spacing: .5px; transition: color .2s;
+        }
+        .nav-links a:hover { color: var(--secondary); }
+        .nav-links a.active { color: var(--secondary); }
+
+        /* ── Layout ── */
+        .page { max-width: 1280px; margin: 0 auto; padding: 28px 24px; position: relative; z-index: 1; }
+
+        /* ── Hero ── */
+        .hero { text-align: center; padding: 48px 0 36px; }
+        .hero h1 {
+            font-family: 'Russo One', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.8rem);
             background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 3px;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-transform: uppercase; letter-spacing: 3px;
             animation: titleGlow 3s ease-in-out infinite;
         }
-
         @@keyframes titleGlow {
-            0%, 100% { filter: drop-shadow(0 0 20px rgba(255, 107, 53, 0.5)); }
-            50% { filter: drop-shadow(0 0 40px rgba(0, 217, 255, 0.7)); }
+            0%,100% { filter: drop-shadow(0 0 20px rgba(255,107,53,.4)); }
+            50% { filter: drop-shadow(0 0 40px rgba(0,217,255,.6)); }
         }
+        .hero-sub { color: var(--text-muted); font-size: 1.15rem; margin-top: 8px; letter-spacing: 1.5px; }
 
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 1.2rem;
-            font-weight: 300;
-            letter-spacing: 2px;
-        }
-
-        .calculator-card {
+        /* ── Cards ── */
+        .card {
             background: var(--card-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 20px;
-            padding: 3rem;
-            margin-bottom: 2rem;
-            box-shadow: 
-                0 10px 40px rgba(0, 0, 0, 0.5),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative; overflow: hidden;
         }
-
-        .calculator-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, transparent 0%, rgba(0, 217, 255, 0.05) 100%);
+        .card::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(0,217,255,.03) 100%);
             pointer-events: none;
         }
 
-        .form-group {
-            margin-bottom: 2rem;
-            position: relative;
+        /* ── Calculator form ── */
+        .calc-card { margin-bottom: 24px; }
+        .form-label {
+            display: block; font-weight: 600; font-size: 1rem;
+            text-transform: uppercase; letter-spacing: 1px;
+            color: var(--text); margin-bottom: 10px;
         }
-
-        label {
-            display: block;
-            margin-bottom: 0.8rem;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .input-group { display: flex; gap: 12px; }
+        .steam-input {
+            flex: 1; padding: 14px 18px;
+            background: rgba(10,14,26,.7);
+            border: 1.5px solid var(--border); border-radius: 10px;
+            color: var(--text); font-size: 1rem; font-family: 'Rajdhani', sans-serif;
+            transition: border-color .25s, box-shadow .25s;
         }
-
-        .input-wrapper {
-            position: relative;
+        .steam-input:focus {
+            outline: none; border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(0,217,255,.12);
         }
+        .steam-input::placeholder { color: var(--text-muted); }
 
-        input[type="text"] {
-            width: 100%;
-            padding: 1.2rem 1.5rem;
-            background: rgba(10, 14, 39, 0.6);
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 1.1rem;
-            font-family: 'Rajdhani', sans-serif;
-            transition: all 0.3s ease;
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 12px 22px; border: none; border-radius: 10px;
+            font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: all .25s; letter-spacing: .5px;
         }
-
-        input[type="text"]:focus {
-            outline: none;
-            border-color: var(--secondary);
-            box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #e55a2b);
+            color: #fff;
         }
-
-        .checkbox-group {
-            display: flex;
-            gap: 2rem;
-            margin-bottom: 2rem;
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(0,217,255,.12);
+            color: var(--secondary); border: 1px solid rgba(0,217,255,.25);
         }
+        .btn-secondary:hover { background: rgba(0,217,255,.22); }
+        .btn-ghost { background: rgba(255,255,255,.06); color: var(--text-muted); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: rgba(255,255,255,.1); color: var(--text); }
+        .btn:disabled { opacity: .5; pointer-events: none; }
 
-        .checkbox-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            cursor: pointer;
-            transition: transform 0.2s ease;
+        .checkbox-row { display: flex; gap: 24px; margin: 18px 0; flex-wrap: wrap; }
+        .check-item { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .check-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--secondary); cursor: pointer; }
+        .check-item label { cursor: pointer; font-size: 1.05rem; font-weight: 500; }
+
+        .action-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+        /* ── Progress ── */
+        .progress-wrap {
+            display: none; margin-top: 20px;
+            background: rgba(0,0,0,.3); border-radius: 10px; padding: 18px;
         }
-
-        .checkbox-wrapper:hover {
-            transform: translateX(5px);
-        }
-
-        input[type="checkbox"] {
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            accent-color: var(--secondary);
-        }
-
-        .checkbox-wrapper label {
-            margin: 0;
-            cursor: pointer;
-            font-size: 1.1rem;
-            text-transform: none;
-        }
-
-        .btn-calculate {
-            width: 100%;
-            padding: 1.5rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border: none;
-            border-radius: 12px;
-            color: var(--text-primary);
-            font-size: 1.3rem;
-            font-weight: 700;
-            font-family: 'Russo One', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 20px rgba(255, 107, 53, 0.4);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-calculate::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .btn-calculate:hover::before {
-            width: 400px;
-            height: 400px;
-        }
-
-        .btn-calculate:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(0, 217, 255, 0.6);
-        }
-
-        .btn-calculate:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Progress Bar */
-        .progress-container {
-            display: none;
-            margin-top: 2rem;
-            padding: 2rem;
-            background: rgba(10, 14, 39, 0.6);
-            border: 2px solid var(--border-color);
-            border-radius: 15px;
-        }
-
-        .progress-container.active {
-            display: block;
-            animation: slideDown 0.4s ease;
-        }
-
-        @@keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .progress-label {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--secondary);
-        }
-
-        .progress-percentage {
-            font-size: 1.5rem;
-            font-weight: 700;
-            font-family: 'Russo One', sans-serif;
-            color: var(--accent);
-        }
-
-        .progress-bar-wrapper {
-            height: 30px;
-            background: rgba(30, 58, 95, 0.5);
-            border-radius: 15px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
-        }
-
-        .progress-bar {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
-            background-size: 200% 100%;
-            border-radius: 15px;
-            transition: width 0.5s ease;
-            animation: progressShine 2s linear infinite;
-            position: relative;
-            box-shadow: 0 0 20px rgba(0, 217, 255, 0.6);
-        }
-
-        @@keyframes progressShine {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
-        .progress-bar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 50%;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent);
-            border-radius: 15px 15px 0 0;
-        }
-
-        .status-message {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: rgba(0, 217, 255, 0.1);
-            border-left: 4px solid var(--secondary);
-            border-radius: 5px;
-            font-size: 1rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        /* Results Container */
-        .results-container {
-            display: none;
-            margin-top: 2rem;
-        }
-
-        .results-container.active {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-
-        @@keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .results-section {
-            background: var(--card-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 15px;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .results-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
+        .progress-wrap.active { display: block; }
+        .progress-meta { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .progress-label { font-size: .9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .progress-pct { font-size: .9rem; color: var(--secondary); font-weight: 700; }
+        .progress-bar-bg { height: 6px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; }
+        .progress-bar-fill {
+            height: 100%; width: 0%;
             background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 99px;
+            transition: width .4s ease;
         }
+        .progress-msg { font-size: .88rem; color: var(--text-muted); margin-top: 8px; }
 
-        .results-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+        /* ── Stats strip ── */
+        .stats-strip {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px; margin-bottom: 24px;
         }
-
-        .results-icon {
-            font-size: 2rem;
+        .stat-item {
+            background: var(--card-bg2); border: 1px solid var(--border); border-radius: 12px;
+            padding: 18px 20px;
         }
+        .stat-label { font-size: .82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .stat-value { font-family: 'Russo One', sans-serif; font-size: 1.6rem; color: var(--accent); }
+        .stat-value.green { color: var(--success); }
+        .stat-value.cyan { color: var(--secondary); }
 
-        .results-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .item-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.8rem;
-        }
-
-        .item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            background: rgba(10, 14, 39, 0.6);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            animation: itemSlide 0.4s ease;
-        }
-
-        @@keyframes itemSlide {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .item:hover {
-            border-color: var(--secondary);
-            background: rgba(0, 217, 255, 0.1);
-            transform: translateX(10px);
-        }
-
-        .item-name {
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
-
-        .item-value {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--accent);
-        }
-
-        .total-value {
-            margin-top: 2rem;
-            padding: 2rem;
-            background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(0, 217, 255, 0.2));
+        /* ── Total box ── */
+        .total-box {
+            background: linear-gradient(135deg, rgba(255,107,53,.15), rgba(0,217,255,.15));
             border: 2px solid var(--accent);
-            border-radius: 15px;
-            text-align: center;
-            animation: pulse 2s ease-in-out infinite;
+            border-radius: 16px; padding: 28px; text-align: center;
+            margin-bottom: 24px;
+            animation: pulse 2.5s ease-in-out infinite;
         }
-
         @@keyframes pulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(255, 235, 59, 0.4); }
-            50% { box-shadow: 0 0 40px rgba(255, 235, 59, 0.8); }
+            0%,100% { box-shadow: 0 0 20px rgba(255,235,59,.3); }
+            50% { box-shadow: 0 0 50px rgba(255,235,59,.6); }
+        }
+        .total-lbl { font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+        .total-val { font-family: 'Russo One', sans-serif; font-size: clamp(2rem, 5vw, 3.5rem); color: var(--accent); }
+
+        /* ── Profile panel ── */
+        .profile-panel {
+            display: none;
+            background: var(--card-bg2); border: 1px solid var(--border); border-radius: 16px;
+            padding: 24px; margin-bottom: 24px;
+        }
+        .profile-panel.active { display: block; }
+        .profile-header { display: flex; gap: 18px; align-items: flex-start; margin-bottom: 16px; }
+        .profile-avatar { width: 84px; height: 84px; border-radius: 8px; border: 2px solid var(--secondary); }
+        .profile-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+        .profile-status { font-size: .88rem; display: flex; align-items: center; gap: 6px; }
+        .online-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--online); display: inline-block; }
+        .offline-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--offline); display: inline-block; }
+        .profile-meta { display: flex; flex-wrap: wrap; gap: 12px; }
+        .meta-chip {
+            background: rgba(255,255,255,.06); border: 1px solid var(--border);
+            border-radius: 8px; padding: 6px 12px; font-size: .85rem;
+        }
+        .ban-chip { background: rgba(248,113,113,.15); border-color: var(--danger); color: var(--danger); }
+        .level-chip { background: rgba(0,217,255,.1); border-color: var(--secondary); color: var(--secondary); }
+        .recent-games-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+        .mini-game {
+            width: 120px; background: rgba(0,0,0,.3); border-radius: 8px;
+            overflow: hidden; font-size: .78rem;
+        }
+        .mini-game img { width: 100%; height: 56px; object-fit: cover; display: block; }
+        .mini-game-info { padding: 5px 7px; }
+        .mini-game-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mini-game-time { color: var(--text-muted); }
+
+        /* ── Sections ── */
+        .section-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .section-title { font-size: 1.1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .section-badge {
+            background: rgba(0,217,255,.15); color: var(--secondary);
+            border-radius: 99px; padding: 3px 10px; font-size: .8rem; font-weight: 700;
         }
 
-        .total-label {
-            font-size: 1.3rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+        /* ── Games grid ── */
+        .filters-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+        .select-input, .num-input {
+            padding: 8px 12px; background: rgba(10,14,26,.8);
+            border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text); font-family: 'Rajdhani', sans-serif; font-size: .9rem;
         }
-
-        .total-amount {
-            font-size: 3rem;
-            font-weight: 700;
-            font-family: 'Russo One', sans-serif;
-            color: var(--accent);
-            text-shadow: 0 0 20px rgba(255, 235, 59, 0.5);
+        .games-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 14px; max-height: 520px; overflow-y: auto;
         }
-
-        .error-message {
-            padding: 1.5rem;
-            background: rgba(255, 107, 53, 0.2);
-            border: 2px solid var(--primary);
-            border-radius: 10px;
-            color: var(--text-primary);
-            margin-top: 2rem;
-            animation: shake 0.5s ease;
+        .games-grid::-webkit-scrollbar { width: 6px; }
+        .games-grid::-webkit-scrollbar-thumb { background: rgba(0,217,255,.3); border-radius: 99px; }
+        .game-card {
+            background: var(--card-bg2); border: 1px solid var(--border); border-radius: 10px;
+            overflow: hidden; transition: transform .2s, border-color .2s;
+            cursor: pointer;
         }
+        .game-card:hover { transform: translateY(-3px); border-color: rgba(0,217,255,.35); }
+        .game-card img { width: 100%; height: 90px; object-fit: cover; display: block; }
+        .game-card-body { padding: 10px; }
+        .game-name { font-size: .88rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .game-price { font-size: .82rem; color: var(--success); font-weight: 700; margin-top: 3px; }
+        .game-playtime { font-size: .78rem; color: var(--text-muted); margin-top: 2px; }
 
+        /* ── Inventory ── */
+        .inv-section { margin-top: 24px; }
+        .inv-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .inv-tab {
+            padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border);
+            background: rgba(255,255,255,.04); cursor: pointer; font-size: .9rem; font-weight: 600;
+            transition: all .2s;
+        }
+        .inv-tab.active { background: rgba(0,217,255,.15); border-color: var(--secondary); color: var(--secondary); }
+        .inv-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px; max-height: 400px; overflow-y: auto;
+        }
+        .inv-grid::-webkit-scrollbar { width: 5px; }
+        .inv-grid::-webkit-scrollbar-thumb { background: rgba(0,217,255,.25); border-radius: 99px; }
+        .inv-card {
+            background: rgba(0,0,0,.3); border: 1px solid var(--border); border-radius: 8px;
+            overflow: hidden; transition: border-color .2s;
+        }
+        .inv-card:hover { border-color: rgba(255,235,59,.3); }
+        .inv-card img { width: 100%; height: 80px; object-fit: cover; display: block; }
+        .inv-card-body { padding: 8px; }
+        .inv-name { font-size: .78rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .inv-price { font-size: .78rem; color: var(--warning); font-weight: 700; margin-top: 2px; }
+
+        /* ── Wishlist ── */
+        .wish-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
+        .wish-item {
+            display: flex; gap: 12px; align-items: center;
+            background: rgba(0,0,0,.25); border-radius: 8px; padding: 10px;
+            border: 1px solid var(--border);
+        }
+        .wish-img { width: 80px; height: 40px; object-fit: cover; border-radius: 4px; }
+        .wish-name { font-size: .9rem; font-weight: 600; }
+        .wish-priority { font-size: .78rem; color: var(--text-muted); }
+
+        /* ── Chart ── */
+        .chart-wrap { position: relative; height: 220px; }
+
+        /* ── Two column layout ── */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @@media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+        /* ── Badges ── */
+        .badge-info {
+            display: flex; gap: 16px; flex-wrap: wrap;
+        }
+        .badge-stat { background: rgba(0,0,0,.3); border-radius: 8px; padding: 12px 18px; text-align: center; }
+        .badge-stat-val { font-family: 'Russo One', sans-serif; font-size: 1.5rem; color: var(--secondary); }
+        .badge-stat-lbl { font-size: .78rem; color: var(--text-muted); text-transform: uppercase; }
+
+        /* ── Error ── */
+        .error-box {
+            background: rgba(248,113,113,.12); border: 1px solid var(--danger);
+            border-radius: 10px; padding: 16px; color: var(--danger); margin-top: 16px;
+            animation: shake .4s ease;
+        }
         @@keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
+            0%,100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
         }
 
-        /* Loading Animation */
-        .loading-dots {
-            display: inline-block;
-        }
+        /* ── Loading spinner ── */
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.2); border-top-color: var(--secondary); border-radius: 50%; animation: spin .7s linear infinite; }
+        @@keyframes spin { to { transform: rotate(360deg); } }
+        .dots span { animation: blink 1.4s infinite both; }
+        .dots span:nth-child(2) { animation-delay: .2s; }
+        .dots span:nth-child(3) { animation-delay: .4s; }
+        @@keyframes blink { 0%,80%,100% { opacity: 0; } 40% { opacity: 1; } }
 
-        .loading-dots span {
-            animation: blink 1.4s infinite;
-            animation-fill-mode: both;
-        }
+        /* ── Hidden ── */
+        .hidden { display: none !important; }
 
-        .loading-dots span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .loading-dots span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @@keyframes blink {
-            0%, 80%, 100% { opacity: 0; }
-            40% { opacity: 1; }
-        }
-
-        @@media (max-width: 768px) {
-            h1 {
-                font-size: 2.5rem;
-            }
-
-            .calculator-card {
-                padding: 2rem;
-            }
-
-            .checkbox-group {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .total-amount {
-                font-size: 2rem;
-            }
+        /* ── Responsive ── */
+        @@media (max-width: 600px) {
+            .nav { padding: 12px 16px; }
+            .page { padding: 18px 14px; }
+            .games-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Steam Value Calculator</h1>
-            <p class="subtitle">Calcule o valor da sua conta Steam em tempo real</p>
-        </div>
 
-        <div class="calculator-card">
-            <form id="calculatorForm">
-                <div class="form-group">
-                    <label for="profileUrl">🔗 Link do Perfil Steam</label>
-                    <div class="input-wrapper">
-                        <input type="text" 
-                               id="profileUrl" 
-                               name="profileUrl" 
-                               placeholder="https://steamcommunity.com/id/seu-perfil" 
-                               required>
-                    </div>
-                </div>
+<nav class="nav">
+    <div class="nav-brand">⚡ SteamValue</div>
+    <div class="nav-links">
+        <a href="/" class="active">Calculadora</a>
+        <a href="/Home/Friends" id="navFriendsLink">Amigos</a>
+    </div>
+</nav>
 
-                <div class="checkbox-group">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="calculateGames" name="calculateGames" checked>
-                        <label for="calculateGames">🎮 Valor dos Jogos</label>
-                    </div>
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="calculateInventory" name="calculateInventory" checked>
-                        <label for="calculateInventory">📦 Valor do Inventário</label>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-calculate" id="btnCalculate">
-                    <span>Iniciar Cálculo</span>
-                </button>
-            </form>
-
-            <!-- Quick action buttons -->
-            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
-                <button id="btnProfileSummary" class="btn-calculate" style="width:auto;padding:10px 16px;background:var(--card-bg);font-size:0.95rem;">Ver Resumo do Perfil</button>
-                <a id="openFriendsLink" href="/Home/Friends" class="btn-calculate" style="width:auto;padding:10px 16px;background:var(--card-bg);font-size:0.95rem;text-decoration:none;display:inline-block;">Ver Amigos</a>
-                <button id="btnGetSnapshots" class="btn-calculate" style="width:auto;padding:10px 16px;background:var(--card-bg);font-size:0.95rem;">Ver Histórico</button>
-                <button id="btnExportCsv" class="btn-calculate" style="width:auto;padding:10px 16px;background:var(--card-bg);font-size:0.95rem;">Export CSV</button>
-            </div>
-
-            <!-- Filters / sorting -->
-            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
-                <label style="color:var(--text-secondary);">Ordenar por:</label>
-                <select id="sortSelect" style="background:rgba(10,14,39,0.6);border:2px solid var(--border-color);padding:8px;border-radius:6px;color:var(--text-primary">
-                    <option value="value_desc">Valor (maior)</option>
-                    <option value="value_asc">Valor (menor)</option>
-                    <option value="playtime_desc">Playtime (maior)</option>
-                    <option value="name_asc">Nome (A-Z)</option>
-                </select>
-                <label style="color:var(--text-secondary);">Filtro valor &lt;= R$</label>
-                <input id="filterMaxValue" type="number" min="0" step="0.01" style="width:120px;padding:8px;background:rgba(10,14,39,0.6);border:2px solid var(--border-color);border-radius:6px;color:var(--text-primary)" />
-                <button id="btnApplyFilter" class="btn-calculate" style="width:auto;padding:8px 12px;background:var(--card-bg);font-size:0.95rem;">Aplicar</button>
-            </div>
-
-            <!-- Progress Bar -->
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-header">
-                    <span class="progress-label">Processando</span>
-                    <span class="progress-percentage" id="progressPercentage">0%</span>
-                </div>
-                <div class="progress-bar-wrapper">
-                    <div class="progress-bar" id="progressBar"></div>
-                </div>
-                <div class="status-message" id="statusMessage">
-                    Iniciando<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Left column: results -->
-        <div class="results-container" id="resultsContainer">
-            <div id="resultsContent"></div>
-        </div>
-
-        <!-- Right column / panels -->
-        <div style="margin-top:16px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
-            <div id="profilePanel" style="flex:1;min-width:260px;">
-                <!-- Profile summary will be injected here -->
-            </div>
-
-            <div id="friendsPanel" style="flex:1;min-width:260px;">
-                <!-- Friends list will be injected here -->
-            </div>
-
-            <div id="historyPanel" style="flex:2;min-width:320px;">
-                <canvas id="historyChart" style="width:100%;height:220px;background:transparent;border-radius:8px;"></canvas>
-            </div>
-        </div>
-
-        <div id="errorContainer"></div>
+<div class="page">
+    <div class="hero">
+        <h1>Steam Value Calculator</h1>
+        <p class="hero-sub">Calcule o valor total da sua conta Steam em tempo real</p>
     </div>
 
-    <!-- Achievements & Market modals (simple placeholders) -->
-    <div id="achievementsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:9999;">
-        <div style="background:var(--card-bg);padding:20px;border-radius:10px;max-width:600px;width:90%;">
-            <h3 id="achTitle">Conquistas</h3>
-            <div id="achContent"></div>
-            <div style="text-align:right;margin-top:12px;"><button id="closeAch" class="btn-calculate">Fechar</button></div>
+    <!-- Calculator Card -->
+    <div class="card calc-card">
+        <div class="form-label">🔗 URL do Perfil Steam</div>
+        <div class="input-group">
+            <input type="text" class="steam-input" id="profileUrl"
+                   placeholder="https://steamcommunity.com/id/seu-perfil ou /profiles/ID">
+            <button class="btn btn-primary" id="btnCalc">
+                <div class="spinner hidden" id="btnSpinner"></div>
+                <span id="btnText">Calcular</span>
+            </button>
         </div>
+
+        <div class="checkbox-row">
+            <label class="check-item">
+                <input type="checkbox" id="calcGames" checked>
+                <span>🎮 Valor dos Jogos</span>
+            </label>
+            <label class="check-item">
+                <input type="checkbox" id="calcInventory" checked>
+                <span>📦 Inventários (CS2, Dota2, TF2…)</span>
+            </label>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn btn-ghost" id="btnProfile">👤 Ver Perfil</button>
+            <button class="btn btn-ghost" id="btnWishlist">💜 Wishlist</button>
+            <button class="btn btn-ghost" id="btnBadges">🏆 Badges</button>
+            <button class="btn btn-ghost" id="btnHistory">📈 Histórico</button>
+            <button class="btn btn-ghost" id="btnExport">📥 Exportar CSV</button>
+            <a class="btn btn-secondary" id="btnFriends" href="#">👥 Ver Amigos</a>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-wrap" id="progressWrap">
+            <div class="progress-meta">
+                <span class="progress-label">Processando</span>
+                <span class="progress-pct" id="progressPct">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+            <div class="progress-msg" id="progressMsg">Iniciando<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
+        </div>
+
+        <div id="errorBox"></div>
     </div>
 
-    <div id="marketModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:9999;">
-        <div style="background:var(--card-bg);padding:20px;border-radius:10px;max-width:600px;width:90%;">
-            <h3 id="marketTitle">Market</h3>
-            <div id="marketContent"></div>
-            <div style="text-align:right;margin-top:12px;"><button id="closeMarket" class="btn-calculate">Fechar</button></div>
+    <!-- Profile Panel -->
+    <div class="profile-panel" id="profilePanel">
+        <div class="section-header">
+            <span class="section-title">👤 Perfil</span>
+        </div>
+        <div class="profile-header">
+            <img src="" alt="Avatar" class="profile-avatar" id="pAvatar">
+            <div>
+                <div class="profile-name" id="pName">—</div>
+                <div class="profile-status" id="pStatus"></div>
+                <div class="profile-meta" id="pMeta" style="margin-top:10px"></div>
+            </div>
+        </div>
+        <div class="recent-games-row" id="pRecentGames"></div>
+    </div>
+
+    <!-- Stats Strip (hidden until calculated) -->
+    <div class="stats-strip hidden" id="statsStrip">
+        <div class="stat-item">
+            <div class="stat-label">🎮 Total de Jogos</div>
+            <div class="stat-value cyan" id="statGamesCount">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">💰 Valor dos Jogos</div>
+            <div class="stat-value green" id="statGamesVal">R$ 0,00</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">📦 Itens Inventário</div>
+            <div class="stat-value cyan" id="statInvCount">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">💎 Valor Inventário</div>
+            <div class="stat-value green" id="statInvVal">R$ 0,00</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">🕒 Tempo Total</div>
+            <div class="stat-value" id="statPlaytime">0 h</div>
         </div>
     </div>
 
-    <script src="~/js/Signalr calculator.js"></script>
-    <script>
-        // Open friends page with current profileUrl as query parameter
-        document.getElementById('openFriendsLink').addEventListener('click', function (e) {
-            e.preventDefault();
-            const profile = document.getElementById('profileUrl').value || '';
-            // store to localStorage so Friends page can pick it up if query param missing
-            try { localStorage.setItem('steamProfileUrl', profile); } catch (ex) { }
-            const url = '/Home/Friends' + (profile ? ('?profileUrl=' + encodeURIComponent(profile)) : '');
-            window.location.href = url;
+    <!-- Total Box -->
+    <div class="total-box hidden" id="totalBox">
+        <div class="total-lbl">💰 Valor Total Estimado da Conta</div>
+        <div class="total-val" id="totalVal">R$ 0,00</div>
+    </div>
+
+    <!-- Games Section -->
+    <div class="card hidden" id="gamesSection" style="margin-bottom:24px">
+        <div class="section-header">
+            <span class="section-title">🎮 Biblioteca de Jogos</span>
+            <span class="section-badge" id="gamesBadge">0 jogos</span>
+        </div>
+        <div class="filters-bar">
+            <select class="select-input" id="sortGames">
+                <option value="price_desc">Valor (maior)</option>
+                <option value="price_asc">Valor (menor)</option>
+                <option value="playtime_desc">Mais jogado</option>
+                <option value="name_asc">Nome A-Z</option>
+            </select>
+            <input type="number" class="num-input" id="filterMaxVal" placeholder="Valor máx. R$" min="0" style="width:160px">
+            <button class="btn btn-ghost" onclick="applyGamesFilter()">Aplicar</button>
+        </div>
+        <div class="games-grid" id="gamesGrid"></div>
+    </div>
+
+    <!-- Inventory Section -->
+    <div class="card hidden" id="invSection" style="margin-bottom:24px">
+        <div class="section-header">
+            <span class="section-title">📦 Inventários</span>
+            <span class="section-badge" id="invBadge">0 itens</span>
+        </div>
+        <div class="inv-tabs" id="invTabs"></div>
+        <div class="inv-grid" id="invGrid"></div>
+    </div>
+
+    <!-- Two column: Wishlist + Badges -->
+    <div class="two-col">
+        <div class="card hidden" id="wishSection">
+            <div class="section-header">
+                <span class="section-title">💜 Wishlist</span>
+                <span class="section-badge" id="wishBadge">0</span>
+            </div>
+            <div class="wish-list" id="wishList"></div>
+        </div>
+
+        <div class="card hidden" id="badgesSection">
+            <div class="section-header">
+                <span class="section-title">🏆 Badges & Nível</span>
+            </div>
+            <div class="badge-info" id="badgeInfo"></div>
+        </div>
+    </div>
+
+    <!-- History Chart -->
+    <div class="card hidden" id="historySection" style="margin-top:24px">
+        <div class="section-header">
+            <span class="section-title">📈 Histórico de Valor</span>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="histChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── State ──
+let connection = null;
+let allGames = [];
+let inventories = {}; // gameName => [{name, price, imageUrl}]
+let activeInvTab = null;
+let histChart = null;
+let snapshotData = [];
+let totalGamesValue = 0, totalInvValue = 0, totalGamesCount = 0, totalInvCount = 0, totalPlaytime = 0;
+
+// ── SignalR ──
+function buildConnection() {
+    connection = new signalR.HubConnectionBuilder()
+        .withUrl('/calculationHub')
+        .withAutomaticReconnect()
+        .build();
+
+    connection.on('UpdateProgress', (pct, msg) => {
+        document.getElementById('progressWrap').classList.add('active');
+        document.getElementById('progressBar').style.width = pct + '%';
+        document.getElementById('progressPct').textContent = pct + '%';
+        document.getElementById('progressMsg').textContent = msg;
+    });
+
+    connection.on('ReceiveProfileInfo', (info) => renderProfileInfo(info));
+    connection.on('ReceiveProfileSummary', (data) => {
+        if (data?.summary) renderProfileSummary(data);
+    });
+
+    connection.on('ReceiveGamesData', (games, total) => {
+        allGames = games || [];
+        totalGamesValue = total || 0;
+        totalGamesCount = allGames.length;
+        totalPlaytime = allGames.reduce((s, g) => s + (g.playtimeMinutes || 0), 0);
+        document.getElementById('gamesSection').classList.remove('hidden');
+        applyGamesFilter();
+        updateStatsStrip();
+        saveCsvData();
+    });
+
+    connection.on('ReceiveInventoryData', (gameName, items, total) => {
+        if (!items || items.length === 0) return;
+        inventories[gameName] = { items, total };
+        totalInvCount += items.length;
+        totalInvValue += total;
+        renderInvSection();
+        updateStatsStrip();
+        document.getElementById('invSection').classList.remove('hidden');
+    });
+
+    connection.on('ReceiveTotalValue', (total) => {
+        document.getElementById('totalBox').classList.remove('hidden');
+        document.getElementById('totalVal').textContent = formatBRL(total);
+        snapshotData.push({ time: new Date().toLocaleTimeString('pt-BR'), total });
+        updateHistChart();
+    });
+
+    connection.on('ReceiveWishlist', (items) => {
+        renderWishlist(items);
+    });
+
+    connection.on('ReceiveBadges', (data) => {
+        renderBadges(data);
+    });
+
+    connection.on('ReceiveBadgesAndLevel', (data) => {
+        renderBadgesDetailed(data);
+    });
+
+    connection.on('ReceiveSnapshots', (snaps) => {
+        if (!snaps || snaps.length === 0) return;
+        snapshotData = snaps.map(s => ({ time: s.time, total: s.total }));
+        updateHistChart();
+        document.getElementById('historySection').classList.remove('hidden');
+    });
+
+    connection.on('ReceiveRecentGames', (games) => {
+        // already in profile info usually
+    });
+
+    connection.on('ReceiveError', (msg) => {
+        showError(msg);
+        resetBtn();
+    });
+
+    connection.start().catch(e => console.error('SignalR:', e));
+}
+
+// ── Handlers ──
+document.getElementById('btnCalc').addEventListener('click', startCalculation);
+document.getElementById('btnProfile').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    ensureConnected(() => connection.invoke('GetProfileSummary', url).catch(console.error));
+});
+document.getElementById('btnWishlist').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    ensureConnected(() => connection.invoke('GetWishlist', url)
+        .then(() => document.getElementById('wishSection').classList.remove('hidden'))
+        .catch(console.error));
+});
+document.getElementById('btnBadges').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    ensureConnected(() => connection.invoke('GetBadgesAndLevel', url)
+        .then(() => document.getElementById('badgesSection').classList.remove('hidden'))
+        .catch(console.error));
+});
+document.getElementById('btnHistory').addEventListener('click', () => {
+    const url = getUrl(); if (!url) return;
+    ensureConnected(() => {
+        connection.invoke('GetSnapshots', url).catch(console.error);
+        document.getElementById('historySection').classList.remove('hidden');
+    });
+});
+document.getElementById('btnExport').addEventListener('click', exportCSV);
+document.getElementById('btnFriends').addEventListener('click', (e) => {
+    e.preventDefault();
+    const url = getUrl();
+    try { localStorage.setItem('steamProfileUrl', url); } catch {}
+    window.location.href = '/Home/Friends' + (url ? '?profileUrl=' + encodeURIComponent(url) : '');
+});
+document.getElementById('navFriendsLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    const url = getUrl();
+    try { localStorage.setItem('steamProfileUrl', url); } catch {}
+    window.location.href = '/Home/Friends' + (url ? '?profileUrl=' + encodeURIComponent(url) : '');
+});
+
+// Enter key on input
+document.getElementById('profileUrl').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') startCalculation();
+});
+
+function getUrl() {
+    const url = document.getElementById('profileUrl').value.trim();
+    if (!url) { showError('Insira a URL do seu perfil Steam.'); return null; }
+    return url;
+}
+
+function ensureConnected(fn) {
+    if (connection && connection.state === signalR.HubConnectionState.Connected) {
+        fn();
+    } else {
+        showError('Aguardando conexão com o servidor...');
+    }
+}
+
+function startCalculation() {
+    const url = getUrl(); if (!url) return;
+    const calcGames = document.getElementById('calcGames').checked;
+    const calcInv = document.getElementById('calcInventory').checked;
+
+    // Reset
+    allGames = []; inventories = {}; totalGamesValue = 0; totalInvValue = 0;
+    totalGamesCount = 0; totalInvCount = 0; totalPlaytime = 0;
+    document.getElementById('gamesSection').classList.add('hidden');
+    document.getElementById('invSection').classList.add('hidden');
+    document.getElementById('totalBox').classList.add('hidden');
+    document.getElementById('statsStrip').classList.add('hidden');
+    document.getElementById('errorBox').innerHTML = '';
+    document.getElementById('invGrid').innerHTML = '';
+    document.getElementById('invTabs').innerHTML = '';
+
+    // Button state
+    document.getElementById('btnSpinner').classList.remove('hidden');
+    document.getElementById('btnText').textContent = 'Calculando...';
+    document.getElementById('btnCalc').disabled = true;
+    document.getElementById('progressWrap').classList.add('active');
+    document.getElementById('progressBar').style.width = '0%';
+
+    ensureConnected(() => {
+        connection.invoke('StartCalculation', url, calcGames, calcInv)
+            .then(resetBtn)
+            .catch(e => { showError(e.message); resetBtn(); });
+    });
+}
+
+function resetBtn() {
+    document.getElementById('btnSpinner').classList.add('hidden');
+    document.getElementById('btnText').textContent = 'Calcular';
+    document.getElementById('btnCalc').disabled = false;
+}
+
+// ── Profile ──
+function renderProfileInfo(info) {
+    if (!info) return;
+    const panel = document.getElementById('profilePanel');
+    panel.classList.add('active');
+    document.getElementById('pAvatar').src = info.avatar || '';
+    document.getElementById('pName').textContent = info.name || 'Perfil';
+
+    const state = info.personastate || 0;
+    const stateLbl = ['Offline','Online','Ocupado','Ausente','Cochilando','Quer jogar','Quer conversar'];
+    const stateColors = ['#6b7280','#57c75b','#4ade80','#fbbf24','#60a5fa','#a78bfa','#f472b6'];
+    document.getElementById('pStatus').innerHTML =
+        `<span style="width:9px;height:9px;border-radius:50%;background:${stateColors[state]||'#6b7280'};display:inline-block"></span>
+         ${stateLbl[state]||'Offline'}
+         ${info.country ? ' · ' + info.country : ''}`;
+
+    const meta = document.getElementById('pMeta');
+    meta.innerHTML = '';
+    if (info.level > 0) meta.innerHTML += `<span class="meta-chip level-chip">Nível ${info.level}</span>`;
+    if (info.created) {
+        const yr = new Date(info.created * 1000).getFullYear();
+        meta.innerHTML += `<span class="meta-chip">Desde ${yr}</span>`;
+    }
+    if (info.bans) {
+        if (info.bans.VacBanned) meta.innerHTML += `<span class="meta-chip ban-chip">⚠ VAC BANIDO (${info.bans.NumberOfVacBans}x, ${info.bans.DaysSinceLastBan} dias)</span>`;
+        if (info.bans.NumberOfGameBans > 0) meta.innerHTML += `<span class="meta-chip ban-chip">⚠ Game Ban (${info.bans.NumberOfGameBans}x)</span>`;
+        if (!info.bans.VacBanned && info.bans.NumberOfGameBans === 0) meta.innerHTML += `<span class="meta-chip" style="color:var(--success);border-color:var(--success)">✓ Sem bans</span>`;
+    }
+    if (info.profileUrl) meta.innerHTML += `<a class="meta-chip" href="${info.profileUrl}" target="_blank" style="color:var(--secondary);text-decoration:none">↗ Ver no Steam</a>`;
+
+    // Recent games
+    const rg = document.getElementById('pRecentGames');
+    rg.innerHTML = '';
+    if (info.recentGames && info.recentGames.length > 0) {
+        rg.innerHTML = '<div style="font-size:.8rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;width:100%">Jogados recentemente</div>';
+        info.recentGames.forEach(g => {
+            rg.innerHTML += `
+            <div class="mini-game">
+                <img src="${g.imageUrl}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
+                <div class="mini-game-info">
+                    <div class="mini-game-name" title="${g.name}">${g.name}</div>
+                    <div class="mini-game-time">${Math.round(g.playtime2weeks/60)} h (2 sem)</div>
+                </div>
+            </div>`;
         });
-    </script>
+    }
+}
+
+function renderProfileSummary(data) {
+    if (!data?.summary) return;
+    // data.summary is the full JSON element, navigate to player
+    const summary = data.summary;
+    // Try to extract player from response.players[0]
+    const player = summary?.response?.players?.[0];
+    if (!player) return;
+    renderProfileInfo({
+        avatar: player.avatarfull,
+        name: player.personaname,
+        personastate: player.personastate || 0,
+        country: player.loccountrycode,
+        created: player.timecreated,
+        profileUrl: player.profileurl,
+        level: data.level || 0,
+        bans: data.bans,
+        recentGames: (data.recentGames || [])
+    });
+}
+
+// ── Stats ──
+function updateStatsStrip() {
+    document.getElementById('statsStrip').classList.remove('hidden');
+    document.getElementById('statGamesCount').textContent = totalGamesCount.toLocaleString('pt-BR');
+    document.getElementById('statGamesVal').textContent = formatBRL(totalGamesValue);
+    document.getElementById('statInvCount').textContent = totalInvCount.toLocaleString('pt-BR');
+    document.getElementById('statInvVal').textContent = formatBRL(totalInvValue);
+    const h = Math.round(totalPlaytime / 60);
+    document.getElementById('statPlaytime').textContent = h.toLocaleString('pt-BR') + ' h';
+}
+
+// ── Games ──
+function applyGamesFilter() {
+    const maxVal = parseFloat(document.getElementById('filterMaxVal').value) || Infinity;
+    const sort = document.getElementById('sortGames').value;
+
+    let list = [...allGames].filter(g => g.price <= maxVal || !isFinite(maxVal));
+
+    if (sort === 'price_desc') list.sort((a,b) => b.price - a.price);
+    else if (sort === 'price_asc') list.sort((a,b) => a.price - b.price);
+    else if (sort === 'playtime_desc') list.sort((a,b) => b.playtimeMinutes - a.playtimeMinutes);
+    else list.sort((a,b) => a.name.localeCompare(b.name));
+
+    document.getElementById('gamesBadge').textContent = list.length + ' jogos';
+    const grid = document.getElementById('gamesGrid');
+    grid.innerHTML = list.map(g => `
+        <div class="game-card" onclick="window.open('https://store.steampowered.com/app/${g.appId}','_blank')">
+            <img src="${g.imageUrl}" alt="${g.name}"
+                 onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
+            <div class="game-card-body">
+                <div class="game-name" title="${g.name}">${g.name}</div>
+                <div class="game-price">${g.price > 0 ? formatBRL(g.price) : 'Grátis'}</div>
+                <div class="game-playtime">${formatTime(g.playtimeMinutes)}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ── Inventory ──
+function renderInvSection() {
+    const tabs = document.getElementById('invTabs');
+    const names = Object.keys(inventories);
+    tabs.innerHTML = '';
+
+    if (!activeInvTab || !inventories[activeInvTab]) {
+        activeInvTab = names[0] || null;
+    }
+
+    let totalItems = 0;
+    names.forEach(name => {
+        totalItems += inventories[name].items.length;
+        const btn = document.createElement('button');
+        btn.className = 'inv-tab' + (name === activeInvTab ? ' active' : '');
+        btn.textContent = `${name} (${inventories[name].items.length}) — ${formatBRL(inventories[name].total)}`;
+        btn.onclick = () => { activeInvTab = name; renderInvSection(); };
+        tabs.appendChild(btn);
+    });
+
+    document.getElementById('invBadge').textContent = totalItems + ' itens';
+
+    const grid = document.getElementById('invGrid');
+    if (!activeInvTab || !inventories[activeInvTab]) { grid.innerHTML = ''; return; }
+
+    const items = [...inventories[activeInvTab].items].sort((a,b) => b.price - a.price);
+    grid.innerHTML = items.map(it => `
+        <div class="inv-card">
+            <img src="${it.imageUrl || 'https://via.placeholder.com/130x80?text=Item'}" alt="${it.name}"
+                 onerror="this.src='https://via.placeholder.com/130x80?text=Item'">
+            <div class="inv-card-body">
+                <div class="inv-name" title="${it.name}">${it.name}</div>
+                <div class="inv-price">${formatBRL(it.price)}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ── Wishlist ──
+function renderWishlist(items) {
+    if (!items || items.length === 0) return;
+    document.getElementById('wishSection').classList.remove('hidden');
+    document.getElementById('wishBadge').textContent = items.length;
+    document.getElementById('wishList').innerHTML = items.map(w => `
+        <div class="wish-item">
+            <img class="wish-img" src="${w.imageUrl}"
+                 onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${w.appId}/header.jpg'">
+            <div>
+                <div class="wish-name">${w.name}</div>
+                <div class="wish-priority">Prioridade: ${w.priority === 0 ? 'Alta' : w.priority}</div>
+            </div>
+            <a href="https://store.steampowered.com/app/${w.appId}" target="_blank" class="btn btn-ghost" style="margin-left:auto;padding:6px 10px;font-size:.8rem">↗</a>
+        </div>
+    `).join('');
+}
+
+// ── Badges ──
+function renderBadges(data) {
+    document.getElementById('badgesSection').classList.remove('hidden');
+    document.getElementById('badgeInfo').innerHTML = `
+        <div class="badge-stat">
+            <div class="badge-stat-val">${data.count}</div>
+            <div class="badge-stat-lbl">Badges</div>
+        </div>
+        <div class="badge-stat">
+            <div class="badge-stat-val">${(data.totalXp || 0).toLocaleString('pt-BR')}</div>
+            <div class="badge-stat-lbl">XP Total</div>
+        </div>
+    `;
+}
+
+function renderBadgesDetailed(data) {
+    document.getElementById('badgesSection').classList.remove('hidden');
+    document.getElementById('badgeInfo').innerHTML = `
+        <div class="badge-stat">
+            <div class="badge-stat-val">${data.level}</div>
+            <div class="badge-stat-lbl">Nível Steam</div>
+        </div>
+        <div class="badge-stat">
+            <div class="badge-stat-val">${data.badgeCount}</div>
+            <div class="badge-stat-lbl">Badges</div>
+        </div>
+        <div class="badge-stat">
+            <div class="badge-stat-val">${(data.totalXp || 0).toLocaleString('pt-BR')}</div>
+            <div class="badge-stat-lbl">XP Total</div>
+        </div>
+    `;
+}
+
+// ── History Chart ──
+function updateHistChart() {
+    if (snapshotData.length === 0) return;
+    document.getElementById('historySection').classList.remove('hidden');
+    const ctx = document.getElementById('histChart').getContext('2d');
+
+    const labels = snapshotData.map(s => s.time);
+    const values = snapshotData.map(s => s.total);
+
+    if (histChart) {
+        histChart.data.labels = labels;
+        histChart.data.datasets[0].data = values;
+        histChart.update();
+        return;
+    }
+
+    histChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Valor total (R$)',
+                data: values,
+                borderColor: '#00d9ff',
+                backgroundColor: 'rgba(0,217,255,.1)',
+                tension: .4,
+                pointBackgroundColor: '#ff6b35',
+                pointRadius: 5,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#8b9dc3' } } },
+            scales: {
+                x: { ticks: { color: '#8b9dc3' }, grid: { color: 'rgba(255,255,255,.05)' } },
+                y: {
+                    ticks: { color: '#8b9dc3', callback: v => 'R$ ' + v.toLocaleString('pt-BR') },
+                    grid: { color: 'rgba(255,255,255,.05)' }
+                }
+            }
+        }
+    });
+}
+
+// ── CSV Export ──
+let csvData = [];
+function saveCsvData() {
+    csvData = allGames.map(g => ({
+        type: 'Jogo', name: g.name, price: g.price,
+        extra: `${Math.round(g.playtimeMinutes/60)} h jogadas`
+    }));
+    Object.entries(inventories).forEach(([game, {items}]) => {
+        items.forEach(it => csvData.push({ type: `Inventário ${game}`, name: it.name, price: it.price, extra: '' }));
+    });
+}
+function exportCSV() {
+    if (csvData.length === 0 && allGames.length === 0) { showError('Nenhum dado para exportar. Calcule primeiro.'); return; }
+    saveCsvData();
+    const rows = ['Tipo,Nome,Preço (R$),Extra', ...csvData.map(r =>
+        `"${r.type}","${r.name.replace(/"/g,'""')}","${r.price.toFixed(2)}","${r.extra}"`)];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'steam_value.csv'; a.click();
+}
+
+// ── Helpers ──
+function formatBRL(v) {
+    return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+}
+function formatTime(minutes) {
+    if (!minutes) return '0 min';
+    if (minutes < 60) return minutes + ' min';
+    return Math.round(minutes / 60) + ' h';
+}
+function showError(msg) {
+    document.getElementById('errorBox').innerHTML = `<div class="error-box">⚠ ${msg}</div>`;
+}
+
+// ── Init ──
+buildConnection();
+
+// Restore URL from localStorage
+try {
+    const saved = localStorage.getItem('steamProfileUrl');
+    if (saved) document.getElementById('profileUrl').value = saved;
+} catch {}
+</script>
 </body>
 </html>

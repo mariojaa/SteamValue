@@ -18,6 +18,12 @@ namespace SteamValue.Controllers
             return View(new CalculateViewModel());
         }
 
+        public IActionResult Friends(string? profileUrl)
+        {
+            ViewData["ProfileUrl"] = profileUrl ?? "";
+            return View(new CalculateViewModel());
+        }
+
         public IActionResult Privacy()
         {
             return View();
@@ -27,12 +33,6 @@ namespace SteamValue.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
-
-        public IActionResult Friends(string profileUrl)
-        {
-            ViewData["ProfileUrl"] = profileUrl;
-            return View(new CalculateViewModel());
         }
     }
 }
