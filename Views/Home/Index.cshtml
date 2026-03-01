@@ -1,5 +1,6 @@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@removeTagHelper Microsoft.AspNetCore.Mvc.TagHelpers.BodyTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers
 @model CalculateViewModel
-@removeTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     ViewData["Title"] = "Steam Value Calculator";
     Layout = null;
@@ -447,7 +448,7 @@
         .roi-name { font-size:.85rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .roi-detail { font-size:.72rem; color:var(--text3); }
 
-        .lb-item { display:flex; gap:12px; align-items:center; padding:12px 14px; background:rgba(0,0,0,.25); border-radius:10px; border:1px solid var(--border); position:relative; overflow:hidden; }
+        .lb-item { display:flex; gap:12px; align-items:center; padding:16px 14px; background:rgba(0,0,0,.25); border-radius:10px; border:1px solid var(--border); position:relative; overflow:hidden; margin-bottom:8px; }
         .lb-item.me { border-color:rgba(0,229,255,.4); background:rgba(0,229,255,.05); }
         .lb-rank { font-family:'Orbitron',sans-serif; font-size:1.1rem; font-weight:900; width:36px; text-align:center; flex-shrink:0; }
         .lb-rank.r1 { color:var(--gold); }
@@ -673,7 +674,7 @@
                         <option value="metacritic_desc">⭐ Metacritic</option>
                         <option value="name_asc">🔤 Nome A-Z</option>
                     </select>
-                    <input type="number" class="num-s" id="filterMaxVal" placeholder="Valor máx. R$" style="width:140px">
+                    <input type="number" class="num-s" id="filterMaxVal" placeholder="Valor máx. R$" value="1000" style="width:140px">
                     <input type="text" class="text-s" id="filterSearch" placeholder="🔍 Buscar jogo..." style="width:180px">
                     <button class="btn btn-ghost btn-sm" onclick="applyGamesFilter()">Aplicar</button>
                 </div>
@@ -964,7 +965,7 @@
                 </div>
                 <p style="font-size:.8rem;color:var(--text2);margin-bottom:14px">Recomendações baseadas em avaliações da Steam Store. Jogos top que você ainda não possui!</p>
                 <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
-                    <input type="number" class="num-s" id="maxPriceFilter" placeholder="Preço máx. R$" value="50" style="width:140px">
+                    <input type="number" class="num-s" id="maxPriceFilter" placeholder="Preço máx. R$" value="1000" style="width:140px">
                     <button class="btn btn-primary btn-sm" onclick="loadTopRatedUnowned()">🔍 Buscar</button>
                 </div>
                 <div id="topRatedGrid" class="games-grid"></div>
@@ -1586,7 +1587,7 @@ document.getElementById('btnActivityPatterns').addEventListener('click', () => {
 
 document.getElementById('btnFreeGames').addEventListener('click', () => {
     showProgress('Buscando jogos grátis...');
-    showLoading('freeGamesGrid', 'Procurando jogos gratuitos na Steam...');
+    showLoading('freeGamesGrid', 'Buscando jogos gratuitos na Steam...');
     showFeaturePanel('freegames');
     ensureConnected(() => connection.invoke('GetFreeGamesToday')
         .catch(e => { showError(e.message); document.getElementById('progressWrap').classList.remove('active'); }));
@@ -1887,7 +1888,7 @@ function renderInvTabs() {
 function setInvTab(name) {
     activeInvTab = name;
     activeRarityFilter = '';
-    document.getElementById('invRarityFilter').value = activeRarityFilter;
+    document.getElementById('cs2WearFilters').style.display = name === 730 ? '' : 'none';
     renderInvTabs();
     renderRarityChart();
 }
@@ -1941,7 +1942,7 @@ function renderInvGrid() {
             ? `<div class="inv-price" style="color:var(--text3);font-size:.68rem">⏳ aguardando...</div>`
             : `<div class="inv-price">${it.price >= 0 ? fmtBRL(it.price) : '—'}</div>`;
         const marketUrl = `https://steamcommunity.com/market/listings/${marketAppId}/${encodeURIComponent(it.name)}`;
-        return `<div class="inv-card ${isPending?'pending-price':'has-price'}" title="${it.name}" onclick="window.open('${marketUrl}','_blank')" style="cursor:pointer">
+        return `<div class="inv-card ${isPending?'pending-price':'has-price'}" title="${it.name}" onclick="window.open('${marketUrl}','_blank')">
             <img src="${it.imageUrl||''}" alt="${it.name}" onerror="this.src='https://placehold.co/120x75/0d1524/00e5ff?text=?'">
             <div class="inv-card-info">
                 <div class="inv-name">${it.name}</div>
@@ -1977,8 +1978,8 @@ function renderRarityChart() {
     if (rarityChart) rarityChart.destroy();
     rarityChart = new Chart(ctx, {
         type: 'doughnut',
-        data: { labels: sorted.map(([r])=>r), datasets: [{ data: sorted.map(([,d])=>d.count), borderColor:'rgba(0,0,0,.3)', backgroundColor: sorted.map(([r])=>getRarityColor(r)+'bb'), borderWidth:2 }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins: { legend:{position:'right',labels:{color:'#8fadc8',font:{family:'Exo 2'}}}, tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw} itens`}} } }
+        data: { labels:sorted.map(([r])=>r), datasets:[{data:sorted.map(([,d])=>d.count),borderColor:'rgba(0,0,0,.3)',backgroundColor: sorted.map(([r])=>getRarityColor(r)+'bb'),borderWidth:2}] },
+        options: { responsive:true, maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#8fadc8',font:{family:'Exo 2'}}}, tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw} itens`}} } }
     });
 }
 
@@ -2085,7 +2086,7 @@ function renderPlaytimeAnalytics(data) {
             <span style="font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--text3);width:18px;flex-shrink:0">#${i+1}</span>
             <img src="${g.imageUrl||g.iconUrl||''}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId||g.AppId}/header.jpg'">
             <div style="flex:1;min-width:0">
-                <div class="mp-name">${g.name||g.Name}</div>
+                <div class="mp-name" title="${g.name||g.Name}">${g.name||g.Name}</div>
                 <div style="height:4px;background:rgba(255,255,255,.07);border-radius:99px;margin-top:4px;overflow:hidden">
                     <div style="height:100%;width:${Math.min(100,((g.playtimeMinutes||g.PlaytimeMinutes||0)/((data.mostPlayedGames||data.mostPlayed||[{}])[0]?.playtimeMinutes||(data.mostPlayedGames||data.mostPlayed||[{}])[0]?.PlaytimeMinutes||1))*100)}%;background:linear-gradient(90deg,var(--orange),var(--cyan));border-radius:99px"></div>
                 </div>
@@ -2194,6 +2195,7 @@ function renderGameScout(data) {
     document.getElementById('scoutBadge').textContent = data.length + ' sugestões';
     document.getElementById('scoutGrid').innerHTML = data.map(g => {
         const mc = g.metacritic>0?`<span class="metacritic-badge ${g.metacritic>=75?'mc-good':g.metacritic>=50?'mc-ok':'mc-bad'}">${g.metacritic}</span>`:'';
+        const score=g.reviewScore>0?`<span style="font-size:.68rem;color:var(--cyan)">⭐ ${g.reviewScore.toFixed(1)}</span>`:'';
         return `<div class="game-card" onclick="window.open('https://store.steampowered.com/app/${g.appId}','_blank')">
             <img src="${g.imageUrl||''}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'">
             <div class="game-card-info">
@@ -2237,6 +2239,7 @@ function renderTradeTracker(items) {
         const trend = t.trend>0.05?'📈':t.trend<-0.05?'📉':'➡️';
         const trendCls = t.trend>0.05?'trend-up':t.trend<-0.05?'trend-down':'trend-flat';
         const trendTxt = Math.abs(t.recentChange)>0.01 ? `${t.recentChange>0?'+':''}${fmtBRL(t.recentChange)}` : '';
+        const updatedTxt = t.updatedAt ? new Date(t.updatedAt).toLocaleString('pt-BR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}) : '';
         return `<div class="tracker-card">
             <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
                 <img src="${t.imageUrl||''}" style="width:52px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0" onerror="this.style.display='none'">
@@ -2455,7 +2458,7 @@ function renderActivityPatterns(data) {
         ${Object.entries(slots).filter(([,v])=>v.length>0).map(([slot,friends])=>`<div style="margin-bottom:18px"><div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${slotColors[slot]};margin-bottom:10px">${slotIcons[slot]} ${slot} (${friends.length})</div><div style="display:flex;flex-direction:column;gap:5px">${friends.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(0,0,0,.2);border-radius:7px;border:1px solid var(--border)"><img src="${p.avatar||''}" style="width:28px;height:28px;border-radius:4px;flex-shrink:0" onerror="this.style.display='none'"><div style="flex:1;min-width:0;font-size:.83rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</div>${p.isOnline?'<span style="color:var(--green);font-size:.7rem">● Online</span>':`<span style="font-size:.7rem;color:var(--text3)">${new Date(p.lastLogoffUnix*1000).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>`}</div>`).join('')}</div></div>`).join('')}`;
 }
 
-// ── Wishlist Analysis ──
+// ── Wishlist Analysis Tab ──
 function renderWishlistAnalysis(data) {
     const el = document.getElementById('wishlistAnalysisResult');
     if (!data||!data.totalItems) { el.innerHTML='<p style="color:var(--text3);padding:14px">Wishlist vazia ou privada.</p>'; return; }
@@ -2466,12 +2469,12 @@ function renderWishlistAnalysis(data) {
             <div class="badge-stat"><div class="badge-stat-val" style="color:var(--gold)">${fmtBRL(data.totalFullPrice)}</div><div class="badge-stat-lbl">Valor Total</div></div>
             <div class="badge-stat"><div class="badge-stat-val" style="color:var(--orange)">${fmtBRL(data.totalPriorityPrice)}</div><div class="badge-stat-lbl">Prioridade Alta</div></div>
         </div>
-        ${data.likelySaleItems&&data.likelySaleItems.length?`<div style="margin-bottom:20px"><div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:12px">🔥 Maior probabilidade de promoção</div><div style="display:flex;flex-direction:column;gap:7px">${data.likelySaleItems.map(i=>`<div class="wish-item" onclick="window.open('https://store.steampowered.com/app/${i.appId}','_blank')" style="cursor:pointer"><img class="wish-img" src="${i.imageUrl||''}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${i.appId}/header.jpg'"><div style="flex:1"><div class="wish-name">${i.name}</div><div style="font-size:.72rem;color:var(--text3)">${i.genre||''}</div></div><div style="text-align:right"><div style="font-family:'Orbitron',sans-serif;font-size:.9rem;color:var(--green)">${fmtBRL(i.currentPrice)}</div><div style="font-size:.7rem;color:var(--orange)">${i.saleProbability}% chance</div></div></div>`).join('')}</div></div>`:''}
+        ${data.likelySaleItems&&data.likelySaleItems.length?`<div style="margin-bottom:20px"><div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:10px">🔥 Maior probabilidade de promoção</div><div style="display:flex;flex-direction:column;gap:6px">${data.likelySaleItems.map(i=>`<div class="wish-item" onclick="window.open('https://store.steampowered.com/app/${i.appId}','_blank')" style="cursor:pointer"><img class="wish-img" src="${i.imageUrl||''}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${i.appId}/header.jpg'"><div style="flex:1"><div class="wish-name">${i.name}</div><div style="font-size:.72rem;color:var(--text3)">${i.genre||''}</div></div><div style="text-align:right"><div style="font-family:'Orbitron',sans-serif;font-size:.9rem;color:var(--green)">${fmtBRL(i.currentPrice)}</div><div style="font-size:.7rem;color:var(--orange)">${i.saleProbability}% chance</div></div></div>`).join('')}</div></div>`:''}
         <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:12px">📋 Lista completa</div>
         <div style="display:flex;flex-direction:column;gap:7px;max-height:350px;overflow-y:auto">${(data.items||[]).map(i=>`<div class="wish-item" onclick="window.open('https://store.steampowered.com/app/${i.appId}','_blank')" style="cursor:pointer"><img class="wish-img" src="${i.imageUrl||''}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${i.appId}/header.jpg'"><div style="flex:1"><div class="wish-name">${i.name}</div><div style="font-size:.72rem;color:var(--text3)">Prioridade: ${i.priority===0?'⭐ Alta':i.priority}</div></div><div style="text-align:right"><div style="font-family:'Orbitron',sans-serif;font-size:.9rem;color:var(--green)">${i.currentPrice>0?fmtBRL(i.currentPrice):'Grátis'}</div>${i.saleProbability>30?`<div style="font-size:.68rem;color:var(--orange)">${i.saleProbability}% promo</div>`:''}</div></div>`).join('')}</div>`;
 }
 
-// ── Free Games ──
+// ── Free Games Today Tab ──
 function renderFreeGames(data) {
     const grid = document.getElementById('freeGamesGrid');
     if (!data||!data.length) { grid.innerHTML='<p style="color:var(--text3);padding:14px">Nenhum jogo gratuito encontrado no momento.</p>'; return; }
@@ -2530,7 +2533,7 @@ function renderBacklogAnalysis(data) {
         <div class="games-grid">${(data.topPriorityGames||[]).map(g=>{const mc=g.metacritic>0?`<span class="metacritic-badge ${g.metacritic>=75?'mc-good':g.metacritic>=50?'mc-ok':'mc-bad'}">${g.metacritic}</span>`:''; return `<div class="game-card" onclick="window.open('https://store.steampowered.com/app/${g.appId}','_blank')"><img src="${g.imageUrl||''}" onerror="this.src='https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg'"><div class="game-card-info"><div class="game-name" title="${g.name}">${g.name}</div><div class="game-price">${g.price>0?fmtBRL(g.price):'Grátis'}</div><div class="game-meta">${mc}${g.genre||''}</div></div></div>`; }).join('')}</div>`;
 }
 
-// ── Top Rated Unowned ──
+// ── Top Rated Unowned Tab ──
 function renderTopRatedUnowned(data) {
     const grid = document.getElementById('topRatedGrid');
     if (!data||!data.length) { grid.innerHTML='<p style="color:var(--text3);padding:14px">Nenhuma recomendação encontrada. Tente aumentar o preço máximo.</p>'; return; }
@@ -2550,7 +2553,7 @@ function renderTopRatedUnowned(data) {
 
 function loadTopRatedUnowned() {
     const url = getUrl(); if (!url) return;
-    const maxPrice = parseFloat(document.getElementById('maxPriceFilter').value)||50;
+    const maxPrice = parseFloat(document.getElementById('maxPriceFilter').value)||1000;
     showProgress('Buscando recomendações...');
     showLoading('topRatedGrid', 'Buscando jogos bem avaliados...');
     showFeaturePanel('toprated');
@@ -2558,6 +2561,5 @@ function loadTopRatedUnowned() {
         .catch(e => { showError(e.message); document.getElementById('progressWrap').classList.remove('active'); }));
 }
 </script>
-
 </body>
 </html>

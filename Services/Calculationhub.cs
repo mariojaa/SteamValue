@@ -783,7 +783,18 @@ namespace SteamValue.Services
                 var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
                 var tracker = await _steam.GetTradeTrackerAsync(steamId, appId);
                 await Clients.Caller.SendAsync("ReceiveTradeTracker", tracker.Select(t => new
-                { name = t.Name, currentPrice = t.CurrentPrice, minPrice = t.MinPrice, maxPrice = t.MaxPrice, avgPrice = t.AvgPrice, trend = t.Trend, priceHistory = t.PriceHistory, imageUrl = t.ImageUrl, count = t.Count }));
+                { 
+                    name = t.Name, 
+                    currentPrice = t.CurrentPrice, 
+                    minPrice = t.MinPrice, 
+                    maxPrice = t.MaxPrice, 
+                    avgPrice = t.AvgPrice, 
+                    trend = t.Trend,
+                    // Frontend espera array simples de doubles
+                    priceHistory = t.PriceHistory.Cast<object>().ToList(), 
+                    imageUrl = t.ImageUrl, 
+                    count = t.Count
+                }));
             }
             catch (Exception ex) { await Clients.Caller.SendAsync("ReceiveError", ex.Message); }
         }
@@ -821,7 +832,16 @@ namespace SteamValue.Services
                 var steamId = await _steam.ResolveSteamIdAsync(profileUrl);
                 var patterns = await _steam.GetFriendActivityPatternsAsync(steamId);
                 await Clients.Caller.SendAsync("ReceiveFriendActivityPatterns", patterns.Select(p => new
-                { steamId = p.SteamId, name = p.Name, avatar = p.Avatar, lastLogoffHour = p.LastLogoffHour, activitySlot = p.ActivitySlot, lastLogoffUnix = p.LastLogoffUnix, isOnline = p.IsOnline, playingGame = p.PlayingGame }));
+                { 
+                    steamId = p.SteamId, 
+                    name = p.Name, 
+                    avatar = p.Avatar, 
+                    lastLogoffHour = p.LastLogoffHour, 
+                    activitySlot = p.ActivitySlot,  // lowercase 'activitySlot' para match com frontend
+                    lastLogoffUnix = p.LastLogoffUnix, 
+                    isOnline = p.IsOnline, 
+                    playingGame = p.PlayingGame 
+                }));
             }
             catch (Exception ex) { await Clients.Caller.SendAsync("ReceiveError", ex.Message); }
         }
@@ -835,12 +855,35 @@ namespace SteamValue.Services
                 var analysis = await _steam.GetWishlistAnalysisAsync(steamId);
                 await Clients.Caller.SendAsync("ReceiveWishlistAnalysis", new
                 {
-                    totalItems = analysis.TotalItems, pricedItems = analysis.PricedItems,
-                    totalFullPrice = analysis.TotalFullPrice, totalPriorityPrice = analysis.TotalPriorityPrice,
+                    steamId = analysis.SteamId,
+                    totalItems = analysis.TotalItems, 
+                    pricedItems = analysis.PricedItems,
+                    totalFullPrice = analysis.TotalFullPrice, 
+                    totalPriorityPrice = analysis.TotalPriorityPrice,
                     likelySaleItems = analysis.LikelySaleItems.Select(i => new
-                    { appId = i.AppId, name = i.Name, imageUrl = i.ImageUrl, currentPrice = i.CurrentPrice, saleProbability = i.SaleProbability, genre = i.Genre, metacritic = i.MetacriticScore }),
+                    { 
+                        appId = i.AppId, 
+                        name = i.Name, 
+                        imageUrl = i.ImageUrl, 
+                        currentPrice = i.CurrentPrice, 
+                        saleProbability = i.SaleProbability, 
+                        genre = i.Genre, 
+                        metacritic = i.MetacriticScore,
+                        developer = i.Developer
+                    }),
                     items = analysis.Items.Take(30).Select(i => new
-                    { appId = i.AppId, name = i.Name, imageUrl = i.ImageUrl, priority = i.Priority, currentPrice = i.CurrentPrice, saleProbability = i.SaleProbability, genre = i.Genre, developer = i.Developer, metacritic = i.MetacriticScore, added = i.Added })
+                    { 
+                        appId = i.AppId, 
+                        name = i.Name, 
+                        imageUrl = i.ImageUrl, 
+                        priority = i.Priority, 
+                        currentPrice = i.CurrentPrice, 
+                        saleProbability = i.SaleProbability, 
+                        genre = i.Genre, 
+                        developer = i.Developer, 
+                        metacritic = i.MetacriticScore, 
+                        added = i.Added 
+                    })
                 });
             }
             catch (Exception ex) { await Clients.Caller.SendAsync("ReceiveError", ex.Message); }
