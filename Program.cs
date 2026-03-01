@@ -1,16 +1,34 @@
+using SteamValue.Configuration;
+using SteamValue.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Steam API settings
+builder.Services.Configure<SteamApiConfig>(
+    builder.Configuration.GetSection(SteamApiConfig.ConfigSection));
+
 builder.Services.AddControllersWithViews();
-builder.Services.AddHttpClient();
+
+// Register HTTP clients
+builder.Services.AddHttpClient<SteamService>();
+builder.Services.AddHttpClient<SteamHttpClient>();
+
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<SteamService>();
+
+// Register services
+builder.Services.AddSingleton<SteamHttpClient>();
+builder.Services.AddSingleton<SteamWebApiService>();
+builder.Services.AddSingleton<SteamService>();
+
+// Configure SignalR with settings from config
+var steamConfig = builder.Configuration.GetSection(SteamApiConfig.ConfigSection).Get<SteamApiConfig>() ?? new SteamApiConfig();
 builder.Services.AddSignalR(options =>
 {
     options.MaximumReceiveMessageSize = 20 * 1024 * 1024; // 20 MB
-    options.ClientTimeoutInterval = TimeSpan.FromMinutes(30);  // era 10 — aumentado para operações longas
-    options.KeepAliveInterval = TimeSpan.FromSeconds(10);  // era 15 — mais agressivo para detectar quedas
-    options.HandshakeTimeout = TimeSpan.FromSeconds(30);  // novo: evita timeout no handshake inicial
-    options.EnableDetailedErrors = true;                      // mostra erros detalhados no cliente (desative em produção)
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(steamConfig.Timeouts.SignalRClientTimeoutSeconds);
+    options.KeepAliveInterval = TimeSpan.FromSeconds(steamConfig.Timeouts.SignalRKeepAliveSeconds);
+    options.HandshakeTimeout = TimeSpan.FromSeconds(steamConfig.Timeouts.SignalRHandshakeTimeoutSeconds);
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
 });
 
 builder.Services.AddCors(options =>
@@ -25,12 +43,6 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

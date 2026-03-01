@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
-using System.Collections.Concurrent;
 using System.Net;
 
 public class SteamService
@@ -11,18 +10,18 @@ public class SteamService
     private const string SteamApiKey = "F4CAED645F0A7B3087195DDD23F74BA0";
     private readonly Dictionary<string, List<(DateTime time, double total)>> _accountSnapshots = new();
 
-    // ── Rate Limiter: 1 req/5s = ~12 req/min (Steam Market safe limit) ──────
+    // ── Rate Limiter: 1 req/5s ──────────────────────────────────────────
     private readonly SemaphoreSlim _marketSemaphore = new SemaphoreSlim(1, 1);
     private DateTime _lastMarketRequestUtc = DateTime.MinValue;
-    private readonly TimeSpan _marketRequestInterval = TimeSpan.FromSeconds(5); // safe floor: 1 req/5s
+    private readonly TimeSpan _marketRequestInterval = TimeSpan.FromSeconds(5);
 
-    // ── Inventory fetch semaphore: evita múltiplos fetches simultâneos ───────
+    // ── Inventory fetch semaphore ─────────────────────────────────────────
     private readonly SemaphoreSlim _inventorySemaphore = new SemaphoreSlim(1, 1);
 
-    // ── Circuit Breaker ──────────────────────────────────────────────────────
+    // ── Circuit Breaker ──────────────────────────────────────────────────
     private int _consecutiveMarket429s = 0;
     private DateTime _circuitOpenUntil = DateTime.MinValue;
-    private readonly TimeSpan _circuitCooldown = TimeSpan.FromSeconds(120); // 2min cooldown
+    private readonly TimeSpan _circuitCooldown = TimeSpan.FromSeconds(120);
 
     public SteamService(HttpClient httpClient, IMemoryCache cache)
     {
@@ -37,7 +36,7 @@ public class SteamService
         _httpClient.DefaultRequestHeaders.Add("Origin", "https://steamcommunity.com");
     }
 
-    // ─── HTTP Helper ───────────────────────────────────────────────────────────
+    // ─── HTTP Helper ────────────────────────────────────────────────────────
     private async Task<HttpResponseMessage> GetAsync(string url, int retries = 3, bool useInventoryHeaders = false)
     {
         for (int i = 0; i <= retries; i++)
@@ -51,7 +50,6 @@ public class SteamService
                     request.Headers.Referrer = new Uri("https://steamcommunity.com/");
                 }
                 var resp = await _httpClient.SendAsync(request);
-
                 if (resp.StatusCode == HttpStatusCode.TooManyRequests && i < retries)
                 {
                     var waitSecs = GetRetryAfterSeconds(resp);
@@ -93,7 +91,7 @@ public class SteamService
         return 0;
     }
 
-    // ─── SteamID Resolution ────────────────────────────────────────────────────
+    // ─── SteamID Resolution ──────────────────────────────────────────────────
     public async Task<string> ResolveSteamIdAsync(string profileUrl, Func<int, string, Task>? progress = null)
     {
         if (progress != null) await progress(0, "Resolvendo SteamID...");
@@ -122,7 +120,7 @@ public class SteamService
         throw new ArgumentException("Não foi possível resolver o SteamID para: " + vanity);
     }
 
-    // ─── Player Summaries ──────────────────────────────────────────────────────
+    // ─── Player Summaries ────────────────────────────────────────────────────
     public async Task<JsonElement?> GetPlayerSummariesAsync(string steamIds)
     {
         var chunks = steamIds.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).Chunk(100).ToList();
@@ -145,7 +143,7 @@ public class SteamService
             {
                 var doc = JsonSerializer.Deserialize<JsonElement>(json);
                 _cache.Set(key, doc, TimeSpan.FromMinutes(10));
-                if (doc.TryGetProperty("response", out var r) && r.TryGetProperty("players", out var players))
+                if (doc.TryGetProperty("response", out var rr) && rr.TryGetProperty("players", out var players))
                     allPlayers.AddRange(players.EnumerateArray());
             }
             catch { }
@@ -186,7 +184,6 @@ public class SteamService
     }
 
     // ─── App Details ─────────────────────────────────────────────────────────
-    // Bounded concurrency for store API (more lenient than market)
     private readonly SemaphoreSlim _storeSem = new SemaphoreSlim(8, 8);
 
     public async Task<(double price, string imageUrl, string genre, string developer, int metacritic)> GetAppDetailsAsync(int appId)
@@ -197,11 +194,10 @@ public class SteamService
         await _storeSem.WaitAsync();
         try
         {
-            // double-check after acquiring
             if (_cache.TryGetValue(key, out cached)) return cached;
 
             var resp = await GetAsync($"https://store.steampowered.com/api/appdetails?appids={appId}&cc=br&l=pt&filters=price_overview,header_image,genres,developers,metacritic");
-            await Task.Delay(100); // gentle pacing
+            await Task.Delay(100);
 
             if (!resp.IsSuccessStatusCode) return DefaultAppDetails(appId);
 
@@ -250,8 +246,6 @@ public class SteamService
         => (0, $"https://cdn.akamai.steamstatic.com/steam/apps/{appId}/header.jpg", "", "", 0);
 
     // ─── Market Price — FIXED rate limiter with circuit breaker ──────────────
-    // Steam Community Market: max ~20 req/min. We do 1 req/3s = 20/min.
-    // After 5 consecutive 429s → open circuit for 60s before retrying.
     public async Task<double> GetMarketPriceAsync(string name, int appId)
     {
         var key = $"mp:{appId}:{name}";
@@ -520,9 +514,7 @@ public class SteamService
     public Task<List<InventoryItem>> GetInventoryQuickAsync(string steamId, int appId)
         => FetchInventoryItemsAsync(steamId, appId);
 
-    // ─── Calculate Inventory Value — FIXED: skip pricing if too many items ────
-    // Items > 120 unique: do partial pricing (top by name alphabetically).
-    // This prevents the 60% stall caused by hundreds of sequential market calls.
+    // ─── Calculate Inventory Value ────────────────────────────────────────────
     public async Task<(double total, List<InventoryItem> items)> CalculateInventoryValueAsync(
         string steamId, int appId, string gameName, Func<int, string, Task>? progress = null)
     {
@@ -582,8 +574,7 @@ public class SteamService
         return (totalValue, pricedItems);
     }
 
-    // ─── Calculate All Inventories — SEQUENCIAL para não causar 429 ───────────
-    // Nome mantido por compatibilidade com o Hub, mas execução é sequencial.
+    // ─── Calculate All Inventories (Sequential) ───────────────────────────────
     public async Task<(double total, Dictionary<int, List<InventoryItem>> byApp)> CalculateAllInventoriesParallelAsync(
         string steamId, Func<int, string, Task>? progress = null)
     {
@@ -644,7 +635,7 @@ public class SteamService
         catch { return new(); }
     }
 
-    // ─── Recently Played ─────────────────────────────────────────────────────
+    // ─── Recently Played ──────────────────────────────────────────────────────
     public async Task<List<Game>> GetRecentlyPlayedGamesAsync(string steamId, int count = 10)
     {
         var key = $"recent:{steamId}:{count}";
@@ -674,7 +665,7 @@ public class SteamService
         catch { return new(); }
     }
 
-    // ─── Achievements ────────────────────────────────────────────────────────
+    // ─── Achievements ─────────────────────────────────────────────────────────
     public async Task<(int total, int unlocked, double percent, List<AchievementInfo> achievements)> GetPlayerAchievementsAsync(string steamId, int appId)
     {
         var resp = await GetAsync($"https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key={SteamApiKey}&steamid={steamId}&appid={appId}&l=portuguese");
@@ -707,7 +698,7 @@ public class SteamService
         catch { return (0, 0, 0, new()); }
     }
 
-    // ─── Game Schema — ícones de conquistas via GetSchemaForGame ─────────────
+    // ─── Game Schema Icons ────────────────────────────────────────────────────
     public async Task<Dictionary<string, string>> GetGameSchemaIconsAsync(int appId)
     {
         var key = $"schema:{appId}";
@@ -737,7 +728,6 @@ public class SteamService
         catch { return new(); }
     }
 
-    // ─── Achievements + ícones (jogo único) ──────────────────────────────────
     public async Task<(int total, int unlocked, double percent, List<AchievementInfo> achievements)> GetPlayerAchievementsWithIconsAsync(string steamId, int appId)
     {
         var achTask = GetPlayerAchievementsAsync(steamId, appId);
@@ -752,19 +742,18 @@ public class SteamService
         return (total, unlocked, pct, list);
     }
 
-    // ─── Conquistas de TODOS os jogos do usuário ──────────────────────────────
+    // ─── All Games Achievements ───────────────────────────────────────────────
     public async Task<List<(int appId, string appName, string appIcon, int total, int unlocked, double percent, List<AchievementInfo> achievements)>>
         GetAllGamesAchievementsAsync(string steamId, Func<int, string, Task>? progress = null)
     {
         var games = await GetOwnedGamesAsync(steamId);
-        // Apenas jogos com tempo de jogo > 0 — os sem playtime quase nunca têm conquistas
         var candidates = games.Where(g => g.PlaytimeMinutes > 0)
                               .OrderByDescending(g => g.PlaytimeMinutes)
                               .ToList();
 
         var results = new System.Collections.Concurrent.ConcurrentBag<(int, string, string, int, int, double, List<AchievementInfo>)>();
         int done = 0;
-        var sem = new SemaphoreSlim(3, 3); // máximo 3 chamadas paralelas (Steam API tolera bem)
+        var sem = new SemaphoreSlim(3, 3);
 
         var tasks = candidates.Select(async g =>
         {
@@ -775,7 +764,7 @@ public class SteamService
                 if (total > 0)
                     results.Add((g.AppId, g.Name, g.IconUrl, total, unlocked, pct, list));
             }
-            catch { /* jogo sem conquistas ou privado — ignora */ }
+            catch { }
             finally
             {
                 sem.Release();
@@ -789,14 +778,13 @@ public class SteamService
 
         await Task.WhenAll(tasks);
 
-        // Ordena por mais desbloqueadas primeiro
         return results
-            .OrderByDescending(r => r.Item5)   // unlocked desc
-            .ThenByDescending(r => r.Item4)    // total desc
+            .OrderByDescending(r => r.Item5)
+            .ThenByDescending(r => r.Item4)
             .ToList();
     }
 
-    // ─── Steam Level ─────────────────────────────────────────────────────────
+    // ─── Steam Level ──────────────────────────────────────────────────────────
     public async Task<int> GetSteamLevelAsync(string steamId)
     {
         var key = $"lvl:{steamId}";
@@ -813,7 +801,7 @@ public class SteamService
         catch { return 0; }
     }
 
-    // ─── Badges ──────────────────────────────────────────────────────────────
+    // ─── Badges ───────────────────────────────────────────────────────────────
     public async Task<List<Badge>> GetBadgesAsync(string steamId)
     {
         var key = $"badges:{steamId}";
@@ -840,7 +828,7 @@ public class SteamService
         catch { return new(); }
     }
 
-    // ─── Player Bans ────────────────────────────────────────────────────────
+    // ─── Player Bans ─────────────────────────────────────────────────────────
     public async Task<PlayerBans?> GetPlayerBansAsync(string steamId)
     {
         var key = $"bans:{steamId}";
@@ -868,7 +856,7 @@ public class SteamService
         catch { return null; }
     }
 
-    // ─── Wishlist ───────────────────────────────────────────────────────────
+    // ─── Wishlist ─────────────────────────────────────────────────────────────
     public async Task<List<WishlistItem>> GetWishlistAsync(string steamId)
     {
         var key = $"wish:{steamId}";
@@ -901,7 +889,7 @@ public class SteamService
         catch { return new(); }
     }
 
-    // ─── User Stats ─────────────────────────────────────────────────────────
+    // ─── User Stats ───────────────────────────────────────────────────────────
     public async Task<Dictionary<string, double>> GetUserStatsForGameAsync(string steamId, int appId)
     {
         var key = $"stats:{steamId}:{appId}";
@@ -922,7 +910,7 @@ public class SteamService
         catch { return new(); }
     }
 
-    // ─── Current Players ────────────────────────────────────────────────────
+    // ─── Current Players ─────────────────────────────────────────────────────
     public async Task<int> GetNumberOfCurrentPlayersAsync(int appId)
     {
         var key = $"players:{appId}";
@@ -939,7 +927,7 @@ public class SteamService
         catch { return 0; }
     }
 
-    // ─── Market Listings ────────────────────────────────────────────────────
+    // ─── Market Listings ─────────────────────────────────────────────────────
     public async Task<List<MarketListing>> GetMarketListingsAsync(int appId, string marketHashName, int count = 10)
     {
         var key = $"mlist:{appId}:{marketHashName}:{count}";
@@ -971,7 +959,7 @@ public class SteamService
         catch { return new(); }
     }
 
-    // ─── User Groups ────────────────────────────────────────────────────────
+    // ─── User Groups ─────────────────────────────────────────────────────────
     public async Task<List<SteamGroup>> GetUserGroupsAsync(string steamId)
     {
         var key = $"groups:{steamId}";
@@ -992,7 +980,7 @@ public class SteamService
         catch { return new(); }
     }
 
-    // ─── Playtime Analytics ──────────────────────────────────────────────────
+    // ─── Playtime Analytics ───────────────────────────────────────────────────
     public async Task<PlaytimeAnalytics> GetPlaytimeAnalyticsAsync(string steamId)
     {
         var games = await GetOwnedGamesAsync(steamId);
@@ -1066,7 +1054,7 @@ public class SteamService
         return (games.Count, total);
     }
 
-    // ─── Playtime ROI ────────────────────────────────────────────────────────
+    // ─── Playtime ROI ─────────────────────────────────────────────────────────
     public async Task<List<PlaytimeROI>> GetPlaytimeROIAsync(string steamId)
     {
         var key = $"roi:{steamId}";
@@ -1200,7 +1188,7 @@ public class SteamService
         return results.OrderByDescending(e => e.TotalHours).ToList();
     }
 
-    // ─── Trade Tracker ───────────────────────────────────────────────────────
+    // ─── Trade Tracker ────────────────────────────────────────────────────────
     public async Task<List<TradeTrackerItem>> GetTradeTrackerAsync(string steamId, int appId)
     {
         var (_, items) = await CalculateInventoryValueAsync(steamId, appId, "");
@@ -1262,7 +1250,7 @@ public class SteamService
             .ToList();
     }
 
-    // ─── Profile Comparison ──────────────────────────────────────────────────
+    // ─── Profile Comparison ───────────────────────────────────────────────────
     public async Task<ProfileComparison> CompareProfilesAsync(string steamId1, string steamId2)
     {
         var games1Task = GetOwnedGamesAsync(steamId1);
@@ -1305,12 +1293,9 @@ public class SteamService
         };
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // ─── NEW FEATURE #1: Perfil DNA — Gamer Identity Score ──────────────────
-    // Analisa o perfil e gera uma "identidade gamer" baseada em dados reais:
-    // jogos mais jogados, horários de uso, diversidade de gêneros, agressividade
-    // em conquistas e mais. Não existe em nenhum outro tracker incluindo SteamDB.
-    // ════════════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════════════════
+    // ─── FEATURE #1: Gamer DNA ─────────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════════════════
     public async Task<GamerDna> GetGamerDnaAsync(string steamId)
     {
         var key = $"dna:{steamId}";
@@ -1338,7 +1323,6 @@ public class SteamService
             ? (topGame.PlaytimeMinutes / 60.0) / totalHours * 100.0 : 0;
         double playedPercent = games.Count > 0 ? played.Count * 100.0 / games.Count : 0;
         double recentActivity = recent.Sum(g => g.Playtime2WeeksMinutes) / 60.0;
-
         // Calculate genre diversity from recently played/top games
         // (full genre would require appdetails calls — we do it based on name heuristics)
         double diversityScore = Math.Min(100, played.Count * 2.5); // heuristic
@@ -1398,12 +1382,9 @@ public class SteamService
         return "Casual Explorer";
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // ─── NEW FEATURE #2: Sleep Schedule Detector ────────────────────────────
-    // Analisa os horários de última atividade dos amigos para detectar padrões
-    // de jogo (horário favorito, fuso horário estimado, noturno vs diurno).
-    // 100% baseado em dados da Steam API. Não existe no SteamDB nem no Steam.
-    // ════════════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════════════════
+    // ─── FEATURE #2: Friend Activity Patterns (Sleep Schedule Detector) ─────────
+    // ════════════════════════════════════════════════════════════════════════════
     public async Task<List<FriendActivityPattern>> GetFriendActivityPatternsAsync(string steamId)
     {
         var key = $"patterns:{steamId}";
@@ -1452,12 +1433,9 @@ public class SteamService
         return result;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // ─── NEW FEATURE #3: Wishlist Value Tracker ──────────────────────────────
-    // Calcula o valor total da wishlist, detecta jogos em promoção, e estima
-    // quando cada jogo provavelmente entrará em desconto baseado em histórico.
-    // Inclui prioridade da wishlist e data de adição. Único no mercado.
-    // ════════════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════════════════
+    // ─── FEATURE #3: Wishlist Value Tracker ──────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════════════════
     public async Task<WishlistAnalysis> GetWishlistAnalysisAsync(string steamId)
     {
         var key = $"wishanalysis:{steamId}";
@@ -1466,7 +1444,6 @@ public class SteamService
         var wishlist = await GetWishlistAsync(steamId);
         if (!wishlist.Any()) return new WishlistAnalysis { SteamId = steamId };
 
-        // Fetch prices for top 30 wishlist items
         var toFetch = wishlist.Take(30).ToList();
         var sem = new SemaphoreSlim(8);
         var pricedItems = await Task.WhenAll(toFetch.Select(async w =>
@@ -1486,7 +1463,6 @@ public class SteamService
                     Genre = genre,
                     Developer = dev,
                     MetacriticScore = meta,
-                    // Estimate sale probability: games >6mo old with no price change often go on sale
                     SaleProbability = EstimateSaleProbability(w.Added, price, meta)
                 };
             }
@@ -1515,17 +1491,325 @@ public class SteamService
     }
 
     private static int EstimateSaleProbability(long addedUnix, double price, int metacritic)
-    {
+   {
         if (addedUnix == 0 || price == 0) return 0;
         var added = DateTimeOffset.FromUnixTimeSeconds(addedUnix).DateTime;
         int monthsOld = (int)(DateTime.UtcNow - added).TotalDays / 30;
         int prob = 0;
         if (monthsOld > 12) prob += 40;
         else if (monthsOld > 6) prob += 20;
-        if (price > 50) prob += 20;    // expensive games are more likely to be discounted
-        if (metacritic > 80) prob += 15; // popular games get frequent sales
-        if (price > 0 && price < 20) prob += 10; // indie games go on sale often
+        if (price > 50) prob += 20;
+        if (metacritic > 80) prob += 15;
+        if (price > 0 && price < 20) prob += 10;
         return Math.Min(95, prob);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // ─── NEW FEATURE #4: Free Games Today (Steam Store promotions) ──────────────
+    // Busca jogos que estão completamente gratuitos AGORA na Steam Store.
+    // Combina jogos base free-to-play com promoções de 100% desconto.
+    // Impossível de ver facilmente no Steam, não existe no SteamDB.
+    // ════════════════════════════════════════════════════════════════════════════
+    public async Task<List<FreeGameEntry>> GetFreeGamesTodayAsync()
+    {
+        var key = "freegames:today";
+        if (_cache.TryGetValue(key, out List<FreeGameEntry> cached)) return cached;
+
+        var results = new List<FreeGameEntry>();
+        try
+        {
+            // Search Steam Store for currently free games (price=0, type=game)
+            var url = "https://store.steampowered.com/api/featuredcategories/?cc=br&l=pt";
+            var resp = await GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                var json = await resp.Content.ReadAsStringAsync();
+                var doc = JsonSerializer.Deserialize<JsonElement>(json);
+
+                // Check specials/featured for 100% discount
+                if (doc.TryGetProperty("specials", out var specials) &&
+                    specials.TryGetProperty("items", out var items))
+                {
+                    foreach (var item in items.EnumerateArray())
+                    {
+                        if (!item.TryGetProperty("discountpct", out var disc) || disc.GetInt32() != 100) continue;
+                        if (!item.TryGetProperty("id", out var appIdEl)) continue;
+                        int appId = appIdEl.GetInt32();
+                        string name = item.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                        string img = item.TryGetProperty("large_capsule_image", out var li) ? li.GetString() ?? "" :
+                                     item.TryGetProperty("header_image", out var hi) ? hi.GetString() ?? "" :
+                                     $"https://cdn.akamai.steamstatic.com/steam/apps/{appId}/header.jpg";
+                        results.Add(new FreeGameEntry
+                        {
+                            AppId = appId,
+                            Name = name,
+                            ImageUrl = img,
+                            OriginalPrice = item.TryGetProperty("original_price", out var op) ? op.GetDouble() / 100.0 : 0,
+                            FinalPrice = 0,
+                            DiscountPercent = 100,
+                            IsFreeToPlay = false,
+                            EndDate = "",
+                            Type = "Promoção 100%"
+                        });
+                    }
+                }
+            }
+
+            // Also fetch known free-to-play games that are currently active
+            var f2pUrl = "https://store.steampowered.com/search/results/?query&start=0&count=20&dynamic_data=&sort_by=_ASC&snr=1_7_7_230_7&filter=free&infinite=1&cc=br&l=pt";
+            var f2pResp = await GetAsync(f2pUrl);
+            if (f2pResp.IsSuccessStatusCode)
+            {
+                var f2pJson = await f2pResp.Content.ReadAsStringAsync();
+                var f2pDoc = JsonSerializer.Deserialize<JsonElement>(f2pJson);
+                if (f2pDoc.TryGetProperty("results_html", out var html))
+                {
+                    // Parse app IDs from HTML
+                    var htmlStr = html.GetString() ?? "";
+                    var matches = Regex.Matches(htmlStr, @"data-ds-appid=""(\d+)""");
+                    var processedIds = results.Select(r => r.AppId).ToHashSet();
+
+                    foreach (Match m in matches.Take(10))
+                    {
+                        if (!int.TryParse(m.Groups[1].Value, out int appId) || processedIds.Contains(appId)) continue;
+                        processedIds.Add(appId);
+                        results.Add(new FreeGameEntry
+                        {
+                            AppId = appId,
+                            Name = "",
+                            ImageUrl = $"https://cdn.akamai.steamstatic.com/steam/apps/{appId}/header.jpg",
+                            OriginalPrice = 0,
+                            FinalPrice = 0,
+                            DiscountPercent = 100,
+                            IsFreeToPlay = true,
+                            EndDate = "",
+                            Type = "Free to Play"
+                        });
+                    }
+                }
+            }
+
+            // Get details for entries missing names
+            var sem = new SemaphoreSlim(5, 5);
+            var enrichTasks = results.Where(r => string.IsNullOrEmpty(r.Name)).Select(async entry =>
+            {
+                await sem.WaitAsync();
+                try
+                {
+                    var (_, img, genre, dev, meta) = await GetAppDetailsAsync(entry.AppId);
+                    if (!string.IsNullOrEmpty(img)) entry.ImageUrl = img;
+                }
+                finally { sem.Release(); }
+            }).ToList();
+            await Task.WhenAll(enrichTasks);
+
+            results = results.Where(r => !string.IsNullOrEmpty(r.Name) || r.AppId > 0)
+                             .DistinctBy(r => r.AppId)
+                             .Take(30).ToList();
+
+            _cache.Set(key, results, TimeSpan.FromHours(2));
+        }
+        catch { }
+        return results;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // ─── NEW FEATURE #5: Steam News Feed (per game or global) ──────────────────
+    // Retorna as últimas notícias/atualizações dos jogos mais jogados do usuário.
+    // Steam tem uma API pública GetNewsForApp que NUNCA é exibida de forma agregada.
+    // Isso é 100% exclusivo — nem SteamDB nem o próprio cliente Steam fazem isso.
+    // ════════════════════════════════════════════════════════════════════════════
+    public async Task<List<GameNewsEntry>> GetRecentGameNewsAsync(string steamId, int maxGames = 5)
+    {
+        var key = $"news:{steamId}:{maxGames}";
+        if (_cache.TryGetValue(key, out List<GameNewsEntry> nc)) return nc;
+
+        var games = await GetOwnedGamesAsync(steamId);
+        var topGames = games.Where(g => g.PlaytimeMinutes > 0)
+                            .OrderByDescending(g => g.PlaytimeMinutes)
+                            .Take(maxGames).ToList();
+
+        var allNews = new List<GameNewsEntry>();
+        var sem = new SemaphoreSlim(3, 3);
+
+        var tasks = topGames.Select(async g =>
+        {
+            await sem.WaitAsync();
+            try
+            {
+                var resp = await GetAsync($"https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid={g.AppId}&count=3&maxlength=300&format=json");
+                if (!resp.IsSuccessStatusCode) return;
+                var doc = JsonSerializer.Deserialize<JsonElement>(await resp.Content.ReadAsStringAsync());
+                if (!doc.TryGetProperty("appnews", out var an) || !an.TryGetProperty("newsitems", out var items)) return;
+                foreach (var item in items.EnumerateArray().Take(3))
+                {
+                    allNews.Add(new GameNewsEntry
+                    {
+                        AppId = g.AppId,
+                        GameName = g.Name,
+                        GameImage = string.IsNullOrEmpty(g.IconUrl)
+                            ? $"https://cdn.akamai.steamstatic.com/steam/apps/{g.AppId}/capsule_sm_120.jpg"
+                            : g.IconUrl,
+                        Title = item.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "",
+                        Url = item.TryGetProperty("url", out var u) ? u.GetString() ?? "" : "",
+                        Author = item.TryGetProperty("author", out var au) ? au.GetString() ?? "" : "",
+                        Contents = item.TryGetProperty("contents", out var c) ? StripHtml(c.GetString() ?? "")[..Math.Min(200, StripHtml(c.GetString() ?? "").Length)] : "",
+                        Date = item.TryGetProperty("date", out var d) ? d.GetInt64() : 0,
+                        FeedName = item.TryGetProperty("feedname", out var fn) ? fn.GetString() ?? "" : ""
+                    });
+                }
+            }
+            finally { sem.Release(); }
+        }).ToList();
+
+        await Task.WhenAll(tasks);
+
+        var result = allNews.OrderByDescending(n => n.Date).Take(20).ToList();
+        _cache.Set(key, result, TimeSpan.FromMinutes(30));
+        return result;
+    }
+
+    private static string StripHtml(string html)
+    {
+        if (string.IsNullOrEmpty(html)) return "";
+        html = Regex.Replace(html, @"<[^>]*>", " ");
+        html = Regex.Replace(html, @"\{[^}]*\}", "");
+        html = Regex.Replace(html, @"\s+", " ");
+        return html.Trim();
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // ─── NEW FEATURE #6: Backlog Analyzer — Jogos nunca jogados com valor ────────
+    // Analisa jogos na biblioteca que NUNCA foram jogados, calcula o "backlog debt"
+    // (dinheiro gasto em jogos não jogados), sugere quais jogar primeiro baseado
+    // em Metacritic e preço pago. Funcionalidade única — não existe em nenhuma ferramenta.
+    // ════════════════════════════════════════════════════════════════════════════
+    public async Task<BacklogAnalysis> GetBacklogAnalysisAsync(string steamId)
+    {
+        var key = $"backlog:{steamId}";
+        if (_cache.TryGetValue(key, out BacklogAnalysis? cb) && cb != null) return cb;
+
+        var games = await GetOwnedGamesAsync(steamId);
+        var unplayed = games.Where(g => g.PlaytimeMinutes == 0).ToList();
+        if (!unplayed.Any())
+            return new BacklogAnalysis { SteamId = steamId, TotalUnplayed = 0 };
+
+        var sem = new SemaphoreSlim(8, 8);
+        var enriched = await Task.WhenAll(unplayed.Take(100).Select(async g =>
+        {
+            await sem.WaitAsync();
+            try
+            {
+                var (price, img, genre, dev, meta) = await GetAppDetailsAsync(g.AppId);
+                return new BacklogGame
+                {
+                    AppId = g.AppId,
+                    Name = g.Name,
+                    ImageUrl = string.IsNullOrEmpty(img) ? $"https://cdn.akamai.steamstatic.com/steam/apps/{g.AppId}/header.jpg" : img,
+                    Price = price,
+                    Genre = genre,
+                    MetacriticScore = meta,
+                    Developer = dev,
+                    // Priority score: higher metacritic + higher price = more worth playing
+                    PriorityScore = Math.Round((meta * 0.7) + (Math.Min(price, 100) * 0.3), 1)
+                };
+            }
+            catch { return new BacklogGame { AppId = g.AppId, Name = g.Name, ImageUrl = $"https://cdn.akamai.steamstatic.com/steam/apps/{g.AppId}/header.jpg" }; }
+            finally { sem.Release(); }
+        }));
+
+        var validGames = enriched.Where(g => g != null).ToList()!;
+        double totalDebt = validGames.Sum(g => g.Price);
+        var topPriority = validGames.OrderByDescending(g => g.PriorityScore).Take(20).ToList();
+        var byGenre = validGames.Where(g => !string.IsNullOrEmpty(g.Genre))
+                                .GroupBy(g => g.Genre.Split(',')[0].Trim())
+                                .OrderByDescending(g => g.Count())
+                                .Take(5)
+                                .Select(g => new GenreCount { Genre = g.Key, Count = g.Count() })
+                                .ToList();
+
+        var result = new BacklogAnalysis
+        {
+            SteamId = steamId,
+            TotalUnplayed = unplayed.Count,
+            TotalAnalyzed = validGames.Count,
+            BacklogDebt = Math.Round(totalDebt, 2),
+            AveragePriceUnplayed = validGames.Any() ? Math.Round(totalDebt / validGames.Count(g => g.Price > 0), 2) : 0,
+            TopPriorityGames = topPriority,
+            GenreBreakdown = byGenre
+        };
+
+        _cache.Set(key, result, TimeSpan.FromHours(4));
+        return result;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // ─── NEW FEATURE #7: Steam Curator Picks — Top jogos na faixa de preço ──────
+    // Descobre os jogos mais bem avaliados que o usuário NÃO possui, dentro de
+    // uma faixa de preço definida. Usa dados reais do Steam Store Search API.
+    // Perfeito para recomendar compras — nunca visto em outro tracker.
+    // ════════════════════════════════════════════════════════════════════════════
+    public async Task<List<StoreRecommendation>> GetTopRatedUnownedGamesAsync(string steamId, double maxPrice = 50)
+    {
+        var key = $"trop:{steamId}:{maxPrice}";
+        if (_cache.TryGetValue(key, out List<StoreRecommendation> cr)) return cr;
+
+        try
+        {
+            var ownedGames = await GetOwnedGamesAsync(steamId);
+            var ownedIds = ownedGames.Select(g => g.AppId).ToHashSet();
+
+            // Use Steam Store search sorted by review score with price filter
+            var url = $"https://store.steampowered.com/api/storesearch/?term=&l=pt&cc=br&category1=998&sort_by=Reviews&filter=topsellers&count=30";
+            var resp = await GetAsync(url);
+            if (!resp.IsSuccessStatusCode) return new();
+
+            var doc = JsonSerializer.Deserialize<JsonElement>(await resp.Content.ReadAsStringAsync());
+            var results = new List<StoreRecommendation>();
+
+            if (!doc.TryGetProperty("items", out var items)) return new();
+
+            foreach (var item in items.EnumerateArray().Take(30))
+            {
+                if (!item.TryGetProperty("id", out var idEl)) continue;
+                int appId = idEl.GetInt32();
+                if (ownedIds.Contains(appId)) continue;
+
+                double price = 0;
+                if (item.TryGetProperty("price", out var priceEl))
+                {
+                    if (priceEl.TryGetProperty("final", out var final)) price = final.GetDouble() / 100.0;
+                }
+
+                if (price > maxPrice && maxPrice > 0) continue;
+
+                string name = item.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                string img = item.TryGetProperty("tiny_image", out var ti) ? ti.GetString() ?? "" :
+                             $"https://cdn.akamai.steamstatic.com/steam/apps/{appId}/header.jpg";
+
+                int metacritic = 0;
+                if (item.TryGetProperty("metascore", out var ms) && ms.ValueKind == JsonValueKind.Number)
+                    metacritic = ms.GetInt32();
+
+                double reviewScore = 0;
+                if (item.TryGetProperty("review_score", out var rs)) reviewScore = rs.GetDouble();
+
+                results.Add(new StoreRecommendation
+                {
+                    AppId = appId,
+                    Name = name,
+                    ImageUrl = img,
+                    Price = price,
+                    MetacriticScore = metacritic,
+                    ReviewScore = reviewScore,
+                    IsFree = price == 0
+                });
+            }
+
+            _cache.Set(key, results.Take(15).ToList(), TimeSpan.FromHours(3));
+            return results.Take(15).ToList();
+        }
+        catch { return new(); }
     }
 
     // ─── Snapshots ────────────────────────────────────────────────────────────
@@ -1616,7 +1900,7 @@ public class AchievementInfo
     public string Description { get; set; } = "";
     public bool Achieved { get; set; }
     public long UnlockTime { get; set; }
-    public string IconUrl { get; set; } = ""; // ícone real da Steam (GetSchemaForGame)
+    public string IconUrl { get; set; } = "";
 }
 
 public class GlobalStat
@@ -1718,7 +2002,6 @@ public class CountryEntry
     public int Count { get; set; }
 }
 
-// ─── NEW Feature Models ────────────────────────────────────────────────────
 public class GamerDna
 {
     public string SteamId { get; set; } = "";
@@ -1776,4 +2059,71 @@ public class WishlistAnalysis
     public double TotalPriorityPrice { get; set; }
     public List<WishlistItemAnalyzed> LikelySaleItems { get; set; } = new();
     public List<WishlistItemAnalyzed> Items { get; set; } = new();
+}
+
+// ─── NEW Feature Models ────────────────────────────────────────────────────────
+public class FreeGameEntry
+{
+    public int AppId { get; set; }
+    public string Name { get; set; } = "";
+    public string ImageUrl { get; set; } = "";
+    public double OriginalPrice { get; set; }
+    public double FinalPrice { get; set; }
+    public int DiscountPercent { get; set; }
+    public bool IsFreeToPlay { get; set; }
+    public string EndDate { get; set; } = "";
+    public string Type { get; set; } = "";
+}
+
+public class GameNewsEntry
+{
+    public int AppId { get; set; }
+    public string GameName { get; set; } = "";
+    public string GameImage { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Url { get; set; } = "";
+    public string Author { get; set; } = "";
+    public string Contents { get; set; } = "";
+    public long Date { get; set; }
+    public string FeedName { get; set; } = "";
+}
+
+public class BacklogGame
+{
+    public int AppId { get; set; }
+    public string Name { get; set; } = "";
+    public string ImageUrl { get; set; } = "";
+    public double Price { get; set; }
+    public string Genre { get; set; } = "";
+    public int MetacriticScore { get; set; }
+    public string Developer { get; set; } = "";
+    public double PriorityScore { get; set; }
+}
+
+public class GenreCount
+{
+    public string Genre { get; set; } = "";
+    public int Count { get; set; }
+}
+
+public class BacklogAnalysis
+{
+    public string SteamId { get; set; } = "";
+    public int TotalUnplayed { get; set; }
+    public int TotalAnalyzed { get; set; }
+    public double BacklogDebt { get; set; }
+    public double AveragePriceUnplayed { get; set; }
+    public List<BacklogGame> TopPriorityGames { get; set; } = new();
+    public List<GenreCount> GenreBreakdown { get; set; } = new();
+}
+
+public class StoreRecommendation
+{
+    public int AppId { get; set; }
+    public string Name { get; set; } = "";
+    public string ImageUrl { get; set; } = "";
+    public double Price { get; set; }
+    public int MetacriticScore { get; set; }
+    public double ReviewScore { get; set; }
+    public bool IsFree { get; set; }
 }
